@@ -744,16 +744,6 @@ textarea.fis-input {
     background: #2b5236;
 }
 
-.fis-botao.fis-botao-sec {
-    color: #b91c1c;
-    background: white;
-    border-color: #fca5a5;
-}
-
-.fis-botao.fis-botao-sec:hover:not(:disabled) {
-    background: #fef2f2;
-}
-
 .fis-botao:disabled {
     cursor: not-allowed;
     opacity: 0.45;
@@ -821,6 +811,142 @@ textarea.fis-input {
     background: white;
     border: 1px solid #dfe6e2;
     border-radius: 8px;
+}
+
+/* Certificado digital A1 no cartão da empresa */
+.fis-cert {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px dashed #dfe6e2;
+}
+
+.fis-cert-topo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+.fis-cert-topo .fis-cert-remover {
+    margin: 0 0 0 auto;
+    padding: 2px 8px;
+    width: auto;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #b91c1c;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.fis-cert-topo .fis-cert-remover:hover {
+    background: #fef2f2;
+}
+
+.fis-cert-resumo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 6px 14px;
+    padding: 8px 10px;
+    background: #f6f8f7;
+    border-radius: 6px;
+}
+
+.fis-cert-resumo div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.fis-cert-resumo span {
+    font-size: 0.68rem;
+    color: #6b7a71;
+}
+
+.fis-cert-resumo b {
+    overflow: hidden;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1f2a24;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.fis-cert-envio {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.fis-cert-arquivo {
+    display: flex;
+    flex: 1 1 200px;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    height: 32px;
+    padding: 0 10px;
+    font-size: 0.8rem;
+    color: #64748b;
+    cursor: pointer;
+    background: white;
+    border: 1px dashed #a9b8af;
+    border-radius: 6px;
+}
+
+.fis-cert-arquivo::before {
+    content: '📄';
+}
+
+.fis-cert-arquivo:hover {
+    border-color: #356443;
+}
+
+.fis-cert-arquivo.escolhido {
+    color: #1f2a24;
+    border-style: solid;
+    border-color: #356443;
+}
+
+.fis-cert-arquivo input {
+    display: none;
+}
+
+.fis-cert-arquivo span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.fis-cert-envio .fis-cert-senha {
+    flex: 1 1 170px;
+    width: auto;
+    height: 32px;
+}
+
+.fis-cert-envio .fis-cert-enviar {
+    flex: 0 0 auto;
+    margin: 0;
+    width: auto;
+    height: 32px;
+    padding: 0 18px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    background: #356443;
+    border: 1px solid #2b5236;
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.fis-cert-envio .fis-cert-enviar:hover {
+    background: #2b5236;
 }
 
 @media (max-width: 640px) {

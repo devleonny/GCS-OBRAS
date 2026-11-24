@@ -4442,19 +4442,28 @@ function htmlCertificadoFis(e) {
     }
     const app = escFis(e.app)
     return `
-        <div class="fis-secao" data-certificado="${app}">
-            <div class="fis-secao-topo"><b>Certificado digital A1</b> ${situacao}</div>
-            ${c ? `<small class="fis-dica">${escFis(c.titular || '')} · CNPJ ${docFormatadoFis(c.cnpj)} · emitido por ${escFis(c.emissor || '—')} · válido de ${dataBR(c.valido_de)} a ${dataBR(c.valido_ate)}<br>
-                Enviado por ${escFis(c.enviado_por || '—')} em ${new Date(c.enviado_em).toLocaleString('pt-BR')}${c.nome_arquivo ? ` (${escFis(c.nome_arquivo)})` : ''}</small>` : ''}
-            <div class="fis-grade">
-                ${campoFis(c ? 'Trocar pelo arquivo (.pfx ou .p12)' : 'Arquivo do certificado (.pfx ou .p12)', '<input class="fis-input" type="file" name="cert_arquivo" accept=".pfx,.p12,application/x-pkcs12">')}
-                ${campoFis('Senha do certificado', '<input class="fis-input" type="password" name="cert_senha" autocomplete="new-password">')}
+        <div class="fis-cert" data-certificado="${app}">
+            <div class="fis-cert-topo">
+                <b>Certificado digital A1</b> ${situacao}
+                ${c ? `<button type="button" class="fis-cert-remover" onclick="removerCertificadoFis('${app}')">Remover</button>` : ''}
             </div>
-            <small class="fis-dica">Fica guardado cifrado no servidor e serve para o GCS conferir direto no Portal Nacional e na SEFAZ as notas canceladas por fora. A emissão continua com o certificado do painel da Focus: ao renovar, envie nos dois.</small>
-            <div class="fis-acoes-claras">
-                ${c ? `<button type="button" class="fis-botao fis-botao-sec" onclick="removerCertificadoFis('${app}')">Remover</button>` : ''}
-                <button type="button" class="fis-botao" onclick="enviarCertificadoFis('${app}')">${c ? 'Trocar certificado' : 'Enviar certificado'}</button>
+            ${c ? `
+            <div class="fis-cert-resumo">
+                <div><span>Titular</span><b>${escFis(c.titular || '—')}</b></div>
+                <div><span>CNPJ</span><b>${docFormatadoFis(c.cnpj)}</b></div>
+                <div><span>Validade</span><b>${dataBR(c.valido_de)} a ${dataBR(c.valido_ate)}</b></div>
+                <div><span>Enviado</span><b>${escFis(c.enviado_por || '—')} · ${new Date(c.enviado_em).toLocaleDateString('pt-BR')}</b></div>
+            </div>` : ''}
+            <div class="fis-cert-envio">
+                <label class="fis-cert-arquivo">
+                    <input type="file" name="cert_arquivo" accept=".pfx,.p12,application/x-pkcs12"
+                        onchange="this.nextElementSibling.textContent = this.files[0]?.name || 'Escolher arquivo .pfx'; this.parentElement.classList.toggle('escolhido', !!this.files[0])">
+                    <span>Escolher arquivo .pfx</span>
+                </label>
+                <input class="fis-input fis-cert-senha" type="password" name="cert_senha" placeholder="Senha do certificado" autocomplete="new-password">
+                <button type="button" class="fis-cert-enviar" onclick="enviarCertificadoFis('${app}')">${c ? 'Trocar' : 'Enviar'}</button>
             </div>
+            <small class="fis-dica">Guardado cifrado no servidor, para o GCS conferir no Portal Nacional e na SEFAZ as notas canceladas por fora. A emissão usa o certificado do painel da Focus: ao renovar, envie nos dois.</small>
         </div>`
 }
 
