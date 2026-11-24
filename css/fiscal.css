@@ -1794,3 +1794,8 @@ button.fis-cred-ind:focus-visible { outline: 2px solid var(--cor); outline-offse
 .est-destino-opcao { display: flex; align-items: center; gap: 8px; text-align: left; padding: 8px 10px; border: 1px solid #e2e8e4; border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; }
 .est-destino-opcao:hover { background: #f0fdf4; border-color: #b7d7c2; }
 .est-destino-opcao small { margin-left: auto; color: #6b7a71; }
+.est-destino-lista .est-destino-opcao { width: 100%; margin: 0; color: #1f2a24; font-weight: 400; white-space: normal; line-height: 1.35; border-radius: 8px; }
+.est-destino-lista .est-destino-opcao b { color: #15603a; font-weight: 700; white-space: nowrap; }
+.est-destino-lista .est-destino-opcao small { flex-shrink: 0; }
+.est-destino-lista { overflow-x: hidden; }
+.est-lote-acao-linha .est-lote-destino-btn { margin: 0; }
