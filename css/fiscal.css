@@ -868,12 +868,10 @@ textarea.fis-input {
 }
 
 .fis-cert-resumo b {
-    overflow: hidden;
     font-size: 0.78rem;
     font-weight: 600;
     color: #1f2a24;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
 }
 
 .fis-cert-envio {
