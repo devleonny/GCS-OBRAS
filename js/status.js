@@ -1222,7 +1222,7 @@ async function carregarSecoesHistorico(painel) {
                         <section class="historico-secao" data-secao="${chave}" style="--cor-secao: ${cor};">
                             ${funcao
                                 ? `<button class="historico-secao-acao" style="background-color: ${cor};" onclick="${funcao}">${titulo}</button>`
-                                : `<span class="historico-secao-acao" style="background-color: ${cor}; cursor: default;">${titulo}</span>`}
+                                : `<button type="button" class="historico-secao-acao" style="background-color: ${cor}; cursor: default;" tabindex="-1">${titulo}</button>`}
                             ${tabela}
                         </section>
                     `)
