@@ -346,6 +346,7 @@ const ICONES_FIN = {
     fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
     baixar: '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>',
     raio: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+    danfe: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h5"/>',
     seta: '<path d="M10 7l5 5-5 5"/>',
     salvar: '<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9a4 4 0 0 1 0 9"/><path d="M12 12v8M9 15l3-3 3 3"/>',
     anexo: '<path d="M20.5 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/>',
@@ -852,12 +853,36 @@ function desenharPainelFin() {
         ${acao('editar', 'Editar', `formularioFaturaFin('${tipo}', '${id}')`, { ativo: !!d && !cancelada, motivo: d ? 'Fatura excluída' : nada })}
         ${acao('raio', pagar ? 'Pagar agora' : 'Receber agora', `formularioBaixaRapidaFin('${id}')`, { ativo: aberta, motivo: motivoQuitada })}
         ${acao('parcial', `${pagar ? 'Pagamento' : 'Recebimento'} parcial / com juros`, `formularioBaixaFin('${id}')`, { ativo: aberta, motivo: motivoQuitada })}
+        ${d ? `<div data-danfe-fin="${id}"></div>` : ''}
         ${d?.recorrencia_id ? `
             ${acao('repetir', 'Editar repetição', `formularioFaturaFin('${tipo}', null, '${rec}')`)}
             ${acao('encerrar', 'Encerrar repetição', `encerrarRecorrenciaFin('${rec}')`)}` : ''}
         <hr>
         ${acao('cancelar', `Cancelar ${termoFin('pagamento')}`, `cancelarPagamentosFin('${id}')`, { perigo: true, ativo: !!d && comPagamento && !cancelada, motivo: motivoCancelar })}
         ${acao('excluir', 'Excluir', `excluirFaturaFin('${id}')`, { perigo: true, ativo: !!d && lancadaAqui && !comPagamento && !cancelada, motivo: cancelada ? 'Já excluída' : motivoLancada })}`
+    if (d) mostrarDanfePainelFin(String(d.id))
+}
+
+// "Exibir DANFE" no painel: só aparece quando a fatura tem nota achada no GCS (nota que gerou a fatura, nota
+// recebida do fornecedor com o mesmo número ou, a receber, a nota emitida no Omie). Resposta guardada por fatura.
+const notaFaturaFin = new Map()
+async function mostrarDanfePainelFin(id) {
+    if (!notaFaturaFin.has(id)) {
+        try {
+            const { nota } = await apiFiscal('fatura/nota', { id })
+            notaFaturaFin.set(id, nota || null)
+        } catch {
+            return
+        }
+    }
+    const nota = notaFaturaFin.get(id)
+    const alvo = document.querySelector(`[data-danfe-fin="${CSS.escape(id)}"]`)
+    if (!alvo || !nota) return
+    const doc = nota.modelo === 'NFSE' ? 'DANFSe' : 'DANFE'
+    const texto = nota.direcao === 'ENTRADA' ? `Exibir ${doc} do fornecedor` : `Exibir ${doc}`
+    alvo.outerHTML = `
+        <button type="button" class="fin-acao" title="${escFin(`${texto}${nota.numero ? ` (nota ${nota.numero})` : ''}`)}" onclick="baixarArquivoFiscal('${escFin(id)}', 'pdf', 'fatura/danfe')">
+            ${iconeFin('danfe')}<span>${texto}</span></button>`
 }
 
 async function excluirFaturaFin(id, doFormulario = false) {
