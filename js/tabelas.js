@@ -581,7 +581,10 @@ async function paginacao(pag) {
 
         const temLoading = !!tbody.querySelector('#loading-tabela')
         const temDino = !!tbody.querySelector('#dinossauro')
-        const tabelaNaoPronta = temLoading || temDino
+        // Corpo vazio com resultados = tabela recém-montada (modTab de novo, mesma consulta de antes):
+        // sem isso a "mesma página" saía cedo e a tela abria sem as linhas (ex.: reabrir o orçamento).
+        const corpoVazio = !tbody.querySelector('tr')
+        const tabelaNaoPronta = temLoading || temDino || corpoVazio
 
         if (mesmaPagina && !tabelaNaoPronta) {
             restaurarPesquisa(pag)

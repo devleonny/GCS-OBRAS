@@ -987,103 +987,391 @@ async function respostaAprovacao(idOrcamento, status) {
 
 }
 
-function painelEdicao(tela) {
+// ---------------------------------------------------------------- Rascunhos do Criar Orçamento
+// A tela lê e grava o rascunho na cópia local (localStorage "temporario", por idEdicao) sem esperar a
+// rede; cada alteração vai para o banco (orcamentos_rascunhos, rotas /rascunhos/*) segundos depois.
+// Assim o rascunho abre em outro computador, não some ao limpar o navegador e o adm acompanha/recupera.
+// "temporario_meta" guarda, por rascunho, quando mudou e quando foi enviado (fora do orçamento: campo
+// novo no objeto iria para dados_orcamentos no salvar).
+const RASCUNHO_ESPERA_MS = 2000
+const rascunhosAgendados = new Map()
+const rascunhosEmMemoria = {} // reserva quando o localStorage enche (a cópia do banco continua valendo)
+let rascunhosLocaisConferidos = false
 
-    const listaORCS = Object.entries(JSON.parse(localStorage.getItem('temporario')) || {})
-        .map(([idEdicao, orc]) => {
+function lerTemporarioLocal() {
+    try { return JSON.parse(localStorage.getItem('temporario')) || {} } catch { return {} }
+}
 
-            const { lpu_ativa, origem } = orc || {}
+function lerMetaRascunhos() {
+    try { return JSON.parse(localStorage.getItem('temporario_meta')) || {} } catch { return {} }
+}
 
-            const vinculado = origem
-                ? `<span class="tag-cliente">Vinculado • ${origem.idOcorrencia}</span>`
-                : ''
+function gravarMetaRascunho(id, campos) {
+    const meta = lerMetaRascunhos()
+    if (campos === null) delete meta[id]
+    else meta[id] = { ...meta[id], ...campos }
+    try { localStorage.setItem('temporario_meta', JSON.stringify(meta)) } catch { }
+}
 
-            const div = `
-                <tr>
-                    <td>
-                        <button onclick="editarOrcamentoTemporario('${idEdicao}', '${lpu_ativa}')">Editar</button>
-                    </td>
-                    <td>
-                        <div style="${vertical}; gap: 2px;">
-                            <span class="tag-cliente">${orc?.dados_orcam?.contrato || 'Novo Orçamento'}</span>
-                            ${vinculado}
-                        </div>
-                    </td>
-                    <td>${dinheiro(orc?.total_geral || 0)}</td>
-                    <td>${lpu_ativa || 'LPU HOPE'}</td>
-                    <td>${new Date(orc?.timestamp || agoraServidor()).toLocaleString()}</td>
-                    <td><img src="imagens/fechar.png" onclick="removerOrcTemp(this, '${idEdicao}')"></td>
-                </tr>
-                `
+function gravarTemporarioLocal(temporario) {
+    try {
+        localStorage.setItem('temporario', JSON.stringify(temporario))
+        return true
+    } catch (erro) {
+        // Cota do navegador cheia: segue em memória e no banco (envio imediato logo abaixo).
+        console.warn('[rascunhos] localStorage cheio', erro)
+        return false
+    }
+}
 
-            return div
-        })
+async function rotaRascunhos(caminho, corpo = {}, opcoes = {}) {
+    const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
+    const resposta = await fetch(`${api}/rascunhos/${caminho}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(corpo),
+        ...opcoes
+    })
+    const dados = await resposta.json().catch(() => ({}))
+    if (!resposta.ok) throw new Error(dados.mensagem || `Falha nos rascunhos (${resposta.status})`)
+    return dados
+}
 
+function agendarEnvioRascunho(id, imediato = false) {
+    clearTimeout(rascunhosAgendados.get(id))
+    rascunhosAgendados.set(id, setTimeout(() => enviarRascunho(id), imediato ? 0 : RASCUNHO_ESPERA_MS))
+}
+
+async function enviarRascunho(id, opcoes = {}) {
+    rascunhosAgendados.delete(id)
+    const dados = rascunhosEmMemoria[id] || lerTemporarioLocal()[id]
+    if (!dados) return
+    // Tela aberta e abandonada sem item nem cliente não vira rascunho no banco (só depois do 1º envio).
+    const vazio = !Object.keys(dados.esquema_composicoes || dados.dados_composicoes || {}).length && !dados.dados_orcam
+    if (vazio && !lerMetaRascunhos()[id]?.enviado_em) return
+    const enviadoEm = Date.now()
+    try {
+        const resposta = await rotaRascunhos('salvar', { id, dados }, opcoes)
+        if (resposta.encerrado) return rascunhoEncerradoNoBanco(id, dados)
+        gravarMetaRascunho(id, { enviado_em: enviadoEm })
+    } catch (erro) {
+        // Sem rede/servidor: a cópia local fica marcada como não enviada e vai na próxima vez.
+        console.warn('[rascunhos] envio adiado', id, erro)
+    }
+}
+
+// O banco diz que o rascunho já foi salvo/descartado (ex.: em outra aba). Se é o que está aberto
+// aqui, o que foi feito nesta aba vira um rascunho novo (nada se perde); senão sai a cópia local.
+function rascunhoEncerradoNoBanco(id, dados) {
+    const temporario = lerTemporarioLocal()
+    delete temporario[id]
+    delete rascunhosEmMemoria[id]
+    gravarMetaRascunho(id, null)
+    if (sessionStorage.getItem('idEdicao') === id) {
+        const novo = crypto.randomUUID()
+        sessionStorage.setItem('idEdicao', novo)
+        temporario[novo] = dados
+        gravarMetaRascunho(novo, { alterado_em: Date.now() })
+        if (!gravarTemporarioLocal(temporario)) rascunhosEmMemoria[novo] = dados
+        agendarEnvioRascunho(novo, true)
+        return
+    }
+    gravarTemporarioLocal(temporario)
+}
+
+// Rascunhos que só existem neste navegador (de antes do banco, ou alterados sem rede) sobem uma vez
+// por página. Os já enviados e sem alteração depois disso ficam como estão.
+async function enviarRascunhosLocaisPendentes() {
+    // Versão antiga gravava o rascunho de aba sem edição aberta na chave "null": ganha id próprio e sobe.
+    const temporario = lerTemporarioLocal()
+    if (temporario.null && typeof temporario.null === 'object') {
+        temporario[crypto.randomUUID()] = temporario.null
+        delete temporario.null
+        if (sessionStorage.getItem('idEdicao') === 'null') sessionStorage.removeItem('idEdicao')
+        gravarTemporarioLocal(temporario)
+    }
+    const meta = lerMetaRascunhos()
+    const pendentes = Object.keys(lerTemporarioLocal())
+        .filter(id => id && id !== 'null' && !(meta[id]?.enviado_em >= (meta[id]?.alterado_em || 0)))
+    for (const id of pendentes) await enviarRascunho(id)
+    rascunhosLocaisConferidos = true
+}
+
+// Logo depois de abrir a página: sobe o que ficou só neste navegador (de antes do banco ou sem rede).
+setTimeout(() => {
+    if (JSON.parse(localStorage.getItem('acesso') || '{}')?.token && !rascunhosLocaisConferidos)
+        enviarRascunhosLocaisPendentes().catch(() => { })
+}, 15000)
+
+// Última tentativa ao fechar/recarregar a página (keepalive: o navegador termina o envio sozinho).
+window.addEventListener('pagehide', () => {
+    for (const [id, timer] of rascunhosAgendados) {
+        clearTimeout(timer)
+        enviarRascunho(id, { keepalive: true })
+    }
+})
+
+function encerrarRascunho(id, motivo) {
+    clearTimeout(rascunhosAgendados.get(id))
+    rascunhosAgendados.delete(id)
+    delete rascunhosEmMemoria[id]
+    gravarMetaRascunho(id, null)
+    if (!id || id === 'null') return
+    rotaRascunhos('encerrar', { id, motivo }).catch(erro => console.warn('[rascunhos] encerrar', id, erro))
+}
+
+// remover: true / 'limpo' (Apagar Orçamento, limpa a tela), 'salvo' (virou orçamento), 'descartado'.
+function baseOrcamento(orcamento, remover = false) {
+
+    const temporario = lerTemporarioLocal()
+    let idEdicao = sessionStorage.getItem('idEdicao')
+
+    // remover
+    if (remover) {
+        delete temporario[idEdicao]
+        gravarTemporarioLocal(temporario)
+        encerrarRascunho(idEdicao, typeof remover === 'string' ? remover : 'limpo')
+        // O que vier depois nesta aba (tela limpa, próximo orçamento) é outro rascunho.
+        sessionStorage.setItem('idEdicao', crypto.randomUUID())
+        return
+    }
+
+    // salvar
+    if (orcamento) {
+        // Aba sem edição aberta: o rascunho ganha id próprio (antes ia para a chave "null").
+        if (!idEdicao || idEdicao === 'null') {
+            idEdicao = crypto.randomUUID()
+            sessionStorage.setItem('idEdicao', idEdicao)
+        }
+        temporario[idEdicao] = orcamento
+        gravarMetaRascunho(idEdicao, { alterado_em: Date.now() })
+        const cabeLocal = gravarTemporarioLocal(temporario)
+        if (cabeLocal) delete rascunhosEmMemoria[idEdicao]
+        else rascunhosEmMemoria[idEdicao] = orcamento
+        agendarEnvioRascunho(idEdicao, !cabeLocal)
+        if (!rascunhosLocaisConferidos) {
+            rascunhosLocaisConferidos = true
+            enviarRascunhosLocaisPendentes()
+        }
+        return
+    }
+
+    // ler
+    // A da memória só existe quando a local não coube: é a mais nova.
+    return rascunhosEmMemoria[idEdicao] || temporario[idEdicao] || null
+}
+
+// ---------------------------------------------------------------- Painel "Orçamentos em edição"
+const painelRascunhos = { encerrados: false, todos: false, lista: [] }
+
+async function painelEdicao(tela) {
+
+    overlayAguarde()
+    let doBanco = null
+    try {
+        await enviarRascunhosLocaisPendentes()
+        doBanco = (await rotaRascunhos('listar', {})).rascunhos || []
+    } catch (erro) {
+        console.warn('[rascunhos] listar', erro)
+    } finally {
+        removerOverlay()
+    }
+
+    const locais = Object.entries(lerTemporarioLocal()).filter(([id]) => id && id !== 'null')
     const novo = crypto.randomUUID()
 
     // Se não existir orcs em edição, pode passar adiante;
-    if (!listaORCS.length)
+    if (!locais.length && !doBanco?.length)
         return editarOrcamentoTemporario(novo, tela == 1 ? MODO_LOCACAO : null)
 
-    const elemento = `
-        <div style="${vertical}; padding: 1rem;">
+    painelRascunhos.encerrados = false
+    painelRascunhos.todos = false
+    painelRascunhos.lista = montarListaRascunhos(doBanco, locais)
+    painelRascunhos.semBanco = doBanco === null
 
-            <span style="text-align: left;">
-                <b>SEUS ORÇAMENTOS EM EDIÇÃO TEMPORÁRIA</b><br>
-                Escolha um orçamento para voltar a editar ou clique para começar um novo.
+    popup({
+        titulo: 'Orçamentos em edição',
+        elemento: `<div class="fis-painel popup-consulta rascunhos-orc" id="painel-rascunhos">${htmlPainelRascunhos()}</div>`
+    })
+}
 
-                <br>
-                <br>
+// Banco + cópia local: o que está nos dois aparece uma vez; o que só está no banco veio de outro computador.
+function montarListaRascunhos(doBanco, locais = []) {
+    const porId = new Map((doBanco || []).map(r => [r.id, { ...r, local: false }]))
+    const meta = lerMetaRascunhos()
+    for (const [id, orc] of locais) {
+        const doServidor = porId.get(id)
+        const alterado = meta[id]?.alterado_em ? new Date(meta[id].alterado_em).toISOString() : null
+        porId.set(id, {
+            ...(doServidor || {}),
+            id,
+            usuario: doServidor?.usuario || acesso?.usuario,
+            contrato: orc?.dados_orcam?.contrato && orc.dados_orcam.contrato !== 'sequencial' ? orc.dados_orcam.contrato : null,
+            lpu: orc?.lpu_ativa || doServidor?.lpu,
+            total: orc?.total_geral ?? doServidor?.total,
+            itens: Object.keys(orc?.esquema_composicoes || orc?.dados_composicoes || {}).length,
+            ocorrencia: orc?.origem?.idOcorrencia || null,
+            atualizado_em: alterado || doServidor?.atualizado_em || null,
+            local: true,
+            pendente: !(meta[id]?.enviado_em >= (meta[id]?.alterado_em || 0))
+        })
+    }
+    return [...porId.values()].sort((a, b) => String(b.atualizado_em || '').localeCompare(String(a.atualizado_em || '')))
+}
 
-                <b>ATENÇÃO</b><br>
-                Se você excluir algo aqui será removida apenas a versão temporária no seu computador,<br>
-                a versão final do orçamento continuará salva no servidor.
-            </span>
+async function filtrarPainelRascunhos({ encerrados = painelRascunhos.encerrados, todos = painelRascunhos.todos } = {}) {
+    overlayAguarde()
+    try {
+        const { rascunhos = [] } = await rotaRascunhos('listar', { encerrados, todos })
+        painelRascunhos.encerrados = encerrados
+        painelRascunhos.todos = todos
+        // Em edição e só os meus: soma a cópia local (pode ter algo ainda não enviado).
+        painelRascunhos.lista = !encerrados && !todos
+            ? montarListaRascunhos(rascunhos, Object.entries(lerTemporarioLocal()).filter(([id]) => id && id !== 'null'))
+            : rascunhos.map(r => ({ ...r, local: Object.hasOwn(lerTemporarioLocal(), r.id) }))
+        painelRascunhos.semBanco = false
+    } catch (erro) {
+        return popup({ mensagem: erro.message })
+    } finally {
+        removerOverlay()
+    }
+    const painel = document.getElementById('painel-rascunhos')
+    if (painel) painel.innerHTML = htmlPainelRascunhos()
+}
 
-            <br>
+function htmlPainelRascunhos() {
+    const { lista, encerrados, todos, semBanco } = painelRascunhos
+    const esc = v => escaparAtributo(v ?? '')
+    const quando = v => v ? new Date(v).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—'
+    const meus = r => r.usuario === acesso?.usuario
+    const nomesEncerramento = { salvo: 'Salvo', descartado: 'Descartado', limpo: 'Tela limpa' }
+    const veTodos = pode('orcamentos.rascunhos_todos')
+    const novo = crypto.randomUUID()
 
-            <button onclick="editarOrcamentoTemporario('${novo}')">Novo Orçamento</button>
-            ${podeUsarLocacao() ? `<button onclick="editarOrcamentoTemporario('${novo}', MODO_LOCACAO)">Novo Orçamento de Locação</button>` : ''}
+    const linhas = lista.map(r => {
+        const numero = r.contrato || 'Novo orçamento'
+        const vinculo = r.ocorrencia ? `<small>Vinculado • ${esc(r.ocorrencia)}</small>` : ''
+        const ondeEsta = r.local
+            ? (r.pendente ? '<small class="rascunho-pendente">neste computador, ainda não enviado</small>' : '')
+            : (!encerrados && meus(r) ? '<small>de outro computador</small>' : '')
+        const situacao = encerrados
+            ? `<small>${esc(nomesEncerramento[r.encerramento] || r.encerramento)} em ${quando(r.encerrado_em)}${r.encerrado_por && r.encerrado_por !== r.usuario ? ` por ${esc(r.encerrado_por)}` : ''}</small>`
+            : ''
+        const acoes = encerrados || !meus(r)
+            ? `<button type="button" class="fis-mini" onclick="recuperarRascunho('${esc(r.id)}')">Recuperar</button>`
+            : `<button type="button" class="fis-mini" onclick="editarOrcamentoTemporario('${esc(r.id)}', '${esc(r.lpu || '')}')">Editar</button>
+               <img src="imagens/fechar.png" title="Descartar rascunho" style="width: 1.4rem; cursor: pointer;" onclick="removerOrcTemp(this, '${esc(r.id)}')">`
+        const busca = [numero, r.ocorrencia, r.usuario, r.lpu].join(' ').toLowerCase()
+        return `
+            <tr data-tipo="" data-busca="${esc(busca)}">
+                <td class="fin-extrato-quem"><span>${esc(numero)}</span>${vinculo}${ondeEsta}${situacao}</td>
+                ${todos ? `<td>${esc(r.usuario)}</td>` : ''}
+                <td class="fis-num">${Number(r.itens) || 0}</td>
+                <td class="fis-num"><b>${dinheiro(Number(r.total) || 0)}</b></td>
+                <td>${esc(r.lpu || 'LPU HOPE')}</td>
+                <td>${quando(r.atualizado_em)}</td>
+                <td class="rascunho-acoes">${acoes}</td>
+            </tr>`
+    }).join('')
 
-            <br>
+    const total = lista.reduce((s, r) => s + (Number(r.total) || 0), 0)
+    const ultima = lista[0]?.atualizado_em
+    const chip = (rotulo, ativo, funcao) => `<button type="button" class="${ativo ? 'ativo' : ''}" onclick="${funcao}">${rotulo}</button>`
 
-            <div class="borda-tabela">
-
-                <div class="topo-tabela"></div>
-                <div class="div-tabela">
-                    <table class="tabela">
-                        <thead>
-                            ${['', 'nº ORÇAMENTO', 'Total', 'LPU', 'Última alteração', 'Excluir'].map(op => `<th>${op}</th>`).join('')} 
-                        </thead>
-                        <tbody>${listaORCS.join('')}</tbody>
-                    </table>
-                </div>
-                <div class="rodape-tabela"></div>
+    return `
+        ${resumoDocumentoFis({}, [
+            [encerrados ? 'Encerrados (30 dias)' : 'Em edição', String(lista.length)],
+            ['Valor somado', dinheiro(total)],
+            ['Pessoas', String(new Set(lista.map(r => r.usuario)).size)],
+            ['Última alteração', quando(ultima)]
+        ])}
+        ${semBanco ? '<div class="fis-vazio">Servidor indisponível: mostrando só os rascunhos deste computador.</div>' : ''}
+        <div class="fin-extrato-barra">
+            <input type="search" class="fis-input fin-extrato-busca" placeholder="Buscar nº do orçamento, chamado, usuário..." oninput="filtrarExtratoFin(this)">
+            <div class="fin-extrato-chips" data-tipo="">
+                ${chip('Em edição', !encerrados, 'filtrarPainelRascunhos({ encerrados: false })')}
+                ${chip('Encerrados', encerrados, 'filtrarPainelRascunhos({ encerrados: true })')}
             </div>
-
+            ${veTodos ? `<div class="fin-extrato-chips" data-tipo="">
+                ${chip('Meus', !todos, 'filtrarPainelRascunhos({ todos: false })')}
+                ${chip('Todos os usuários', todos, 'filtrarPainelRascunhos({ todos: true })')}
+            </div>` : ''}
+            <button type="button" class="fis-mini fin-extrato-editar" onclick="editarOrcamentoTemporario('${novo}')">Novo orçamento</button>
+            ${podeUsarLocacao() ? `<button type="button" class="fis-mini" onclick="editarOrcamentoTemporario('${novo}', MODO_LOCACAO)">Novo de locação</button>` : ''}
         </div>
-        `
-
-    popup({ elemento, titulo: 'Orçamentos em Edição' })
-
+        ${lista.length ? `
+        <div class="fis-tabela-rolagem fin-extrato-rolagem">
+            <table class="fis-tabela fin-extrato">
+                <thead><tr><th>Orçamento</th>${todos ? '<th>Usuário</th>' : ''}<th class="fis-num">Itens</th><th class="fis-num">Total</th><th>LPU</th><th>Última alteração</th><th></th></tr></thead>
+                <tbody>${linhas}</tbody>
+            </table>
+        </div>` : `<div class="fis-vazio">${encerrados ? 'Nenhum rascunho encerrado nos últimos 30 dias.' : 'Nenhum rascunho em edição.'}</div>`}
+        <small style="color: #6b7a71;">Descartar aqui não apaga o orçamento salvo: só o rascunho. Rascunhos encerrados ficam guardados e podem ser recuperados.</small>`
 }
 
 async function removerOrcTemp(img, idEdicao) {
 
-    img.closest('tr').remove()
+    const ok = await confirmarPopup({ titulo: 'Descartar rascunho', mensagem: 'Descartar este rascunho? O orçamento salvo (se houver) não muda, e o rascunho ainda pode ser recuperado em Encerrados.', textoConfirmar: 'Descartar' })
+    if (!ok) return
 
-    const temporario = JSON.parse(localStorage.getItem('temporario')) || {}
+    img.closest('tr')?.remove()
 
+    const temporario = lerTemporarioLocal()
     delete temporario[idEdicao]
+    gravarTemporarioLocal(temporario)
+    encerrarRascunho(idEdicao, 'descartado')
 
-    localStorage.setItem('temporario', JSON.stringify(temporario))
+}
 
+// Rascunho encerrado ou de outra pessoa: vira um rascunho NOVO meu, com o mesmo conteúdo.
+async function recuperarRascunho(id) {
+    overlayAguarde()
+    let rascunho
+    try {
+        rascunho = (await rotaRascunhos('ler', { id })).rascunho
+    } catch (erro) {
+        removerOverlay()
+        return popup({ mensagem: erro.message })
+    }
+    removerOverlay()
+    const dados = rascunho?.dados
+    if (!dados) return popup({ mensagem: 'Rascunho sem conteúdo.' })
+
+    const ok = await confirmarPopup({
+        titulo: 'Recuperar rascunho',
+        textoConfirmar: 'Recuperar',
+        mensagem: `Abrir uma cópia deste rascunho${rascunho.usuario !== acesso?.usuario ? ` de <b>${escaparAtributo(rascunho.usuario)}</b>` : ''} para editar?${dados.id ? '<br>Ao salvar, ele atualiza o orçamento já salvo com este número.' : ''}`
+    })
+    if (!ok) return
+
+    removerTodosPopups()
+    sessionStorage.setItem('idEdicao', crypto.randomUUID())
+    baseOrcamento(structuredClone(dados))
+    tela.innerHTML = ''
+    if (ehOrcamentoLocacao(dados.lpu_ativa)) await telaCriarOrcamentoLocacao()
+    else await telaCriarOrcamento()
 }
 
 async function editarOrcamentoTemporario(idEdicao, lpu) {
 
     if (ehOrcamentoLocacao(lpu) && bloquearLocacao())
         return
+
+    // Rascunho que só está no banco (feito em outro computador): traz para a cópia local antes de abrir.
+    if (!lerTemporarioLocal()[idEdicao] && !rascunhosEmMemoria[idEdicao] && painelRascunhos.lista.some(r => r.id === idEdicao)) {
+        overlayAguarde()
+        try {
+            const { rascunho } = await rotaRascunhos('ler', { id: idEdicao })
+            const temporario = lerTemporarioLocal()
+            temporario[idEdicao] = rascunho.dados
+            if (!gravarTemporarioLocal(temporario)) rascunhosEmMemoria[idEdicao] = rascunho.dados
+            gravarMetaRascunho(idEdicao, { alterado_em: Date.parse(rascunho.atualizado_em) || Date.now(), enviado_em: Date.now() })
+        } catch (erro) {
+            return popup({ mensagem: erro.message })
+        } finally {
+            removerOverlay()
+        }
+    }
 
     removerPopup()
 
@@ -1095,29 +1383,6 @@ async function editarOrcamentoTemporario(idEdicao, lpu) {
     else
         await telaCriarOrcamento()
 
-}
-
-function baseOrcamento(orcamento, remover = false) {
-
-    const temporario = JSON.parse(localStorage.getItem('temporario')) || {}
-    const idEdicao = sessionStorage.getItem('idEdicao')
-
-    // remover
-    if (remover) {
-        delete temporario[idEdicao]
-        localStorage.setItem('temporario', JSON.stringify(temporario))
-        return
-    }
-
-    // salvar
-    if (orcamento) {
-        temporario[idEdicao] = orcamento
-        localStorage.setItem('temporario', JSON.stringify(temporario))
-        return
-    }
-
-    // ler
-    return temporario[idEdicao] || null
 }
 
 async function painelClientes(idOrcamento = null) {

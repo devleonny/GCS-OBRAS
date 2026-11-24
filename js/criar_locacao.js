@@ -282,12 +282,21 @@ async function enviarDadosLocacao() {
 
     popup({ tempo: 3, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
 
+    // O id fica no rascunho antes do envio: tentar de novo atualiza o mesmo orçamento.
+    baseOrcamento(orcamentoBase)
+
     const { success } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoBase) || {}
 
-    // Deixa o PDF pronto no cache, em segundo plano (sem await).
-    if (success) preaquecerPdfOrcamento(orcamentoBase.id)
+    // Falhou: o rascunho fica (antes era apagado mesmo sem salvar).
+    if (!success) {
+        removerPopup()
+        return popup({ mensagem: 'Falha no salvamento, tente de novo em alguns minutos. O orçamento em edição foi mantido.' })
+    }
 
-    baseOrcamento(undefined, true)
+    // Deixa o PDF pronto no cache, em segundo plano (sem await).
+    preaquecerPdfOrcamento(orcamentoBase.id)
+
+    baseOrcamento(undefined, 'salvo')
     await telaOrcamentos()
 
     removerPopup()

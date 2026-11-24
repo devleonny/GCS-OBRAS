@@ -381,6 +381,8 @@ async function duplicar(id) {
         }
     }
 
+    // Rascunho próprio: sem isso a cópia ocupava o rascunho que estava aberto nesta aba.
+    sessionStorage.setItem('idEdicao', crypto.randomUUID())
     baseOrcamento(novoOrcamento)
 
     removerTodosPopups()

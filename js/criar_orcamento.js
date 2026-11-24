@@ -196,15 +196,24 @@ async function manterPrecosAntigos(resposta) {
 
     overlayAguarde()
 
+    // Falha aqui deixava a tela sem itens e sem aviso (o erro só ia para o console).
     try {
         await atualizarOpcoesLPU()
         await carregarTabelasOrcamento(resposta)
+    } catch (erro) {
+        console.error('[criar orçamento] carga dos itens', erro)
+        const botoes = [{ texto: 'Tentar de novo', img: 'atualizar', fechar: true, funcao: `manterPrecosAntigos('${resposta === 'N' ? 'N' : 'S'}')` }]
+        return popup({ botoes, mensagem: 'Não foi possível carregar os itens do orçamento. O rascunho continua guardado: tente de novo.', modal: true })
     } finally {
         removerOverlay()
     }
 
     // O catálogo carrega depois, sem bloquear a edição do orçamento já exibido.
-    await tabelaProdutosOrcamentos()
+    try {
+        await tabelaProdutosOrcamentos()
+    } catch (erro) {
+        console.error('[criar orçamento] catálogo', erro)
+    }
 
 }
 
@@ -1090,11 +1099,11 @@ async function enviarDadosPrincipal() {
 async function enviarDadosOrcamento() {
 
     try {
-        // Releia a sess?o: a vari?vel global pode estar desatualizada.
+        // Releia a sessão: a variável global pode estar desatualizada.
         const acesso = JSON.parse(localStorage.getItem('acesso'))
 
         if (!acesso?.token || !acesso?.usuario) {
-            popup({ mensagem: 'Sess?o indispon?vel. Fa?a login novamente antes de salvar. O or?amento em edi??o foi mantido.' })
+            popup({ mensagem: 'Sessão indisponível. Faça login novamente antes de salvar. O orçamento em edição foi mantido.' })
             return
         }
 
@@ -1129,9 +1138,13 @@ async function enviarDadosOrcamento() {
         // Unificador para dados_composições;
         orcamentoBase.dados_composicoes = gerarDadosComposicoes(orcamentoBase.esquema_composicoes || {})
 
-        const { origem, ...orcamentoFinal } = orcamentoBase // Origem não precisa continuar no objeto;
+        // O id vai para o rascunho ANTES do envio: se algo falhar depois do servidor gravar,
+        // salvar de novo atualiza o mesmo orçamento em vez de criar um segundo.
         if (!orcamentoBase?.id)
             orcamentoBase.id = crypto.randomUUID()
+        baseOrcamento(orcamentoBase)
+
+        const { origem, ...orcamentoFinal } = orcamentoBase // Origem não precisa continuar no objeto;
 
         const { success } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoFinal) || {}
 
@@ -1191,6 +1204,8 @@ async function enviarDadosOrcamento() {
                 for (const [idCorrecao, correcao] of Object.entries(correcoes))
                     await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
 
+                // Orçamento salvo: o rascunho sai da lista "Em edição" (antes ficava para sempre).
+                baseOrcamento(undefined, 'salvo')
                 await telaOcorrencias()
 
                 removerOverlay()
@@ -1200,7 +1215,7 @@ async function enviarDadosOrcamento() {
                 popup({ tempo: 4, mensagem: 'Aguarde... redirecionando...', imagem: 'imagens/concluido.png' })
 
                 // Limpeza do orçamento em edição;
-                baseOrcamento(undefined, true)
+                baseOrcamento(undefined, 'salvo')
                 await telaOrcamentos()
 
             }
@@ -1213,8 +1228,8 @@ async function enviarDadosOrcamento() {
 
         }
     } catch (erro) {
-        console.error('Erro ao salvar or?amento:', erro)
-        popup({ mensagem: 'N?o foi poss?vel concluir o salvamento. O or?amento em edi??o foi mantido. Confira sua sess?o e tente novamente.' })
+        console.error('Erro ao salvar orçamento:', erro)
+        popup({ mensagem: 'Não foi possível concluir o salvamento. O orçamento em edição foi mantido. Confira sua sessão e tente novamente.' })
     } finally {
         removerOverlay()
     }

@@ -1816,6 +1816,8 @@ async function criarOrcamentoVinculado(idOcorrencia, idCorrecao) {
         }
     }
 
+    // Rascunho próprio: sem isso o orçamento do chamado ocupava o rascunho aberto nesta aba.
+    sessionStorage.setItem('idEdicao', crypto.randomUUID())
     baseOrcamento({
         dados_composicoes,
         lpu_ativa,

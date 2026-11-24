@@ -778,3 +778,10 @@
 #bodyOrcamento .tabela-sem-resultados {
   border-radius: 0 0 8px 8px;
 }
+
+/* Painel "Orçamentos em edição" (js/central_gcs.js → painelEdicao), no modelo de popup de consulta. */
+.rascunhos-orc .fin-extrato th:nth-child(1) { width: auto; }
+.rascunhos-orc .fin-extrato-quem small.rascunho-pendente { color: #b45309; }
+.rascunhos-orc .rascunho-acoes { white-space: nowrap; text-align: right; }
+.rascunhos-orc .rascunho-acoes > * { vertical-align: middle; margin-left: 6px; }
+.rascunhos-orc .fin-extrato-barra .fin-extrato-editar + .fis-mini { height: 32px; padding: 0 14px; border-radius: 8px; font-size: 12.5px; }
