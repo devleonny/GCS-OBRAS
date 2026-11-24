@@ -1,7 +1,8 @@
 const autE = ['adm', 'gerente', 'diretoria']
 
 // Correções que encerram o atendimento: verdes na tela e fora de agenda/atrasados.
-const statusSolucionados = ['SOLUCIONADA', 'SOLUCIONADA - ASSISTÊNCIA TÉCNICA', 'SOLUCIONADA - INFRA', 'FATURADO']
+// A FATURAR (24/11/2026): lançado sozinho depois da SOLUCIONADA quando o pedido tem saldo; conta como solucionado.
+const statusSolucionados = ['SOLUCIONADA', 'SOLUCIONADA - ASSISTÊNCIA TÉCNICA', 'SOLUCIONADA - INFRA', 'FATURADO', 'A FATURAR']
 const statusTerminados = [...statusSolucionados, 'CANCELADO']
 const regrasNaoTerminado = (origem) => statusTerminados.map(value => ({ op: '!=', value, ...(origem ? { origem } : {}) }))
 
@@ -2985,11 +2986,13 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, pr
         }
     }
 
+    // A FATURAR não aparece na lista: só o sistema lança (o servidor recusa à mão).
     controlesCxOpcoes.tipoCorrecao = {
         base: 'correcoes',
-        ...(garantia?.situacao === 'encerrada'
-            ? { filtros: { fora_garantia: { op: '=', value: 'S' } } }
-            : {}),
+        filtros: {
+            nome: { op: '!=', value: 'A FATURAR' },
+            ...(garantia?.situacao === 'encerrada' ? { fora_garantia: { op: '=', value: 'S' } } : {})
+        },
         retornar: ['nome'],
         colunas: {
             'Nome': { chave: 'nome' }

@@ -32,14 +32,15 @@ const QUADROS_FLUXO = {
     // Fluxo de Serviços novo (19/11/2026, a pedido; gcs migrations/fluxo-servicos-novo-*.sql): mesmos itens do
     // de Vendas. "Pedidos" é o MESMO cartão nos dois quadros (quem pescar primeiro leva o valor; o que sobrar
     // continua em Pedidos com o saldo livre). Etapa pela coluna etapa_servico da vw_fluxo_itens:
-    //   Pedidos → Concluído (chamado solucionado ou marcado à mão: pode faturar) → Em preparação (NFS-e salva;
+    //   Pedidos → A faturar (chave 'concluido'; só automático desde 24/11/2026: chamado solucionado + saldo do
+    //   pedido, sem pedido pendente nem liberação — gcs migrations/servico-a-faturar.sql) → Em preparação (NFS-e salva;
     //   "Faturar todas" como em Vendas) → Faturado (emissão) → Recebido (parcelas; com parcela pendente o cartão
     //   fica em Faturado E em Recebido; recebida a última, só em Recebido).
     itens_servicos: {
         titulo: 'Fluxo de Serviços',
         novo: true,
         servico: true,
-        colunas: [['pedido', 'Pedidos'], ['concluido', 'Concluído'], ['preparacao', 'Em preparação'],
+        colunas: [['pedido', 'Pedidos'], ['concluido', 'A faturar'], ['preparacao', 'Em preparação'],
             ['faturado', 'Faturado'], ['recebido', 'Recebido']],
         finais: ['recebido']
     },
@@ -1000,8 +1001,9 @@ const podeReceberFluxo = c => QUADROS_FLUXO[estadoFluxo.quadro]?.servico && ['fa
     && c.nota_autorizada && c.etapa_item !== 'concluido' && (Number(c.parcelas_abertas) > 0 || !Number(c.parcelas_total))
 
 // Para onde o cartão pode ir no Fluxo de Serviços.
-//   Pedidos → Concluído (marca à mão) ou → Em preparação (NFS-e; pode pular o Concluído);
-//   Concluído → Pedidos (só a marca feita à mão; chamado solucionado não volta) ou → Em preparação;
+//   Pedidos → Em preparação (NFS-e; quem precisa faturar antes pula o A faturar). Ninguém arrasta para
+//     A faturar: o cartão vai sozinho (chamado solucionado + saldo do pedido; 24/11/2026, sem marcação à mão);
+//   A faturar → Em preparação;
 //   Em preparação → Faturado (emite) ou → Pedidos (devolve o saldo ao pedido; o rascunho fica guardado);
 //   Faturado → Recebido não é arraste: vai sozinho ao registrar recebimento (⋮ → Registrar recebimento).
 function destinosServicoFluxo(c) {
@@ -1009,8 +1011,8 @@ function destinosServicoFluxo(c) {
     if (!c || c.espelho) return []
     const rodada = c.rodada != null
     switch (c.etapa) {
-        case 'pedido': return ['concluido', ...(rodada ? ['preparacao'] : [])]
-        case 'concluido': return [...(c.servico_concluido_manual && !c.chamado_executado ? ['pedido'] : []), ...(rodada ? ['preparacao'] : [])]
+        case 'pedido':
+        case 'concluido': return rodada ? ['preparacao'] : []
         case 'preparacao': return ['faturado', ...(rodada ? ['pedido'] : [])]
         default: return []
     }
@@ -1019,8 +1021,6 @@ function destinosServicoFluxo(c) {
 async function soltarServicoFluxo(c, etapa) {
     if (c.recorrente) return etapa === 'preparacao' ? gerarRecorrenciaFluxo(c.recorrencia_id) : undefined
     const nome = nomeItemFluxo(c)
-    if (etapa === 'concluido' || (etapa === 'pedido' && c.etapa === 'concluido'))
-        return otimistaServicoFluxo(c, etapa, () => apiModuloFiscal('fluxo-itens/servico-concluido', { id: c.id, marcar: etapa === 'concluido' }))
     // Formulário (NFS-e / parcelas): o cartão fica na coluna nova enquanto a janela está aberta; fechou sem
     // salvar, o quadro recarrega e ele volta.
     if (etapa === 'preparacao') return janelaServicoFluxo(c, etapa, () => abrirNfseFluxo(c))
@@ -1083,10 +1083,13 @@ async function janelaServicoFluxo(c, etapa, abrir) {
     observador.observe(document.body, { childList: true, subtree: true })
 }
 
-// Linha do cartão no Fluxo de Serviços: por que está em Concluído; parcelas a receber / recebido.
+// Linha do cartão no Fluxo de Serviços: em A faturar, o porquê; em Pedidos, por que ainda NÃO está em A faturar
+// (afaturar_motivo da vw_fluxo_itens; "Pedido pendente" já tem o balão próprio); parcelas a receber / recebido.
 function servicoCartaoFluxo(c) {
     if (c.etapa === 'concluido')
-        return `<small class="fluxo-cartao-contexto">${c.chamado_executado ? 'Chamado solucionado · pode faturar' : 'Marcado como concluído · pode faturar'}</small>`
+        return '<small class="fluxo-cartao-contexto">Serviço solucionado · pronto para emitir a nota</small>'
+    if (c.etapa === 'pedido' && c.afaturar_motivo && !c.pedido_prometido)
+        return `<small class="fluxo-cartao-motivo" title="O cartão vai sozinho para A faturar quando o chamado estiver solucionado e o pedido tiver saldo">${escaparAtributo(c.afaturar_motivo)}</small>`
     if (!['faturado', 'recebido'].includes(c.etapa)) return ''
     const total = Number(c.parcelas_total) || 0, abertas = Number(c.parcelas_abertas) || 0
     if (!total) return c.etapa === 'faturado' && c.nota_autorizada ? '<small class="fluxo-receber">Sem parcelas no financeiro</small>' : ''
