@@ -18,7 +18,7 @@ const VERSOES_CSS = {
     "estilo": "fe1e4cbf",
     "estoque": "ff848a67",
     "festas": "81ec7e62",
-    "financeiro": "a796d96c",
+    "financeiro": "0e3a6834",
     "fiscal": "607b3df5",
     "fluxo_caixa": "00acc154",
     "fluxo_kanban": "fb2d9895",

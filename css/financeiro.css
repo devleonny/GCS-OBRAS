@@ -1161,3 +1161,54 @@
 .fin-nome-cartao { font-size: 12.5px; color: #4b5a51; }
 .fin-nome-cartao b { color: #1f3a29; }
 .fin-contas-tag.tecnica { background: #fff1d6; color: #92400e; }
+
+/* ---------------- leitor de boleto / Pix / DANFE no formulário da fatura (js/financeiro_leitor.js) */
+.fin-leitor {
+    border: 1px dashed #7fb08c;
+    background: linear-gradient(90deg, #f1f8ee, #fff);
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+.fin-leitor-abrir { display: none; }
+.fin-leitor[data-recolhido] { padding: 0; border-style: solid; border-color: var(--fin-borda); background: #fafcfb; }
+.fin-leitor[data-recolhido] .fin-leitor-corpo { display: none; }
+.fin-leitor[data-recolhido] .fin-leitor-abrir {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    padding: 7px 12px; border: none; background: none; cursor: pointer;
+    color: var(--fin-verde); font-size: 0.82rem; font-weight: 600; text-align: left;
+}
+.fin-leitor-abrir small { color: #64748b; font-weight: 400; }
+.fin-leitor-corpo { display: flex; flex-direction: column; gap: 8px; }
+.fin-leitor-topo { display: flex; align-items: center; gap: 10px; color: var(--fin-verde); }
+.fin-leitor-topo div { display: flex; flex-direction: column; }
+.fin-leitor-topo small { color: #4b5a51; font-size: 0.75rem; }
+.fin-leitor-icone { width: 20px; height: 20px; flex: none; }
+.fin-leitor-topo .fin-leitor-icone { width: 28px; height: 28px; }
+.fin-leitor-linha { display: flex; gap: 8px; align-items: stretch; }
+.fin-leitor-linha .fis-input { flex: 1; min-width: 0; font-family: ui-monospace, Consolas, monospace; letter-spacing: 0.3px; }
+.fin-leitor-botao {
+    display: inline-flex; align-items: center; gap: 6px; padding: 0 12px;
+    border: 1px solid var(--fin-borda); border-radius: 6px; background: #fff;
+    color: var(--fin-verde); font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.fin-leitor-botao:hover { background: var(--fin-verde-claro); }
+.fin-leitor-anexar { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #4b5a51; }
+.fin-leitor-erro { padding: 6px 10px; border-radius: 6px; background: #fdecec; color: #991b1b; font-size: 0.8rem; }
+.fin-leitor-lido { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--fin-borda); }
+.fin-leitor-lido-titulo { font-weight: 700; color: var(--fin-verde); font-size: 0.85rem; }
+.fin-leitor-dados { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; font-size: 0.8rem; }
+.fin-leitor-dados span { color: #64748b; }
+.fin-leitor-dados code { font-size: 0.78rem; word-break: break-all; }
+.fin-leitor-aviso { padding: 6px 10px; border-radius: 6px; background: #fff7e0; color: #7c4a03; font-size: 0.8rem; }
+.fin-leitor-aviso a { color: inherit; font-weight: 600; }
+.fin-leitor-aviso-texto { color: #92400e; font-weight: 400; }
+.fin-leitor-dups { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.78rem; }
+.fin-leitor-dups > span { flex-basis: 100%; color: #4b5a51; }
+.fin-leitor-dup-lancada { opacity: 0.6; }
+.fin-leitor-troca { padding: 12px 14px; max-width: 560px; font-size: 0.85rem; }
+.fin-leitor-troca p { margin: 0 0 8px; }
+.fin-leitor-preenchido { box-shadow: 0 0 0 2px #7fb08c; background-color: #f1f8ee !important; transition: box-shadow 0.3s; }
+.fin-leitor-camera { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 10px; width: min(640px, 92vw); }
+.fin-leitor-camera video { width: 100%; border-radius: 8px; background: #111; aspect-ratio: 4 / 3; object-fit: cover; }
+.fin-leitor-mira { position: absolute; left: 12%; right: 12%; top: 30%; height: 28%; border: 2px solid rgba(127, 255, 160, 0.85); border-radius: 8px; pointer-events: none; }
+.fin-leitor-camera small { color: #4b5a51; font-size: 0.78rem; }

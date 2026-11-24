@@ -1296,6 +1296,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                         </div>
                         ${avisos.map(a => `<div class="fis-info">${a}</div>`).join('')}
                         <div class="fis-info" data-aviso-empresa-fin hidden></div>
+                        ${rec ? '' : blocoLeitorFin(t, manual && !cancelada)}
                         <div class="fin-abas" role="tablist">
                             ${abas.map(([chave, nome]) => `<button type="button" role="tab" data-aba="${chave}" aria-selected="${chave === aba}" onclick="mostrarAbaFin('${chave}')">${nome}</button>`).join('')}
                         </div>
@@ -1396,6 +1397,8 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
     if (caixa) somarParcelasFin(caixa)
     const bloco = document.querySelector('[data-form-fatura] [data-bloco-repetir]')
     if (bloco) previaRepeticaoFin(bloco)
+    // Fatura nova: o cursor já no leitor (o leitor USB "digita" direto nele).
+    if (nova) document.querySelector('[data-leitor-entrada]')?.focus()
 }
 
 function desenharPainelFormFin(t, rec) {
@@ -1916,7 +1919,9 @@ async function salvarFaturaFin() {
         participante_nome: v('participante_nome'), participante_documento: v('participante_documento'), cliente_id: form.dataset.cliente || null,
         numero_documento: v('numero_documento'),
         conta_id: v('conta_id') || null, forma_pagamento: v('forma_pagamento'), observacao: v('observacao'),
-        chave_pix: v('chave_pix'), anexos: anexosFormFin, rateio: lerRateioFin(form)
+        chave_pix: v('chave_pix'), anexos: anexosFormFin, rateio: lerRateioFin(form),
+        // Boleto / Pix lido (js/financeiro_leitor.js); sem o campo no formulário, o servidor não mexe.
+        ...(form.querySelector('[name="codigo_barras"]') ? { codigo_barras: v('codigo_barras'), pix_copia_cola: v('pix_copia_cola') } : {})
     }
     // Categorias (aba): uma = 100%; várias têm que somar 100%. A principal (maior %) vai também em categoria_id.
     const categorias = lerCategoriasFin(form)
