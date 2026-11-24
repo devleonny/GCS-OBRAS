@@ -189,13 +189,22 @@ function celulaEntregaLog({ previsao_entrega, data_entrega, situacao }) {
 }
 
 function celulaRastreioLog({ id, rastreio, rastreio_info }) {
-    if (!rastreio) return ''
-    const codigo = String(rastreio).trim().toUpperCase()
     const info = rastreio_info || {}
+    const jamef = info.fonte === 'JAMEF'
+    if (!rastreio && !jamef) return ''
+    const codigo = String(rastreio || info.codigo || '').trim().toUpperCase()
     const ultimo = info.ultimo_evento
     const detalhe = info.mensagem
         ? `<small class="log-alerta">${escLog(info.mensagem)}</small>`
         : ultimo ? `<small title="${escLog(ultimo.descricao)}">${escLog(ultimo.local || ultimo.descricao)}</small>` : ''
+
+    // Jamef: consultada pela NF (sem código digitado); o "código" é o CT-e.
+    if (jamef)
+        return `
+        <div class="log-rastreio">
+            <span class="log-link" onclick="detalhesRastreioLogistica('${escLog(id)}')" title="Ver o histórico na Jamef">${escLog(codigo || 'Jamef')}</span>
+            ${detalhe}
+        </div>`
 
     if (!RE_RASTREIO_CORREIOS.test(codigo))
         return `<span class="log-rastreio">${escLog(rastreio)}</span>`
@@ -1092,8 +1101,9 @@ async function salvarEnvioLogistica(id = '', { aposSalvar = null } = {}) {
     removerPopup(form.closest('.popup')?.id)
     removerOverlay()
 
-    // Código dos Correios: grava o histórico já (a rotina do servidor segue de hora em hora).
-    if (envio.rastreio && RE_RASTREIO_CORREIOS.test(envio.rastreio))
+    // Código dos Correios ou envio da Jamef (consultada pela NF): grava o histórico já
+    // (a rotina do servidor segue de hora em hora).
+    if ((envio.rastreio && RE_RASTREIO_CORREIOS.test(envio.rastreio)) || (categoria === 'JAMEF' && envio.nf))
         apiLogistica('rastrear', { ids: [idFinal] }).catch(err => console.error('[LOGÍSTICA rastrear]', err))
     if (envio.nota_id) contarPendentesLogistica()
     // Envio ligado a requisição (ou, sem ela, com orçamento: o servidor abre a aba de logística no chamado)
@@ -1580,12 +1590,13 @@ async function usarRequisicaoPendenteLog(i, vincular) {
 // Janela do rastreio: cabeçalho, etapas, números principais e linha do tempo dos Correios.
 const ETAPAS_RASTREIO_LOG = ['Postado', 'Em trânsito', 'Saiu para entrega', 'Entregue']
 
+// Jamef: "PROCESSO DE TRANSPORTE INICIADO" → coletado; "SAIDA EM VIAGEM DE ENTREGA" / "EM ROTA DE ENTREGA" → saiu.
 function etapaRastreioLog(eventos = [], info = {}) {
     const textos = eventos.map(e => String(e.descricao || '').toLowerCase())
-    if (info.entregue || textos.some(t => /entregue ao destinat/.test(t))) return 3
-    if (textos[0] && /saiu para entrega|aguardando retirada/.test(textos[0])) return 2
-    if (textos.some(t => /transfer|encaminhad|recebido|em trânsito|em transito/.test(t))) return 1
-    if (textos.some(t => /postado/.test(t))) return 0
+    if (info.entregue || textos.some(t => /entregue ao destinat|entrega realizada|realizacao entrega/.test(t))) return 3
+    if (textos[0] && /saiu para entrega|aguardando retirada|viagem de entrega|rota de entrega|cliente retira/.test(textos[0])) return 2
+    if (textos.some(t => /transfer|encaminhad|recebido|em trânsito|em transito|filial/.test(t))) return 1
+    if (textos.some(t => /postado|transporte iniciado|documento emitido/.test(t))) return 0
     return -1
 }
 
@@ -1617,17 +1628,25 @@ async function detalhesRastreioLogistica(id) {
     const etapa = etapaRastreioLog(eventos, info || {})
     const hoje = hojeLog()
     const atrasado = info?.previsao && !info?.data_entrega && info.previsao < hoje && !['ENTREGUE', 'CANCELADO', 'DEVOLVIDO'].includes(situacao)
+    const jamef = info?.fonte === 'JAMEF' || dado.categoria === 'JAMEF'
+    const onde = jamef ? 'na Jamef' : 'nos Correios'
 
     const cartao = (rotulo, valor, classe = '') => valor
         ? `<div class="log-rt-cartao ${classe}"><span>${rotulo}</span><b>${valor}</b></div>` : ''
     const cartoes = [
         cartao('Previsão de entrega', info?.previsao ? conversorDt(info.previsao) + (atrasado ? ' · atrasado' : '') : '', atrasado ? 'alerta' : ''),
         cartao('Entregue em', info?.data_entrega ? conversorDt(info.data_entrega) : '', info?.data_entrega ? 'ok' : ''),
-        cartao('Postado em', postagem?.data_postagem ? `${conversorDt(postagem.data_postagem)}${postagem.hora_postagem ? ` ${escLog(postagem.hora_postagem)}` : ''}` : ''),
+        cartao(jamef ? 'Coletado em' : 'Postado em', postagem?.data_postagem ? `${conversorDt(postagem.data_postagem)}${postagem.hora_postagem ? ` ${escLog(postagem.hora_postagem)}` : ''}` : ''),
         cartao('Frete cobrado', postagem?.valor != null ? dinheiroTexto(postagem.valor) : ''),
         cartao('Peso', info?.peso ? `${String(info.peso).replace('.', ',')} kg` : ''),
-        cartao('Caixa', escLog(info?.dimensoes || ''))
+        cartao('Caixa', escLog(info?.dimensoes || '')),
+        cartao('Nota fiscal', info?.nota?.numero ? `${escLog(info.nota.numero)}${info.nota.serie ? ` · série ${escLog(info.nota.serie)}` : ''}` : '')
     ].join('')
+
+    // Jamef: comprovante de entrega baixado pelo servidor (GCS/uploads) ou o aviso da Jamef.
+    const comprovante = !jamef ? '' : info?.comprovante
+        ? `<p class="log-rt-aviso"><a href="${api}/uploads/${encodeURIComponent(info.comprovante)}" target="_blank" rel="noopener">📎 Abrir comprovante de entrega</a></p>`
+        : info?.comprovante_aviso ? `<p class="log-rt-aviso">Comprovante de entrega: ${escLog(info.comprovante_aviso)}</p>` : ''
 
     const etapas = etapa < 0 ? '' : `
         <ol class="log-rt-etapas">
@@ -1654,7 +1673,7 @@ async function detalhesRastreioLogistica(id) {
     }).join('')
 
     popup({
-        titulo: 'Rastreio dos Correios',
+        titulo: jamef ? 'Rastreio da Jamef' : 'Rastreio dos Correios',
         elemento: `
             <div class="log-rt">
                 <div class="log-rt-topo">
@@ -1669,11 +1688,12 @@ async function detalhesRastreioLogistica(id) {
                     ${dado.loja ? `<div class="log-rt-destino">Para <b>${escLog(dado.loja)}</b>${dado.uf ? ` · ${escLog(dado.uf)}` : ''}</div>` : ''}
                 </div>
                 ${info?.mensagem ? `<p class="log-rt-aviso log-alerta">${escLog(info.mensagem)}</p>` : ''}
-                ${!info ? '<p class="log-rt-aviso">Ainda não consultado nos Correios. Clique em "Consultar agora".</p>' : ''}
+                ${!info ? `<p class="log-rt-aviso">Ainda não consultado ${onde}. Clique em "Consultar agora".</p>` : ''}
                 ${etapas}
+                ${comprovante}
                 ${cartoes ? `<div class="log-rt-cartoes">${cartoes}</div>` : ''}
                 ${linhaDoTempo ? `<div class="log-rt-titulo">Histórico</div><ul class="log-rt-eventos">${linhaDoTempo}</ul>` : ''}
-                ${info?.atualizado_em ? `<div class="log-rt-rodape">Consultado nos Correios em ${escLog(new Date(info.atualizado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }))}</div>` : ''}
+                ${info?.atualizado_em ? `<div class="log-rt-rodape">Consultado ${onde} em ${escLog(new Date(info.atualizado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }))}</div>` : ''}
             </div>`,
         botoes: [{ texto: 'Consultar agora', img: 'atualizar', funcao: `atualizarRastreioEnvioLog('${escLog(id)}')`, fechar: true }]
     })
@@ -1684,8 +1704,8 @@ function situacaoEventoLog(evento) {
     const d = String(evento?.descricao || '').toLowerCase()
     if (/etiqueta cancelada/.test(d)) return 'CANCELADO'
     if (/etiqueta emitida/.test(d)) return 'AGUARDANDO ENVIO'
-    if (/entregue ao destinat/.test(d)) return 'ENTREGUE'
-    if (/saiu para entrega|aguardando retirada/.test(d)) return 'AGUARDANDO RETIRADA'
+    if (/entregue ao destinat|entrega realizada|realizacao entrega|documento assinado/.test(d)) return 'ENTREGUE'
+    if (/saiu para entrega|aguardando retirada|viagem de entrega|rota de entrega|cliente retira/.test(d)) return 'AGUARDANDO RETIRADA'
     if (/devol/.test(d)) return 'EM DEVOLUÇÃO'
     if (/n[aã]o entregue|extravi|roub|avaria|ausente|incorreto|n[aã]o atendido|recusad/.test(d)) return 'OCORRÊNCIA'
     if (/postado/.test(d)) return 'POSTADO'
@@ -1709,8 +1729,8 @@ async function atualizarRastreiosLogistica() {
         const { consultados = 0, atualizados = 0 } = await apiLogistica('rastrear', {})
         popup({
             mensagem: consultados
-                ? `${consultados} código(s) consultado(s) nos Correios, ${atualizados} envio(s) atualizado(s).`
-                : 'Nenhum envio dos Correios pendente de entrega.',
+                ? `${consultados} envio(s) consultado(s) nos Correios e na Jamef, ${atualizados} atualizado(s).`
+                : 'Nenhum envio dos Correios ou da Jamef pendente de entrega.',
             imagem: 'imagens/concluido.png',
             tempo: 4
         })
