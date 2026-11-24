@@ -245,6 +245,14 @@ async function deletarNoServidor(caminho) {
             console.error(`Falha ao deletar: ${response.status} ${response.statusText}`)
             const erroServidor = await response.text()
             console.error(`Resposta do servidor:`, erroServidor)
+            // Recusa com motivo (ex.: item com saldo de estoque): mostra o motivo, não o código HTTP.
+            let motivo = null
+            try { motivo = JSON.parse(erroServidor)?.mensagem } catch { }
+            if (motivo) {
+                removerOverlay()
+                popup({ mensagem: motivo })
+                return null
+            }
             throw new Error(`Erro HTTP ${response.status}`)
         }
 

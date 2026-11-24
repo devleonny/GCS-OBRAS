@@ -1743,3 +1743,41 @@ button.fis-cred-ind {
    O que está filtrando a tabela fica com fundo da sua cor. */
 button.fis-cred-ind.ativo { background: color-mix(in srgb, var(--cor) 12%, white); }
 button.fis-cred-ind:focus-visible { outline: 2px solid var(--cor); outline-offset: -2px; }
+
+/* Excluir item (excluirItemEstoque): botão no popup do item e janela com vínculos, saldo e destino. */
+.fin-extrato-barra .est-btn-excluir { height: 32px; padding: 0 14px; border-radius: 8px; font-size: 12.5px; background: #fff; color: #b91c1c; border-color: #f3c4c4; }
+.fin-extrato-barra .est-btn-excluir:hover { background: #fdecec; }
+.est-excluir-item { width: min(560px, 86vw); display: flex; flex-direction: column; gap: 10px; }
+.est-excluir-nome { margin: 0; font-size: 0.95rem; }
+.est-excluir-nome small { color: #6b7a71; margin-left: 4px; }
+.est-excluir-usos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.est-excluir-usos > span:first-child { margin-right: 4px; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6b7a71; }
+.est-excluir-usos .est-local-chip { margin: 0; }
+.est-excluir-opcoes { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid #e2e8e4; border-radius: 8px; background: #f8faf9; }
+.est-excluir-opcoes label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.88rem; }
+.est-excluir-destino { display: flex; flex-direction: column; gap: 6px; }
+.est-excluir-destino[hidden] { display: none; }
+
+/* Excluir em massa (excluirMarcadosEstoque). */
+.est-saldos .fin-barra [data-btn-excluir-saldos][hidden] { display: none !important; }
+.est-saldos .fin-barra .est-btn-excluir { color: #b91c1c; border-color: #f3c4c4; }
+.est-saldos .fin-barra .est-btn-excluir:hover { background: #fdecec; }
+.est-lote-excluir { width: min(1100px, 92vw); display: flex; flex-direction: column; gap: 12px; }
+.est-lote-excluir .fis-resumo b small { font-size: 0.75rem; font-weight: 500; color: #6b7a71; margin-left: 4px; }
+.est-lote-destino { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; align-items: end; padding: 10px 12px; border: 1px solid #e2e8e4; border-radius: 8px; background: #f8faf9; }
+.est-lote-destino .fis-dica { grid-column: 1 / -1; }
+.est-lote-todos { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.82rem; color: #4b5a51; }
+.est-lote-todos .fis-mini { height: 28px; padding: 0 10px; border-radius: 6px; background: #fff; }
+.est-lote-tabela { font-size: 12.5px; }
+.est-lote-tabela th:first-child, .est-lote-tabela td:first-child { width: 28px; text-align: center; }
+.est-lote-desc { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.est-lote-usos { max-width: 260px; color: #4b5a51; }
+.est-lote-acao { height: 28px; padding: 0 6px; font-size: 12px; min-width: 160px; }
+.est-lote-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eef2ef; color: #4b5a51; font-size: 11.5px; white-space: nowrap; }
+.est-lote-tag.destino { background: #dcfce7; color: #15803d; font-weight: 600; }
+.est-lote-tag.aviso { background: #fef3c7; color: #92400e; margin-left: 6px; }
+.est-lote-fora td { opacity: 0.45; }
+.est-lote-fora td:first-child, .est-lote-fora td:last-child { opacity: 1; }
+.est-lote-rodape { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.est-btn-excluir-forte { height: 36px; padding: 0 18px; border-radius: 8px; border: none; background: #b91c1c; color: #fff; font-weight: 600; cursor: pointer; }
+.est-btn-excluir-forte:disabled { background: #e5b4b4; cursor: default; }

@@ -52,7 +52,7 @@ const TIPOS_MOVIMENTO = {
     ESTORNO: { cor: '#64748b', texto: 'Estorno' },
     TRANSFERENCIA: { cor: '#0e7490', texto: 'Transferência' }
 }
-const ORIGENS_MOVIMENTO = { NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', INVENTARIO: 'Inventário', MANUAL: 'Ajuste manual', ESTORNO: 'Estorno', TRANSFERENCIA: 'Transferência', REQUISICAO: 'Requisição (uso e consumo)' }
+const ORIGENS_MOVIMENTO = { NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', INVENTARIO: 'Inventário', MANUAL: 'Ajuste manual', ESTORNO: 'Estorno', TRANSFERENCIA: 'Transferência', REQUISICAO: 'Requisição (uso e consumo)', MIGRACAO_ITEM: 'Saldo migrado (item excluído)', EXCLUSAO_ITEM: 'Baixa por exclusão do item' }
 
 // Locais ativos (cache da sessão; recarregado ao criar/editar).
 let locaisEstoqueCache = null
@@ -86,6 +86,7 @@ async function telaEstoque(filtroExtra = null) {
                 <header class="fin-janela-topo">
                     <h2>Saldos de estoque</h2>
                     <div class="fin-barra">
+                        <button type="button" class="est-btn-excluir" data-btn-excluir-saldos hidden onclick="excluirMarcadosEstoque()" title="Valida e exclui os itens marcados">Excluir marcados</button>
                         <button type="button" onclick="baixarExcelSaldosEst()" title="Com itens marcados, baixa só os marcados; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
                         <button type="button" onclick="telaMovimentosEstoque()">${iconeFin('ver')} Movimentações</button>
                         <button type="button" onclick="telaLocaisEstoque()">${iconeFin('ver')} Locais</button>
@@ -304,6 +305,11 @@ function desenharSelecaoSaldosEst() {
             ? `Você selecionou ${plural(n)}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodosFiltroSaldosEst()">selecionar todos os ${plural(total)} deste filtro</a>`
             : `Você selecionou ${n === total ? 'todos os ' : ''}${plural(n)}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
     }
+    const btnExcluir = document.querySelector('[data-btn-excluir-saldos]')
+    if (btnExcluir) {
+        btnExcluir.hidden = !selecaoSaldosEst.size
+        btnExcluir.textContent = `Excluir marcados (${selecaoSaldosEst.size.toLocaleString('pt-BR')})`
+    }
     escreverTotalSaldosEst()
 }
 
@@ -484,6 +490,7 @@ async function detalheItemEstoque(itemId) {
                     </div>
                     ${movimentos.length >= 200 ? '<small class="est-item-limite">últimos 200 movimentos</small>' : ''}
                     <button type="button" class="fis-mini fin-extrato-editar" onclick="formularioAjusteEstoque('${escEst(itemId)}')">Ajustar saldo</button>
+                    <button type="button" class="fis-mini est-btn-excluir" onclick="excluirItemEstoque('${escEst(itemId)}')" title="Tira o item do cadastro: some dos saldos, orçamentos e requisições">Excluir item</button>
                 </div>
                 ${movimentos.length ? `
                 <div class="fis-tabela-rolagem fin-extrato-rolagem">
@@ -554,6 +561,381 @@ async function estornarMovimentoEstoque(movimentoId, itemId) {
         fecharPopupDoItemEst(itemId)
         detalheItemEstoque(itemId)
         if (controles.estoque) paginacao('estoque')
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// ---------------------------------------------------------------- excluir item
+// Exclusão lógica (servidor: estoque/item/vinculos e estoque/item/excluir). Sem saldo: confirma e exclui.
+// Com saldo: a pessoa escolhe passar o saldo para o item que fica ativo (de-para e Omie vão junto) ou dar baixa.
+
+const VINCULOS_ITEM_EST = {
+    orcamentos: ['orçamento', 'orçamentos'], requisicoes: ['requisição', 'requisições'], notas: ['nota fiscal', 'notas fiscais'],
+    movimentos: ['movimento de estoque', 'movimentos de estoque'], lpus: ['preço de LPU', 'preços de LPU'],
+    depara: ['de-para de fornecedor', 'de-para de fornecedor'], omie: ['ligação com o Omie', 'ligações com o Omie']
+}
+let exclusaoItemEst = null
+
+async function excluirItemEstoque(itemId) {
+    overlayAguarde()
+    let dados
+    try { dados = await apiEstoque('item/vinculos', { item_id: itemId }) } catch (err) {
+        removerOverlay()
+        return popup({ mensagem: mensagemErroEst(err) })
+    }
+    removerOverlay()
+    const { item, locais, vinculos } = dados
+    exclusaoItemEst = { item, locais }
+    const nome = `${item.codigo || item.id} · ${item.descricao || ''}`
+    const usos = Object.entries(VINCULOS_ITEM_EST)
+        .filter(([k]) => Number(vinculos?.[k]) > 0)
+        .map(([k, [um, varios]]) => `${Number(vinculos[k]).toLocaleString('pt-BR')} ${Number(vinculos[k]) === 1 ? um : varios}`)
+
+    // Sem vínculo nenhum e sem saldo: só confirma.
+    if (!usos.length && !locais.length) {
+        const ok = await confirmarPopup({ titulo: 'Excluir item', mensagem: `Excluir <b>${escEst(nome)}</b>?<br><small>O item não é usado em lugar nenhum.</small>`, textoConfirmar: 'Excluir' })
+        if (ok) await enviarExclusaoItemEst({ item_id: item.id })
+        return
+    }
+
+    const comSaldo = locais.length > 0
+    const elemento = `
+        <div class="fis-form est-excluir-item" data-excluir-item>
+            <p class="est-excluir-nome"><b>${escEst(nome)}</b>${item.unidade ? ` <small>${escEst(item.unidade)}</small>` : ''}</p>
+            ${usos.length ? `
+            <div class="est-excluir-usos"><span>Usado em</span>${usos.map(u => `<span class="est-local-chip">${escEst(u)}</span>`).join('')}</div>
+            <small class="fis-dica">O que já foi lançado continua mostrando o item. Ele só some das telas, das buscas e dos orçamentos e requisições novos.</small>` : ''}
+            ${comSaldo ? `
+            <div class="est-excluir-usos"><span>Saldo</span>${locais.map(l => `
+                <span class="est-local-chip ${Number(l.saldo) < 0 ? 'divergencia' : ''}">${escEst(l.app)} · ${escEst(l.local_nome)} <b>${qtdEst(l.saldo)}</b></span>`).join('')}
+            </div>
+            <div class="est-excluir-opcoes">
+                <label><input type="radio" name="destino_saldo" value="MIGRAR" checked onchange="trocarOpcaoExclusaoEst()"> Passar o saldo para outro item (o que fica ativo)</label>
+                <label><input type="radio" name="destino_saldo" value="BAIXAR" onchange="trocarOpcaoExclusaoEst()"> Excluir mesmo assim e dar baixa no saldo</label>
+            </div>
+            <div class="est-excluir-destino" data-destino-exclusao>
+                <label class="fis-campo"><span>Item que recebe o saldo</span>
+                    <input type="search" class="fis-input" placeholder="Buscar por código, descrição ou modelo (Enter)"
+                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscarDestinoExclusaoEst(this) }" onchange="buscarDestinoExclusaoEst(this)">
+                </label>
+                <select class="fis-input" name="destino_id" onchange="avisoUnidadeExclusaoEst()"><option value="">Busque o item acima</option></select>
+                <small class="fis-dica" data-aviso-unidade></small>
+                <small class="fis-dica">O saldo de cada local passa para ele com o custo médio deste item. O de-para de fornecedor e as ligações com o Omie também passam, para as próximas notas já entrarem no item certo.</small>
+            </div>
+            <small class="fis-dica fis-negativo" data-aviso-baixa hidden>O saldo sai do estoque como ajuste (fica registrado nas Movimentações).</small>` : ''}
+            <label class="fis-campo"><span>Motivo${comSaldo ? '' : ' (opcional)'}</span><textarea class="fis-input" name="motivo" rows="2" placeholder="ex.: item duplicado, cadastro errado"></textarea></label>
+        </div>`
+    popup({
+        titulo: 'Excluir item',
+        elemento,
+        botoes: [{ texto: 'Excluir item', img: 'cancel', funcao: 'confirmarExclusaoItemEst(this)' }]
+    })
+}
+
+function trocarOpcaoExclusaoEst() {
+    const form = document.querySelector('[data-excluir-item]')
+    if (!form) return
+    const baixar = form.querySelector('[name="destino_saldo"]:checked')?.value === 'BAIXAR'
+    form.querySelector('[data-destino-exclusao]').hidden = baixar
+    form.querySelector('[data-aviso-baixa]').hidden = !baixar
+}
+
+async function buscarDestinoExclusaoEst(input) {
+    const termo = input.value.trim()
+    if (termo.length < 2) return
+    const select = input.closest('[data-destino-exclusao]').querySelector('[name="destino_id"]')
+    try {
+        const { itens } = await apiEstoque('uso-consumo/buscar', { texto: termo })
+        const lista = itens.filter(i => String(i.id) !== String(exclusaoItemEst?.item?.id) && String(i.tipo || '').toUpperCase() !== 'SERVIÇO')
+        if (!lista.length) {
+            select.innerHTML = '<option value="">Nada encontrado</option>'
+        } else {
+            select.innerHTML = lista.map(i => `<option value="${escEst(i.id)}" data-unidade="${escEst(i.unidade || '')}">${escEst(i.codigo || i.id)} · ${escEst(i.descricao || '')}${i.unidade ? ` (${escEst(i.unidade)})` : ''}</option>`).join('')
+        }
+        avisoUnidadeExclusaoEst()
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+function avisoUnidadeExclusaoEst() {
+    const form = document.querySelector('[data-excluir-item]')
+    const opcao = form?.querySelector('[name="destino_id"]')?.selectedOptions?.[0]
+    const aviso = form?.querySelector('[data-aviso-unidade]')
+    if (!aviso) return
+    const de = String(exclusaoItemEst?.item?.unidade || '').trim().toUpperCase()
+    const para = String(opcao?.dataset?.unidade || '').trim().toUpperCase()
+    aviso.textContent = opcao?.value && de && para && de !== para
+        ? `Atenção: a unidade é diferente (${de} → ${para}). A quantidade passa igual, sem conversão.` : ''
+}
+
+async function confirmarExclusaoItemEst(botao) {
+    const form = document.querySelector('[data-excluir-item]')
+    if (!form || !exclusaoItemEst) return
+    const { item, locais } = exclusaoItemEst
+    const motivo = form.querySelector('[name="motivo"]').value.trim()
+    const corpo = { item_id: item.id, motivo }
+    if (locais.length) {
+        if (motivo.length < 3) return popup({ mensagem: 'Diga o motivo da exclusão' })
+        if (form.querySelector('[name="destino_saldo"]:checked')?.value === 'BAIXAR') {
+            const ok = await confirmarPopup({ titulo: 'Dar baixa no saldo', mensagem: 'O saldo deste item vai sair do estoque. Confirma?', textoConfirmar: 'Dar baixa e excluir' })
+            if (!ok) return
+            corpo.zerar = true
+        } else {
+            corpo.destino_id = form.querySelector('[name="destino_id"]').value
+            if (!corpo.destino_id) return popup({ mensagem: 'Escolha o item que recebe o saldo' })
+        }
+    }
+    await enviarExclusaoItemEst(corpo, botao)
+}
+
+async function enviarExclusaoItemEst(corpo, botao = null) {
+    try {
+        overlayAguarde()
+        const r = await apiEstoque('item/excluir', corpo)
+        removerOverlay()
+        if (botao) removerPopup(botao.closest('.popup')?.id)
+        fecharPopupDoItemEst(String(corpo.item_id))
+        exclusaoItemEst = null
+        if (controles.estoque) paginacao('estoque')
+        const destino = r?.destino ? ` O saldo passou para ${r.destino.codigo || r.destino.id}.` : ''
+        popup({ mensagem: `Item excluído.${destino}`, imagem: 'imagens/concluido.png' })
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// ---------------------------------------------------------------- excluir em massa
+// Itens marcados na tela de Saldos (servidor: estoque/itens/vinculos e estoque/itens/excluir, até 2000 por vez).
+// Validação: sem vínculo | com vínculo (sem saldo) | com saldo. Itens com saldo: um item destino para o lote e,
+// linha a linha, passar para o destino, dar baixa ou não excluir. O destino nunca fica na lista de excluídos.
+
+const MAX_EXCLUSAO_LOTE_EST = 2000
+let loteExclusaoEst = null
+
+const usosItemEst = vinculos => Object.entries(VINCULOS_ITEM_EST)
+    .filter(([k]) => Number(vinculos?.[k]) > 0)
+    .map(([k, [um, varios]]) => `${Number(vinculos[k]).toLocaleString('pt-BR')} ${Number(vinculos[k]) === 1 ? um : varios}`)
+
+function grupoExclusaoEst(l) {
+    if (l.locais.length) return 'SALDO'
+    return usosItemEst(l.vinculos).length ? 'VINCULO' : 'LIVRE'
+}
+
+async function excluirMarcadosEstoque() {
+    const ids = [...selecaoSaldosEst.keys()]
+    if (!ids.length) return popup({ mensagem: 'Marque os itens que quer excluir' })
+    if (ids.length > MAX_EXCLUSAO_LOTE_EST)
+        return popup({ mensagem: `São ${ids.length.toLocaleString('pt-BR')} itens marcados. Exclua no máximo ${MAX_EXCLUSAO_LOTE_EST.toLocaleString('pt-BR')} por vez.` })
+    overlayAguarde()
+    let itens
+    try { ({ itens } = await apiEstoque('itens/vinculos', { item_ids: ids })) } catch (err) {
+        removerOverlay()
+        return popup({ mensagem: mensagemErroEst(err) })
+    }
+    removerOverlay()
+    if (!itens.length) return popup({ mensagem: 'Os itens marcados já foram excluídos.' })
+    loteExclusaoEst = {
+        linhas: itens.map(r => ({ ...r, grupo: grupoExclusaoEst(r), incluir: true, acao: r.locais.length ? 'MIGRAR' : 'EXCLUIR' })),
+        destino: null, filtro: '', busca: ''
+    }
+    const conta = g => loteExclusaoEst.linhas.filter(l => l.grupo === g).length
+    const comSaldo = conta('SALDO')
+    const valorSaldo = loteExclusaoEst.linhas.filter(l => l.grupo === 'SALDO').reduce((s, l) => s + (Number(l.item.valor_estoque) || 0), 0)
+    const elemento = `
+        <div class="fis-painel popup-consulta est-lote-excluir" data-lote-excluir>
+            <div class="fis-resumo">
+                <div><span>Itens marcados</span><b>${itens.length.toLocaleString('pt-BR')}</b></div>
+                <div><span>Sem vínculo</span><b>${conta('LIVRE').toLocaleString('pt-BR')}</b></div>
+                <div><span>Com vínculo, sem saldo</span><b>${conta('VINCULO').toLocaleString('pt-BR')}</b></div>
+                <div><span>Com saldo</span><b class="${comSaldo ? 'fis-negativo' : ''}">${comSaldo.toLocaleString('pt-BR')}${valorSaldo ? ` <small>${dinheiro(valorSaldo)}</small>` : ''}</b></div>
+            </div>
+            ${comSaldo ? `
+            <div class="est-lote-destino">
+                <label class="fis-campo"><span>Item que recebe os saldos</span>
+                    <input type="search" class="fis-input" placeholder="Buscar por código, descrição ou modelo (Enter)"
+                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscarDestinoLoteEst(this) }" onchange="buscarDestinoLoteEst(this)">
+                </label>
+                <select class="fis-input" data-destino-lote onchange="escolherDestinoLoteEst(this)"><option value="">Busque o item ao lado</option></select>
+                <div class="est-lote-todos">
+                    <span>Todos com saldo:</span>
+                    <button type="button" class="fis-mini" onclick="acaoTodosLoteEst('MIGRAR')">Passar para o destino</button>
+                    <button type="button" class="fis-mini" onclick="acaoTodosLoteEst('BAIXAR')">Dar baixa</button>
+                    <button type="button" class="fis-mini" onclick="acaoTodosLoteEst('NAO')">Não excluir</button>
+                </div>
+                <small class="fis-dica">O saldo de cada local passa para o destino pelo custo médio de cada item. O de-para de fornecedor e as ligações com o Omie também passam para ele.</small>
+            </div>` : ''}
+            <div class="fin-extrato-barra">
+                <input type="search" class="fis-input fin-extrato-busca" placeholder="Buscar código ou descrição..." oninput="loteExclusaoEst.busca = this.value; desenharLoteExclusaoEst()">
+                <div class="fin-extrato-chips" data-chips-lote>
+                    ${[['', 'Todos', itens.length], ['LIVRE', 'Sem vínculo', conta('LIVRE')], ['VINCULO', 'Com vínculo', conta('VINCULO')], ['SALDO', 'Com saldo', comSaldo]]
+            .map(([v, t, q]) => `<button type="button" class="${v ? '' : 'ativo'}" data-filtro="${v}" onclick="filtrarLoteExclusaoEst(this)">${t} <small>${q}</small></button>`).join('')}
+                </div>
+            </div>
+            <div class="fis-tabela-rolagem fin-extrato-rolagem">
+                <table class="fis-tabela fin-extrato est-lote-tabela">
+                    <thead><tr>
+                        <th><input type="checkbox" checked title="Incluir/tirar todos os visíveis" onclick="incluirTodosLoteEst(this.checked)"></th>
+                        <th>Código</th><th>Descrição</th><th>Un.</th><th class="fis-num">Saldo</th><th>Usado em</th><th>O que fazer</th>
+                    </tr></thead>
+                    <tbody data-linhas-lote></tbody>
+                </table>
+            </div>
+            <label class="fis-campo"><span>Motivo${comSaldo ? ' (obrigatório para os itens com saldo)' : ' (opcional)'}</span>
+                <textarea class="fis-input" data-motivo-lote rows="2" placeholder="ex.: itens duplicados, cadastro errado"></textarea></label>
+            <div class="est-lote-rodape">
+                <small data-resumo-lote></small>
+                <button type="button" class="est-btn-excluir est-btn-excluir-forte" data-confirmar-lote onclick="confirmarLoteExclusaoEst(this)">Excluir</button>
+            </div>
+        </div>`
+    popup({ titulo: 'Excluir itens marcados', elemento })
+    desenharLoteExclusaoEst()
+}
+
+function linhaLoteExclusaoEst(l, n) {
+    const i = l.item
+    const destino = loteExclusaoEst.destino
+    const ehDestino = destino && String(destino.id) === String(i.id)
+    const usos = usosItemEst(l.vinculos)
+    const saldo = l.locais.reduce((s, x) => s + Number(x.saldo || 0), 0)
+    const unidadeDif = l.acao === 'MIGRAR' && destino && i.unidade && destino.unidade
+        && String(i.unidade).trim().toUpperCase() !== String(destino.unidade).trim().toUpperCase()
+    let acao
+    if (ehDestino) acao = '<span class="est-lote-tag destino">Recebe os saldos (fica)</span>'
+    else if (l.grupo === 'SALDO') acao = `
+        <select class="fis-input est-lote-acao" onchange="loteExclusaoEst.linhas[${n}].acao = this.value; desenharLoteExclusaoEst()">
+            <option value="MIGRAR" ${l.acao === 'MIGRAR' ? 'selected' : ''}>Passar para o destino</option>
+            <option value="BAIXAR" ${l.acao === 'BAIXAR' ? 'selected' : ''}>Dar baixa</option>
+            <option value="NAO" ${l.acao === 'NAO' ? 'selected' : ''}>Não excluir</option>
+        </select>${unidadeDif ? `<small class="est-lote-tag aviso" title="A quantidade passa igual, sem conversão">${escEst(i.unidade)} → ${escEst(destino.unidade)}</small>` : ''}`
+    else acao = `<span class="est-lote-tag">${l.grupo === 'LIVRE' ? 'Excluir (sem vínculo)' : 'Excluir'}</span>`
+    const fora = ehDestino || !l.incluir || l.acao === 'NAO'
+    return `
+        <tr class="${fora ? 'est-lote-fora' : ''}">
+            <td><input type="checkbox" ${l.incluir && !ehDestino ? 'checked' : ''} ${ehDestino ? 'disabled' : ''} onclick="loteExclusaoEst.linhas[${n}].incluir = this.checked; desenharLoteExclusaoEst()"></td>
+            <td>${escEst(i.codigo || i.id)}</td>
+            <td class="est-lote-desc" title="${escEst(i.descricao || '')}">${escEst(i.descricao || '')}</td>
+            <td>${escEst(i.unidade || '')}</td>
+            <td class="fis-num ${saldo < 0 ? 'fis-negativo' : ''}" title="${escEst(l.locais.map(x => `${x.app} · ${x.local_nome}: ${qtdEst(x.saldo)}`).join('\n'))}">${l.locais.length ? qtdEst(saldo) : '<span class="fin-vazio">—</span>'}</td>
+            <td class="est-lote-usos">${usos.length ? escEst(usos.join(' · ')) : '<span class="fin-vazio">nenhum</span>'}</td>
+            <td>${acao}</td>
+        </tr>`
+}
+
+function desenharLoteExclusaoEst() {
+    const painel = document.querySelector('[data-lote-excluir]')
+    if (!painel || !loteExclusaoEst) return
+    const { linhas, filtro, busca } = loteExclusaoEst
+    const termo = normalizarTextoEst(busca)
+    const visiveis = []
+    linhas.forEach((l, n) => {
+        if (filtro && l.grupo !== filtro) return
+        if (termo && !normalizarTextoEst(`${l.item.codigo} ${l.item.descricao}`).includes(termo)) return
+        visiveis.push(linhaLoteExclusaoEst(l, n))
+    })
+    painel.querySelector('[data-linhas-lote]').innerHTML = visiveis.join('') || '<tr><td colspan="7" class="fis-vazio">Nada neste filtro</td></tr>'
+    const envio = itensEnvioLoteEst()
+    const migrar = envio.filter(i => i.destino_id).length
+    const baixar = envio.filter(i => i.zerar).length
+    const partes = [`${envio.length.toLocaleString('pt-BR')} ${envio.length === 1 ? 'item será excluído' : 'itens serão excluídos'}`]
+    if (migrar) partes.push(`${migrar} passam o saldo para ${loteExclusaoEst.destino ? escEst(loteExclusaoEst.destino.codigo || loteExclusaoEst.destino.id) : '<b class="fis-negativo">escolha o destino</b>'}`)
+    if (baixar) partes.push(`${baixar} com baixa do saldo`)
+    painel.querySelector('[data-resumo-lote]').innerHTML = partes.join(' · ')
+    const btn = painel.querySelector('[data-confirmar-lote]')
+    btn.textContent = envio.length ? `Excluir ${envio.length.toLocaleString('pt-BR')} ${envio.length === 1 ? 'item' : 'itens'}` : 'Excluir'
+    btn.disabled = !envio.length
+}
+
+const normalizarTextoEst = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+
+// O que vai para o servidor: incluídos, sem "Não excluir" e sem o item destino.
+function itensEnvioLoteEst() {
+    const { linhas, destino } = loteExclusaoEst
+    return linhas
+        .filter(l => l.incluir && l.acao !== 'NAO' && !(destino && String(destino.id) === String(l.item.id)))
+        .map(l => l.grupo !== 'SALDO' ? { item_id: l.item.id }
+            : l.acao === 'BAIXAR' ? { item_id: l.item.id, zerar: true }
+                : { item_id: l.item.id, destino_id: destino?.id || null })
+}
+
+function filtrarLoteExclusaoEst(botao) {
+    botao.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('ativo', b === botao))
+    loteExclusaoEst.filtro = botao.dataset.filtro
+    desenharLoteExclusaoEst()
+}
+
+function incluirTodosLoteEst(marcar) {
+    const { linhas, filtro, busca } = loteExclusaoEst
+    const termo = normalizarTextoEst(busca)
+    linhas.forEach(l => {
+        if (filtro && l.grupo !== filtro) return
+        if (termo && !normalizarTextoEst(`${l.item.codigo} ${l.item.descricao}`).includes(termo)) return
+        l.incluir = marcar
+    })
+    desenharLoteExclusaoEst()
+}
+
+function acaoTodosLoteEst(acao) {
+    loteExclusaoEst.linhas.forEach(l => { if (l.grupo === 'SALDO') l.acao = acao })
+    desenharLoteExclusaoEst()
+}
+
+async function buscarDestinoLoteEst(input) {
+    const termo = input.value.trim()
+    if (termo.length < 2) return
+    const select = document.querySelector('[data-destino-lote]')
+    try {
+        const { itens } = await apiEstoque('uso-consumo/buscar', { texto: termo })
+        const lista = itens.filter(i => String(i.tipo || '').toUpperCase() !== 'SERVIÇO')
+        loteExclusaoEst.opcoesDestino = new Map(lista.map(i => [String(i.id), i]))
+        select.innerHTML = lista.length
+            ? '<option value="">Escolha o item</option>' + lista.map(i => `<option value="${escEst(i.id)}">${escEst(i.codigo || i.id)} · ${escEst(i.descricao || '')}${i.unidade ? ` (${escEst(i.unidade)})` : ''}</option>`).join('')
+            : '<option value="">Nada encontrado</option>'
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+function escolherDestinoLoteEst(select) {
+    loteExclusaoEst.destino = loteExclusaoEst.opcoesDestino?.get(select.value) || null
+    desenharLoteExclusaoEst()
+}
+
+async function confirmarLoteExclusaoEst(botao) {
+    const painel = document.querySelector('[data-lote-excluir]')
+    const itens = itensEnvioLoteEst()
+    if (!itens.length) return popup({ mensagem: 'Nenhum item para excluir' })
+    const motivo = painel.querySelector('[data-motivo-lote]').value.trim()
+    const migrar = itens.filter(i => 'destino_id' in i)
+    const baixar = itens.filter(i => i.zerar)
+    if (migrar.length && !loteExclusaoEst.destino) return popup({ mensagem: 'Escolha o item que recebe os saldos (ou mude a ação das linhas com saldo)' })
+    if ((migrar.length || baixar.length) && motivo.length < 3) return popup({ mensagem: 'Diga o motivo da exclusão' })
+    const partes = [`<b>${itens.length.toLocaleString('pt-BR')}</b> ${itens.length === 1 ? 'item' : 'itens'} vão sair do cadastro.`]
+    if (migrar.length) partes.push(`${migrar.length} passam o saldo para <b>${escEst(loteExclusaoEst.destino.codigo || loteExclusaoEst.destino.id)} · ${escEst(loteExclusaoEst.destino.descricao || '')}</b>.`)
+    if (baixar.length) partes.push(`<span class="fis-negativo">${baixar.length} com baixa do saldo.</span>`)
+    const ok = await confirmarPopup({ titulo: 'Confirmar exclusão', mensagem: partes.join('<br>'), textoConfirmar: 'Excluir' })
+    if (!ok) return
+    try {
+        overlayAguarde()
+        const r = await apiEstoque('itens/excluir', { itens, motivo })
+        removerOverlay()
+        for (const x of r.resultados) if (x.ok) selecaoSaldosEst.delete(String(x.item_id))
+        removerPopup(botao.closest('.popup')?.id)
+        loteExclusaoEst = null
+        if (controles.estoque) paginacao('estoque')
+        desenharSelecaoSaldosEst()
+        if (!r.falhas) return popup({ mensagem: `${r.excluidos.toLocaleString('pt-BR')} ${r.excluidos === 1 ? 'item excluído' : 'itens excluídos'}.`, imagem: 'imagens/concluido.png' })
+        popup({
+            titulo: 'Exclusão com pendências',
+            elemento: `
+                <div class="fis-form est-excluir-item">
+                    <p>${r.excluidos.toLocaleString('pt-BR')} excluídos. ${r.falhas.toLocaleString('pt-BR')} não saíram (continuam marcados):</p>
+                    <ul class="fis-lista-erros">${r.resultados.filter(x => !x.ok).map(x => `<li><b>${escEst(x.item_id)}</b>: ${escEst(x.erro)}</li>`).join('')}</ul>
+                </div>`
+        })
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
