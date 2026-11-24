@@ -1942,6 +1942,7 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
                 ...(modeloEmitidasFis ? {} : { 'Modelo': { chave: 'modelo', tipoPesquisa: 'select' } }),
                 'Nº': { chave: 'numero' },
                 [nfse ? 'Tomador' : 'Destinatário']: { chave: 'participante_nome' },
+                'Nome fantasia': { chave: 'nome_fantasia' },
                 'CPF/CNPJ': { chave: 'participante_documento' },
                 ...(nfse ? {} : { 'Operação': { chave: 'natureza_operacao' } }),
                 'Orçamento': { chave: 'orcamento' },
@@ -2157,6 +2158,7 @@ async function baixarExcelEmitidasFis() {
                 { titulo: 'Nº', largura: 10, centro: true, valor: d => d.numero || '' },
                 { titulo: 'Série', largura: 7, centro: true, valor: d => d.serie || '' },
                 { titulo: nfse ? 'Tomador' : 'Destinatário', largura: 42, valor: d => d.participante_nome || '' },
+                { titulo: 'Nome fantasia', largura: 32, valor: d => d.nome_fantasia || '' },
                 { titulo: 'CPF/CNPJ', largura: 19, valor: d => d.participante_documento ? docFormatadoFis(d.participante_documento) : '' },
                 ...(nfse ? [] : [{ titulo: 'Operação', largura: 30, quebra: true, valor: d => d.natureza_operacao || '' }]),
                 { titulo: 'Orçamento', largura: 16, valor: d => listaOrcamentosEmitFis(d.orcamento).join(', ') },
@@ -2366,6 +2368,7 @@ function criarLinhaNotaEmitida(d) {
             ${modeloEmitidasFis ? '' : `<td class="fin-centro">${d.modelo === 'NFSE' ? 'NFS-e' : 'NF-e'}</td>`}
             <td class="fin-centro fin-doc">${d.numero ? `<span class="fis-link" onclick="event.stopPropagation(); ${abrir}" title="Abrir a nota">${escFis(d.numero)}</span>` : ''}</td>
             <td class="fin-obs fin-nome" title="${escFis(d.participante_nome || '')}"><span class="fin-obs-txt">${escFis(d.participante_nome || '')}</span></td>
+            <td class="fin-obs fin-nome" title="${escFis(d.nome_fantasia || '')}"><span class="fin-obs-txt">${escFis(d.nome_fantasia || '')}</span></td>
             <td class="fin-centro fin-doc">${docFormatadoFis(d.participante_documento)}</td>
             ${nfse ? '' : `<td class="fin-obs" title="${escFis(d.natureza_operacao || '')}"><span class="fin-obs-txt">${escFis(d.natureza_operacao || '')}</span></td>`}
             ${celulaOrcamentosEmitFis(d.orcamento)}
