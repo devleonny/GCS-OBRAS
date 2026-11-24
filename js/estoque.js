@@ -710,8 +710,8 @@ async function enviarExclusaoItemEst(corpo, botao = null) {
 
 // ---------------------------------------------------------------- excluir em massa
 // Itens marcados na tela de Saldos (servidor: estoque/itens/vinculos e estoque/itens/excluir, até 2000 por vez).
-// Validação: sem vínculo | com vínculo (sem saldo) | com saldo. Itens com saldo: um item destino para o lote e,
-// linha a linha, passar para o destino, dar baixa ou não excluir. O destino nunca fica na lista de excluídos.
+// Validação: sem vínculo | com vínculo (sem saldo) | com saldo. Cada linha com saldo tem o SEU destino (ou dá baixa
+// ou não sai); o topo só aplica o mesmo destino a todas de uma vez. Item que é destino de alguma linha fica.
 
 const MAX_EXCLUSAO_LOTE_EST = 2000
 let loteExclusaoEst = null
@@ -724,6 +724,8 @@ function grupoExclusaoEst(l) {
     if (l.locais.length) return 'SALDO'
     return usosItemEst(l.vinculos).length ? 'VINCULO' : 'LIVRE'
 }
+
+const nomeItemEst = i => `${i.codigo || i.id} · ${i.descricao || ''}`
 
 async function excluirMarcadosEstoque() {
     const ids = [...selecaoSaldosEst.keys()]
@@ -739,8 +741,8 @@ async function excluirMarcadosEstoque() {
     removerOverlay()
     if (!itens.length) return popup({ mensagem: 'Os itens marcados já foram excluídos.' })
     loteExclusaoEst = {
-        linhas: itens.map(r => ({ ...r, grupo: grupoExclusaoEst(r), incluir: true, acao: r.locais.length ? 'MIGRAR' : 'EXCLUIR' })),
-        destino: null, filtro: '', busca: ''
+        linhas: itens.map(r => ({ ...r, grupo: grupoExclusaoEst(r), incluir: true, acao: r.locais.length ? 'MIGRAR' : 'EXCLUIR', destino: null })),
+        filtro: '', busca: ''
     }
     const conta = g => loteExclusaoEst.linhas.filter(l => l.grupo === g).length
     const comSaldo = conta('SALDO')
@@ -754,23 +756,15 @@ async function excluirMarcadosEstoque() {
                 <div><span>Com saldo</span><b class="${comSaldo ? 'fis-negativo' : ''}">${comSaldo.toLocaleString('pt-BR')}${valorSaldo ? ` <small>${dinheiro(valorSaldo)}</small>` : ''}</b></div>
             </div>
             ${comSaldo ? `
-            <div class="est-lote-destino" data-caixa-destino-lote>
-                <label class="fis-campo"><span>1. Busque o item que fica (recebe os saldos)</span>
-                    <input type="search" class="fis-input" placeholder="Digite código, descrição ou modelo"
-                        oninput="buscarDestinoDepoisEst(this, buscarDestinoLoteEst)"
-                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscarDestinoLoteEst(this) }">
-                </label>
-                <label class="fis-campo"><span>2. Escolha na lista</span>
-                    <select class="fis-input" data-destino-lote onchange="escolherDestinoLoteEst(this)"><option value="">← digite ao lado para buscar</option></select>
-                </label>
-                <div class="est-lote-escolhido" data-destino-escolhido-lote></div>
+            <div class="est-lote-destino">
+                <small class="fis-dica est-lote-explica">Cada linha com saldo precisa do <b>item que fica</b> e recebe o saldo: clique em <b>Escolher destino</b> na linha.
+                    O saldo de cada local passa pelo custo médio do item, e o de-para de fornecedor e as ligações com o Omie vão junto. Item que é destino de alguma linha não é excluído.</small>
                 <div class="est-lote-todos">
-                    <span>Todos com saldo:</span>
-                    <button type="button" class="fis-mini" onclick="acaoTodosLoteEst('MIGRAR')">Passar para o destino</button>
+                    <span>Todas as linhas com saldo:</span>
+                    <button type="button" class="fis-mini" onclick="escolherDestinoLinhaEst(null)">Mesmo destino para todas</button>
                     <button type="button" class="fis-mini" onclick="acaoTodosLoteEst('BAIXAR')">Dar baixa</button>
                     <button type="button" class="fis-mini" onclick="acaoTodosLoteEst('NAO')">Não excluir</button>
                 </div>
-                <small class="fis-dica">O saldo de cada local passa para o destino pelo custo médio de cada item. O de-para de fornecedor e as ligações com o Omie também passam para ele.</small>
             </div>` : ''}
             <div class="fin-extrato-barra">
                 <input type="search" class="fis-input fin-extrato-busca" placeholder="Buscar código ou descrição..." oninput="loteExclusaoEst.busca = this.value; desenharLoteExclusaoEst()">
@@ -799,27 +793,41 @@ async function excluirMarcadosEstoque() {
     desenharLoteExclusaoEst()
 }
 
-function linhaLoteExclusaoEst(l, n) {
+// Itens que recebem saldo de alguma linha incluída: ficam (não são excluídos).
+function destinosLoteEst() {
+    return new Set(loteExclusaoEst.linhas
+        .filter(l => l.incluir && l.grupo === 'SALDO' && l.acao === 'MIGRAR' && l.destino)
+        .map(l => String(l.destino.id)))
+}
+
+function linhaLoteExclusaoEst(l, n, destinos) {
     const i = l.item
-    const destino = loteExclusaoEst.destino
-    const ehDestino = destino && String(destino.id) === String(i.id)
+    const fica = destinos.has(String(i.id))
     const usos = usosItemEst(l.vinculos)
     const saldo = l.locais.reduce((s, x) => s + Number(x.saldo || 0), 0)
-    const unidadeDif = l.acao === 'MIGRAR' && destino && i.unidade && destino.unidade
-        && String(i.unidade).trim().toUpperCase() !== String(destino.unidade).trim().toUpperCase()
+    const d = l.destino
+    const unidadeDif = l.acao === 'MIGRAR' && d && i.unidade && d.unidade
+        && String(i.unidade).trim().toUpperCase() !== String(d.unidade).trim().toUpperCase()
     let acao
-    if (ehDestino) acao = '<span class="est-lote-tag destino">Recebe os saldos (fica)</span>'
+    if (fica) acao = '<span class="est-lote-tag destino">Recebe saldo (fica)</span>'
     else if (l.grupo === 'SALDO') acao = `
-        <select class="fis-input est-lote-acao" onchange="loteExclusaoEst.linhas[${n}].acao = this.value; desenharLoteExclusaoEst()">
-            <option value="MIGRAR" ${l.acao === 'MIGRAR' ? 'selected' : ''}>Passar para o destino</option>
-            <option value="BAIXAR" ${l.acao === 'BAIXAR' ? 'selected' : ''}>Dar baixa</option>
-            <option value="NAO" ${l.acao === 'NAO' ? 'selected' : ''}>Não excluir</option>
-        </select>${unidadeDif ? `<small class="est-lote-tag aviso" title="A quantidade passa igual, sem conversão">${escEst(i.unidade)} → ${escEst(destino.unidade)}</small>` : ''}`
+        <div class="est-lote-acao-linha">
+            <select class="fis-input est-lote-acao" onchange="loteExclusaoEst.linhas[${n}].acao = this.value; desenharLoteExclusaoEst()">
+                <option value="MIGRAR" ${l.acao === 'MIGRAR' ? 'selected' : ''}>Passar o saldo para</option>
+                <option value="BAIXAR" ${l.acao === 'BAIXAR' ? 'selected' : ''}>Dar baixa</option>
+                <option value="NAO" ${l.acao === 'NAO' ? 'selected' : ''}>Não excluir</option>
+            </select>
+            ${l.acao === 'MIGRAR' ? `
+            <button type="button" class="est-lote-destino-btn ${d ? '' : 'falta'}" onclick="escolherDestinoLinhaEst(${n})"
+                title="${d ? escEst(nomeItemEst(d)) + ' (clique para trocar)' : 'Escolher o item que recebe o saldo'}">
+                ${d ? `${escEst(d.codigo || d.id)} · ${escEst(d.descricao || '')}` : 'Escolher destino'}</button>` : ''}
+            ${unidadeDif ? `<small class="est-lote-tag aviso" title="A quantidade passa igual, sem conversão">${escEst(i.unidade)} → ${escEst(d.unidade)}</small>` : ''}
+        </div>`
     else acao = `<span class="est-lote-tag">${l.grupo === 'LIVRE' ? 'Excluir (sem vínculo)' : 'Excluir'}</span>`
-    const fora = ehDestino || !l.incluir || l.acao === 'NAO'
+    const fora = fica || !l.incluir || l.acao === 'NAO'
     return `
         <tr class="${fora ? 'est-lote-fora' : ''}">
-            <td><input type="checkbox" ${l.incluir && !ehDestino ? 'checked' : ''} ${ehDestino ? 'disabled' : ''} onclick="loteExclusaoEst.linhas[${n}].incluir = this.checked; desenharLoteExclusaoEst()"></td>
+            <td><input type="checkbox" ${l.incluir && !fica ? 'checked' : ''} ${fica ? 'disabled' : ''} onclick="loteExclusaoEst.linhas[${n}].incluir = this.checked; desenharLoteExclusaoEst()"></td>
             <td>${escEst(i.codigo || i.id)}</td>
             <td class="est-lote-desc" title="${escEst(i.descricao || '')}">${escEst(i.descricao || '')}</td>
             <td>${escEst(i.unidade || '')}</td>
@@ -834,27 +842,23 @@ function desenharLoteExclusaoEst() {
     if (!painel || !loteExclusaoEst) return
     const { linhas, filtro, busca } = loteExclusaoEst
     const termo = normalizarTextoEst(busca)
+    const destinos = destinosLoteEst()
     const visiveis = []
     linhas.forEach((l, n) => {
         if (filtro && l.grupo !== filtro) return
         if (termo && !normalizarTextoEst(`${l.item.codigo} ${l.item.descricao}`).includes(termo)) return
-        visiveis.push(linhaLoteExclusaoEst(l, n))
+        visiveis.push(linhaLoteExclusaoEst(l, n, destinos))
     })
     painel.querySelector('[data-linhas-lote]').innerHTML = visiveis.join('') || '<tr><td colspan="7" class="fis-vazio">Nada neste filtro</td></tr>'
     const envio = itensEnvioLoteEst()
-    const migrar = envio.filter(i => 'destino_id' in i).length
-    const caixa = painel.querySelector('[data-caixa-destino-lote]')
-    if (caixa) {
-        const d = loteExclusaoEst.destino
-        caixa.classList.toggle('pendente', migrar > 0 && !d)
-        caixa.querySelector('[data-destino-escolhido-lote]').innerHTML = d
-            ? `<span class="est-lote-tag destino">Destino: ${escEst(d.codigo || d.id)} · ${escEst(d.descricao || '')}${d.unidade ? ` (${escEst(d.unidade)})` : ''}</span>`
-            : migrar ? `<span class="fis-negativo">Falta escolher o item que recebe ${migrar === 1 ? 'o saldo' : 'os saldos'} (ou mude a linha para "Dar baixa")</span>` : ''
-    }
+    const migrar = envio.filter(i => 'destino_id' in i)
+    const faltam = migrar.filter(i => !i.destino_id).length
     const baixar = envio.filter(i => i.zerar).length
     const partes = [`${envio.length.toLocaleString('pt-BR')} ${envio.length === 1 ? 'item será excluído' : 'itens serão excluídos'}`]
-    if (migrar) partes.push(`${migrar} passam o saldo para ${loteExclusaoEst.destino ? escEst(loteExclusaoEst.destino.codigo || loteExclusaoEst.destino.id) : '<b class="fis-negativo">escolha o destino</b>'}`)
+    if (migrar.length) partes.push(`${migrar.length} ${migrar.length === 1 ? 'passa' : 'passam'} o saldo para outro item`)
     if (baixar) partes.push(`${baixar} com baixa do saldo`)
+    if (destinos.size) partes.push(`${destinos.size} ${destinos.size === 1 ? 'fica' : 'ficam'} como destino`)
+    if (faltam) partes.push(`<b class="fis-negativo">${faltam} ${faltam === 1 ? 'linha' : 'linhas'} sem destino escolhido</b>`)
     painel.querySelector('[data-resumo-lote]').innerHTML = partes.join(' · ')
     const btn = painel.querySelector('[data-confirmar-lote]')
     btn.textContent = envio.length ? `Excluir ${envio.length.toLocaleString('pt-BR')} ${envio.length === 1 ? 'item' : 'itens'}` : 'Excluir'
@@ -863,14 +867,14 @@ function desenharLoteExclusaoEst() {
 
 const normalizarTextoEst = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
 
-// O que vai para o servidor: incluídos, sem "Não excluir" e sem o item destino.
+// O que vai para o servidor: incluídos, sem "Não excluir" e sem os itens que são destino de alguma linha.
 function itensEnvioLoteEst() {
-    const { linhas, destino } = loteExclusaoEst
-    return linhas
-        .filter(l => l.incluir && l.acao !== 'NAO' && !(destino && String(destino.id) === String(l.item.id)))
+    const destinos = destinosLoteEst()
+    return loteExclusaoEst.linhas
+        .filter(l => l.incluir && l.acao !== 'NAO' && !destinos.has(String(l.item.id)))
         .map(l => l.grupo !== 'SALDO' ? { item_id: l.item.id }
             : l.acao === 'BAIXAR' ? { item_id: l.item.id, zerar: true }
-                : { item_id: l.item.id, destino_id: destino?.id || null })
+                : { item_id: l.item.id, destino_id: l.destino?.id || null })
 }
 
 function filtrarLoteExclusaoEst(botao) {
@@ -895,20 +899,66 @@ function acaoTodosLoteEst(acao) {
     desenharLoteExclusaoEst()
 }
 
-async function buscarDestinoLoteEst(input) {
+// Janela de escolha do destino: n = índice da linha; null = o mesmo destino para todas as linhas com saldo.
+function escolherDestinoLinhaEst(n) {
+    const l = n === null ? null : loteExclusaoEst.linhas[n]
+    const titulo = l ? `Destino do saldo de ${l.item.codigo || l.item.id}` : 'Mesmo destino para todas as linhas com saldo'
+    const quem = l
+        ? `<p class="est-excluir-nome"><b>${escEst(nomeItemEst(l.item))}</b>${l.item.unidade ? ` <small>${escEst(l.item.unidade)}</small>` : ''}</p>`
+        : `<p class="fis-dica">Vale para as ${loteExclusaoEst.linhas.filter(x => x.grupo === 'SALDO').length} linhas com saldo. Depois dá para trocar linha a linha.</p>`
+    popup({
+        titulo,
+        elemento: `
+            <div class="fis-form est-excluir-item" data-picker-destino="${n === null ? '' : n}">
+                ${quem}
+                <label class="fis-campo"><span>Item que fica e recebe o saldo</span>
+                    <input type="search" class="fis-input" placeholder="Digite código, descrição ou modelo"
+                        oninput="buscarDestinoDepoisEst(this, buscarDestinoLinhaEst)"
+                        onkeydown="if (event.key === 'Enter') { event.preventDefault(); buscarDestinoLinhaEst(this) }">
+                </label>
+                <div class="est-destino-lista" data-resultados-destino><small class="fis-dica">Digite ao menos 2 letras.</small></div>
+            </div>`
+    })
+    setTimeout(() => document.querySelector('[data-picker-destino] input')?.focus(), 50)
+}
+
+async function buscarDestinoLinhaEst(input) {
     const termo = input.value.trim()
-    if (termo.length < 2) return
-    const select = document.querySelector('[data-destino-lote]')
+    const caixa = input.closest('[data-picker-destino]')
+    const area = caixa?.querySelector('[data-resultados-destino]')
+    if (!area) return
+    if (termo.length < 2) { area.innerHTML = '<small class="fis-dica">Digite ao menos 2 letras.</small>'; return }
+    const n = caixa.dataset.pickerDestino === '' ? null : Number(caixa.dataset.pickerDestino)
+    const origem = n === null ? null : loteExclusaoEst.linhas[n]?.item
     try {
         const { itens } = await apiEstoque('uso-consumo/buscar', { texto: termo })
-        const lista = itens.filter(i => String(i.tipo || '').toUpperCase() !== 'SERVIÇO')
+        const lista = itens.filter(i => String(i.tipo || '').toUpperCase() !== 'SERVIÇO' && String(i.id) !== String(origem?.id))
         loteExclusaoEst.opcoesDestino = new Map(lista.map(i => [String(i.id), i]))
-        select.innerHTML = lista.length
-            ? `<option value="">▼ ${lista.length} encontrado${lista.length === 1 ? '' : 's'}: escolha aqui</option>` + lista.map(i => `<option value="${escEst(i.id)}">${escEst(i.codigo || i.id)} · ${escEst(i.descricao || '')}${i.unidade ? ` (${escEst(i.unidade)})` : ''}</option>`).join('')
-            : '<option value="">Nada encontrado</option>'
+        const un = String(origem?.unidade || '').trim().toUpperCase()
+        area.innerHTML = lista.length ? lista.map(i => {
+            const dif = un && i.unidade && String(i.unidade).trim().toUpperCase() !== un
+            return `<button type="button" class="est-destino-opcao" onclick="definirDestinoLinhaEst('${escEst(i.id)}', this)">
+                <b>${escEst(i.codigo || i.id)}</b> ${escEst(i.descricao || '')}
+                ${i.unidade ? `<small class="${dif ? 'est-lote-tag aviso' : ''}">${escEst(i.unidade)}</small>` : ''}</button>`
+        }).join('') : '<small class="fis-dica">Nada encontrado.</small>'
     } catch (err) {
         popup({ mensagem: mensagemErroEst(err) })
     }
+}
+
+function definirDestinoLinhaEst(id, botao) {
+    const caixa = botao.closest('[data-picker-destino]')
+    const n = caixa.dataset.pickerDestino === '' ? null : Number(caixa.dataset.pickerDestino)
+    const destino = loteExclusaoEst.opcoesDestino?.get(String(id))
+    if (!destino) return
+    const alvo = n === null ? loteExclusaoEst.linhas.filter(l => l.grupo === 'SALDO') : [loteExclusaoEst.linhas[n]]
+    for (const l of alvo) {
+        if (String(l.item.id) === String(destino.id)) continue
+        l.destino = destino
+        l.acao = 'MIGRAR'
+    }
+    removerPopup(botao.closest('.popup')?.id)
+    desenharLoteExclusaoEst()
 }
 
 // Busca do item destino enquanto digita (espera a pessoa parar 400 ms).
@@ -918,11 +968,6 @@ function buscarDestinoDepoisEst(input, buscar) {
     esperaBuscaDestinoEst = setTimeout(() => buscar(input), 400)
 }
 
-function escolherDestinoLoteEst(select) {
-    loteExclusaoEst.destino = loteExclusaoEst.opcoesDestino?.get(select.value) || null
-    desenharLoteExclusaoEst()
-}
-
 async function confirmarLoteExclusaoEst(botao) {
     const painel = document.querySelector('[data-lote-excluir]')
     const itens = itensEnvioLoteEst()
@@ -930,10 +975,18 @@ async function confirmarLoteExclusaoEst(botao) {
     const motivo = painel.querySelector('[data-motivo-lote]').value.trim()
     const migrar = itens.filter(i => 'destino_id' in i)
     const baixar = itens.filter(i => i.zerar)
-    if (migrar.length && !loteExclusaoEst.destino) return popup({ mensagem: 'Escolha o item que recebe os saldos (ou mude a ação das linhas com saldo)' })
+    const faltam = migrar.filter(i => !i.destino_id).length
+    if (faltam) return popup({ mensagem: `${faltam} ${faltam === 1 ? 'linha com saldo está' : 'linhas com saldo estão'} sem destino: clique em "Escolher destino" ou mude para "Dar baixa"` })
     if ((migrar.length || baixar.length) && motivo.length < 3) return popup({ mensagem: 'Diga o motivo da exclusão' })
+    // Resumo por destino: "3 passam o saldo para 722 · INJETOR POE".
+    const porDestino = new Map()
+    for (const i of migrar) porDestino.set(i.destino_id, (porDestino.get(i.destino_id) || 0) + 1)
+    const nomeDestino = id => {
+        const d = loteExclusaoEst.linhas.find(l => String(l.destino?.id) === String(id))?.destino
+        return d ? nomeItemEst(d) : id
+    }
     const partes = [`<b>${itens.length.toLocaleString('pt-BR')}</b> ${itens.length === 1 ? 'item' : 'itens'} vão sair do cadastro.`]
-    if (migrar.length) partes.push(`${migrar.length} passam o saldo para <b>${escEst(loteExclusaoEst.destino.codigo || loteExclusaoEst.destino.id)} · ${escEst(loteExclusaoEst.destino.descricao || '')}</b>.`)
+    for (const [id, q] of porDestino) partes.push(`${q} ${q === 1 ? 'passa' : 'passam'} o saldo para <b>${escEst(nomeDestino(id))}</b>`)
     if (baixar.length) partes.push(`<span class="fis-negativo">${baixar.length} com baixa do saldo.</span>`)
     const ok = await confirmarPopup({ titulo: 'Confirmar exclusão', mensagem: partes.join('<br>'), textoConfirmar: 'Excluir' })
     if (!ok) return

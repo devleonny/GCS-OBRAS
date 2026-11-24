@@ -1785,3 +1785,12 @@ button.fis-cred-ind:focus-visible { outline: 2px solid var(--cor); outline-offse
 .est-lote-escolhido { grid-column: 1 / -1; font-size: 0.85rem; }
 .est-lote-escolhido:empty { display: none; }
 .est-lote-escolhido .est-lote-tag { font-size: 12.5px; padding: 4px 10px; white-space: normal; }
+/* Destino por linha (escolherDestinoLinhaEst). */
+.est-lote-destino { display: flex; flex-direction: column; gap: 8px; }
+.est-lote-acao-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.est-lote-destino-btn { max-width: 260px; height: 28px; padding: 0 10px; border-radius: 6px; border: 1px solid #b7d7c2; background: #f0fdf4; color: #15603a; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.est-lote-destino-btn.falta { border-color: #f3c4c4; background: #fff1f1; color: #b91c1c; font-weight: 600; }
+.est-destino-lista { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; }
+.est-destino-opcao { display: flex; align-items: center; gap: 8px; text-align: left; padding: 8px 10px; border: 1px solid #e2e8e4; border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; }
+.est-destino-opcao:hover { background: #f0fdf4; border-color: #b7d7c2; }
+.est-destino-opcao small { margin-left: auto; color: #6b7a71; }
