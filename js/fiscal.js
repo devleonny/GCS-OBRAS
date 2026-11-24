@@ -75,9 +75,10 @@ let filtroExtraRecFis = null
 let modoRecFis = 'NFE'
 
 function seletorModoRecFis() {
-    return `<div class="fis-modo-rec" role="tablist" aria-label="Tipo de documento">
-        ${[['NFE', 'NF-e'], ['CTE', 'CT-e']].map(([m, nome]) => `<button type="button" role="tab" aria-selected="${modoRecFis === m}"
-            onclick="trocarModoRecFis('${m}')">${nome}</button>`).join('')}</div>`
+    // Mesmo seletor segmentado da empresa nos Fluxos de Vendas/Serviços (.fluxo-chave-empresa, css/fluxo_kanban.css).
+    return `<div class="fluxo-chave-empresa" role="group" aria-label="Tipo de documento">
+        ${[['NFE', 'NF-e'], ['CTE', 'CT-e']].map(([m, nome]) => `<button type="button" class="${modoRecFis === m ? 'ativo' : ''}"
+            aria-pressed="${modoRecFis === m}" onclick="trocarModoRecFis('${m}')">${nome}</button>`).join('')}</div>`
 }
 
 function trocarModoRecFis(modo) {
