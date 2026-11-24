@@ -4424,7 +4424,75 @@ function htmlConfigEmpresas({ empresas }) {
             ${campoFis('Rodapé padrão da NFS-e <small>(vem pronto na emissão; o usuário pode alterar)</small>', `<textarea class="fis-input" name="nfse_rodape" rows="3" maxlength="1000" placeholder="Ex.: dados bancários, aviso de retenção, texto do Simples Nacional…">${escFis(e.nfse_rodape || '')}</textarea>`)}
             ${e.observacao ? `<small class="fis-dica">${escFis(e.observacao)}</small>` : ''}
             <div class="fis-acoes-claras"><button type="button" class="fis-botao" onclick="salvarEmpresaFiscal('${escFis(e.app)}')">Salvar ${escFis(e.app)}</button></div>
+            ${htmlCertificadoFis(e)}
         </div>`).join('')}</div>`
+}
+
+// Certificado digital A1 da empresa: usado pelo GCS para consultar direto o Ambiente Nacional e a SEFAZ
+// (a emissão continua com o certificado que está no painel da Focus). Enviar/remover: só adm/diretoria.
+function htmlCertificadoFis(e) {
+    const c = e.certificado
+    const dataBR = d => d ? new Date(d).toLocaleDateString('pt-BR') : '—'
+    let situacao = etiquetaEst('Sem certificado', '#94a3b8')
+    if (c) {
+        const dias = Math.ceil((new Date(c.valido_ate) - Date.now()) / 86400000)
+        situacao = dias < 0 ? etiquetaEst(`Vencido em ${dataBR(c.valido_ate)}`, '#b91c1c')
+            : dias <= 30 ? etiquetaEst(`Vence em ${dias} dia(s)`, '#d97706')
+                : etiquetaEst(`Válido até ${dataBR(c.valido_ate)}`, '#15803d')
+    }
+    const app = escFis(e.app)
+    return `
+        <div class="fis-secao" data-certificado="${app}">
+            <div class="fis-secao-topo"><b>Certificado digital A1</b> ${situacao}</div>
+            ${c ? `<small class="fis-dica">${escFis(c.titular || '')} · CNPJ ${docFormatadoFis(c.cnpj)} · emitido por ${escFis(c.emissor || '—')} · válido de ${dataBR(c.valido_de)} a ${dataBR(c.valido_ate)}<br>
+                Enviado por ${escFis(c.enviado_por || '—')} em ${new Date(c.enviado_em).toLocaleString('pt-BR')}${c.nome_arquivo ? ` (${escFis(c.nome_arquivo)})` : ''}</small>` : ''}
+            <div class="fis-grade">
+                ${campoFis(c ? 'Trocar pelo arquivo (.pfx ou .p12)' : 'Arquivo do certificado (.pfx ou .p12)', '<input class="fis-input" type="file" name="cert_arquivo" accept=".pfx,.p12,application/x-pkcs12">')}
+                ${campoFis('Senha do certificado', '<input class="fis-input" type="password" name="cert_senha" autocomplete="new-password">')}
+            </div>
+            <small class="fis-dica">Fica guardado cifrado no servidor e serve para o GCS conferir direto no Portal Nacional e na SEFAZ as notas canceladas por fora. A emissão continua com o certificado do painel da Focus: ao renovar, envie nos dois.</small>
+            <div class="fis-acoes-claras">
+                ${c ? `<button type="button" class="fis-botao fis-botao-sec" onclick="removerCertificadoFis('${app}')">Remover</button>` : ''}
+                <button type="button" class="fis-botao" onclick="enviarCertificadoFis('${app}')">${c ? 'Trocar certificado' : 'Enviar certificado'}</button>
+            </div>
+        </div>`
+}
+
+async function enviarCertificadoFis(app) {
+    const caixa = document.querySelector(`[data-certificado="${CSS.escape(app)}"]`)
+    const arquivo = caixa.querySelector('[name="cert_arquivo"]').files[0]
+    const senha = caixa.querySelector('[name="cert_senha"]').value
+    if (!arquivo) return popup({ mensagem: 'Escolha o arquivo .pfx do certificado.' })
+    if (!senha) return popup({ mensagem: 'Informe a senha do certificado.' })
+    if (arquivo.size > 100 * 1024) return popup({ mensagem: 'O arquivo passa de 100 KB: não parece um certificado A1.' })
+    try {
+        overlayAguarde()
+        const base64 = await new Promise((ok, falha) => {
+            const leitor = new FileReader()
+            leitor.onload = () => ok(String(leitor.result).split(',')[1] || '')
+            leitor.onerror = () => falha(new Error('Não foi possível ler o arquivo'))
+            leitor.readAsDataURL(arquivo)
+        })
+        const r = await apiFiscal('config/certificado', { app, arquivo: base64, senha, nome: arquivo.name })
+        removerOverlay()
+        popup({ mensagem: `Certificado da ${escFis(app)} guardado: ${escFis(r.titular || '')}, válido até ${new Date(r.valido_ate).toLocaleDateString('pt-BR')}.`, imagem: 'imagens/concluido.png', tempo: 4 })
+        telaConfigFiscal('empresas')
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function removerCertificadoFis(app) {
+    const ok = await confirmarPopup({ titulo: 'Remover certificado', mensagem: `O GCS deixa de conferir direto no Portal Nacional e na SEFAZ as notas da <b>${escFis(app)}</b>. A emissão pela Focus não muda.`, textoConfirmar: 'Remover' })
+    if (!ok) return
+    try {
+        await apiFiscal('config/certificado/remover', { app })
+        popup({ mensagem: `Certificado da ${escFis(app)} removido.`, imagem: 'imagens/concluido.png', tempo: 3 })
+        telaConfigFiscal('empresas')
+    } catch (err) {
+        popup({ mensagem: mensagemErroEst(err) })
+    }
 }
 
 async function salvarEmpresaFiscal(app) {

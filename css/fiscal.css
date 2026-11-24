@@ -744,6 +744,16 @@ textarea.fis-input {
     background: #2b5236;
 }
 
+.fis-botao.fis-botao-sec {
+    color: #b91c1c;
+    background: white;
+    border-color: #fca5a5;
+}
+
+.fis-botao.fis-botao-sec:hover:not(:disabled) {
+    background: #fef2f2;
+}
+
 .fis-botao:disabled {
     cursor: not-allowed;
     opacity: 0.45;
