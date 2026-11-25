@@ -1928,6 +1928,40 @@ td img[src="imagens/pesquisar.svg"] {
     height: 14px;
 }
 
+/* Busca de técnico/funcionário do formulário de indisponibilidade (.fin-escolha): itens retos
+   dentro da lista, com destaque retangular e contorno verde no hover/teclado (sem a pílula). */
+.ind-pessoa .fin-escolha-lista {
+    padding: 4px;
+}
+
+.ind-pessoa .fin-escolha-grupo {
+    margin: 0 -4px;
+}
+
+.ind-pessoa .fin-escolha-grupo:first-child {
+    margin-top: -4px;
+}
+
+.ind-pessoa .fin-escolha-grupo:not(:first-child) {
+    margin-top: 4px;
+}
+
+.ind-pessoa .fin-escolha-item {
+    border: 1px solid transparent;
+    border-radius: 6px;
+    box-shadow: none;
+    transform: none;
+    margin: 1px 0;
+}
+
+.ind-pessoa .fin-escolha-item:hover,
+.ind-pessoa .fin-escolha-item:focus-visible {
+    background: #eef6f0;
+    border-color: #9cc7ac;
+    box-shadow: none;
+    outline: none;
+}
+
 .cal-tec-titulo {
     display: flex;
     align-items: center;
