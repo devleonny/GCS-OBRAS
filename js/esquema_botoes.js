@@ -306,6 +306,7 @@ const esquemaBotoes = {
                 { nome: 'Faturas a Receber', funcao: 'telaFaturasReceber', acesso: 'financeiro.faturas_receber', img: 'receber' },
                 { nome: 'Lote de Salários', funcao: 'telaLotesSalarios', acesso: 'financeiro.lote_salarios', img: 'dinheiro' },
                 { nome: 'Faturas do Cartão', funcao: 'abrirFaturasCartaoFin', acesso: 'financeiro.cartoes', img: 'cartao' },
+                { nome: 'Conciliação Bancária', funcao: 'telaConciliacaoFin', acesso: 'financeiro.conciliacao', img: 'planilha' },
                 { nome: 'Contas Correntes', funcao: 'telaContasFin', acesso: 'financeiro.contas', img: 'planilha' },
                 { nome: 'Categorias', funcao: 'telaCategoriasFin', acesso: 'financeiro.categorias', img: 'prancheta' },
                 { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', acesso: 'financeiro.dashboard', img: 'dashboard' },
