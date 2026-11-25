@@ -1252,8 +1252,38 @@
     text-align: left;
 }
 
+/* Com o comprovante do banco: quarta coluna. */
+.pagamento-detalhes-extras.com-comprovante {
+    grid-template-columns: minmax(200px, 1.2fr) minmax(220px, 1.2fr) minmax(200px, 1fr) minmax(200px, 1fr);
+}
+
+.pagamento-detalhe-comprovante {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pagamento-detalhe-comprovante small {
+    color: #64748b;
+}
+
+.pagamento-comprovante-tem {
+    color: #15803d;
+    font-weight: 700;
+    font-size: 1.15em;
+    cursor: pointer;
+    padding: 0 2px;
+}
+
+.pagamento-comprovante-falta {
+    color: #b91c1c;
+    font-weight: 700;
+    font-size: 1.15em;
+}
+
 @media (max-width: 900px) {
-    .pagamento-detalhes-extras {
+    .pagamento-detalhes-extras,
+    .pagamento-detalhes-extras.com-comprovante {
         grid-template-columns: minmax(0, 1fr);
     }
 }

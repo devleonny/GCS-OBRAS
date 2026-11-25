@@ -110,6 +110,8 @@ async function telaPagamentos() {
             'Status': { chave: 'status' },
             'Solicitante': { chave: 'criado' },
             'Recebedor': { chave: 'snapshots.cliente' },
+            // Comprovante do banco preso pelo Financeiro no pagamento da fatura (vw_reembolsos.comprovante).
+            'Comprovante': { chave: 'comprovante', op: '=', tipoPesquisa: 'select', opcoes: ['SIM', 'NÃO'] },
             'Detalhes': {}
         },
         filtros: mostrarIntegracaoPagamentos ? {} : { 'snapshots.criado': { ...FILTRO_SEM_INTEGRACAO } },
@@ -250,6 +252,7 @@ async function criarLinhaPagamento(pagamento) {
         </td>
         <td>${criado || ''}</td>
         <td>${snapshots?.cliente || ''}</td>
+        <td style="text-align: center;">${colunaComprovantePagamento(pagamento)}</td>
         <td style="text-align: center;">
             <img src="imagens/pesquisar.svg" style="width: 1.5rem; cursor: pointer;" onclick="abrirDetalhesPagamentos('${id}')">
         </td>
@@ -332,8 +335,14 @@ function detalhesExtrasPagamento(pagamento) {
         .map(a => criarAnexoVisual(escaparAtributo(a.nome || a.link), escaparAtributo(a.link)))
         .join('')
 
+    const comprovantes = comprovantesDoPagamento(pagamento)
+        .map(c => `<div class="pagamento-detalhe-comprovante">
+            <small>Pago em ${escaparAtributo(String(c.data || '').split('-').reverse().join('/'))} · ${dinheiro(c.valor)}</small>
+            ${criarAnexoVisual(escaparAtributo(c.nome || c.link), escaparAtributo(c.link))}</div>`)
+        .join('')
+
     return `
-        <div class="pagamento-detalhes-extras">
+        <div class="pagamento-detalhes-extras${comprovantes ? ' com-comprovante' : ''}">
             <section>
                 <strong>Observação</strong>
                 ${observacao ? `<p class="pagamento-detalhe-observacao">${escaparAtributo(observacao)}</p>` : '<small class="pagamento-detalhe-vazio">Sem observação</small>'}
@@ -346,7 +355,26 @@ function detalhesExtrasPagamento(pagamento) {
                 <strong>Anexos</strong>
                 ${anexos ? `<div class="pagamento-detalhe-anexos">${anexos}</div>` : '<small class="pagamento-detalhe-vazio">Sem anexos</small>'}
             </section>
+            ${comprovantes ? `<section>
+                <strong>Comprovante do pagamento</strong>
+                <div class="pagamento-detalhe-anexos">${comprovantes}</div>
+            </section>` : ''}
         </div>`
+}
+
+// Comprovantes do banco das faturas do reembolso (vw_reembolsos.comprovantes, migrations/reembolsos-comprovantes.sql).
+function comprovantesDoPagamento(pagamento) {
+    return (Array.isArray(pagamento?.comprovantes) ? pagamento.comprovantes : []).filter(c => c?.link)
+}
+
+function colunaComprovantePagamento(pagamento) {
+    const lista = comprovantesDoPagamento(pagamento)
+    if (!lista.length) return '<span class="pagamento-comprovante-falta" title="Sem comprovante do banco">✗</span>'
+    return lista.map(c => `<span class="pagamento-comprovante-tem" role="button" tabindex="0"
+        title="${escaparAtributo(`Comprovante · pago em ${String(c.data || '').split('-').reverse().join('/')} · ${dinheiro(c.valor)}`)}"
+        data-link="${escaparAtributo(c.link)}" data-nome="${escaparAtributo(c.nome || c.link)}"
+        onclick="abrirArquivo(this.dataset.link, this.dataset.nome)"
+        onkeydown="if (event.key === 'Enter') abrirArquivo(this.dataset.link, this.dataset.nome)">✓</span>`).join('')
 }
 
 function iconePagamento(status) {
