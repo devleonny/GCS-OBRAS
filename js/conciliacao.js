@@ -423,6 +423,18 @@ function desenharConciliarConc() {
     const painel = `
         ${cabecaPainelCartaoFin((c.contas.find(k => String(k.id) === String(c.conta_principal_id)) || c.contas[0] || {}).app || '?', `${c.nome} · ${mesNomeConc(d.mes)}`,
             `<small>${c.conferida_ate ? `conferida até ${dataFin(c.conferida_ate)}` : `ainda não fechada · corte ${dataFin(c.corte)}`}</small>`)}
+        <label class="cc-mes cc-so-aberto">Mês
+            <select class="fis-input" onchange="estadoConc.mes = this.value; estadoConc.sel = null; telaConciliarConc(false)">
+                ${meses.map(m => `<option value="${m}" ${m === d.mes ? 'selected' : ''}>${mesNomeConc(m)}</option>`).join('')}
+            </select>
+        </label>
+        <div class="cc-filtros" role="group" aria-label="Filtrar as linhas">
+            ${[['TODAS', 'Todas'], ['SUGESTAO', 'Sugestões'], ['SEM_PAR', 'Sem par'], ['SO_GCS', 'Só no GCS'], ['CASADA', 'Casadas'], ['IGNORADA', 'Fora do Financeiro']]
+                .map(([k, t]) => `<button type="button" class="fin-acao cc-filtro ${estadoConc.filtro === k ? 'ativo' : ''}" aria-pressed="${estadoConc.filtro === k}" title="${t} (${conta(k)})"
+                    onclick="estadoConc.filtro = '${k}'; desenharConciliarConc(); if (estadoConc.sel) escolherLinhaConc(estadoConc.sel, false)">
+                    ${k === 'TODAS' ? `<span class="cc-sit cc-sit-todas" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 8h10M7 12h10M7 16h10"/></svg></span>` : iconeSitConc(k)}<span>${t}</span><em>${conta(k)}</em></button>`).join('')}
+        </div>
+        <hr>
         <div class="cf-infos">
             ${infoPainelCartaoFin(`Saldo do banco (${dataFin(d.saldo_dia)})`, d.saldo_banco != null ? dinheiro(d.saldo_banco) : '—')}
             ${infoPainelCartaoFin(`Saldo do GCS (${dataFin(d.saldo_dia)})`, c.conferida_ate ? dinheiro(d.saldo_gcs) : 'a conferir')}
@@ -444,17 +456,6 @@ function desenharConciliarConc() {
         ${acaoPainelCartaoFin('voltar', 'Todas as contas', 'telaContasConc()')}`
     tela.innerHTML = janelaConc(`Conciliar · ${escFin(c.nome)}`, `
         <div data-conciliar>
-            <div class="cc-topo">
-                <label class="cc-mes">Mês
-                    <select class="fis-input" onchange="estadoConc.mes = this.value; estadoConc.sel = null; telaConciliarConc(false)">
-                        ${meses.map(m => `<option value="${m}" ${m === d.mes ? 'selected' : ''}>${mesNomeConc(m)}</option>`).join('')}
-                    </select>
-                </label>
-                <div class="cc-filtros">
-                    ${[['TODAS', 'Todas'], ['SUGESTAO', 'Sugestões'], ['SEM_PAR', 'Sem par'], ['SO_GCS', 'Só no GCS'], ['CASADA', 'Casadas'], ['IGNORADA', 'Fora do Financeiro']]
-                        .map(([k, t]) => `<button type="button" class="cc-filtro ${estadoConc.filtro === k ? 'ativo' : ''}" onclick="estadoConc.filtro = '${k}'; desenharConciliarConc(); if (estadoConc.sel) escolherLinhaConc(estadoConc.sel, false)">${t} <b>${conta(k)}</b></button>`).join('')}
-                </div>
-            </div>
             ${(d.faltam_dias || []).length ? `<div class="cf-faixa cf-falta">Falta extrato de ${d.faltam_dias.slice(0, 4).map(f => f.de === f.ate ? dataFin(f.de) : `${dataFin(f.de)} a ${dataFin(f.ate)}`).join(', ')}${d.faltam_dias.length > 4 ? '…' : ''}: importe esses dias para poder fechar.</div>` : ''}
             ${d.linhas.length || d.so_gcs.length ? '' : `<div class="cf-faixa">Nenhuma linha de extrato em ${mesNomeConc(d.mes)}. <span class="fis-link" onclick="importarOfxConc()">Importar OFX</span></div>`}
             <div class="cc-area" data-area-conc>
@@ -481,7 +482,7 @@ function ajustarAlturaConc() {
     // O painel de ações (direita) não pode passar do rodapé: senão a página inteira rola e a lista some embaixo.
     const painel = document.querySelector('[data-corpo-conc] .fin-painel')
     if (painel) {
-        painel.style.maxHeight = `${Math.max(fimTela - painel.getBoundingClientRect().top, 300)}px`
+        painel.style.height = `${Math.max(fimTela - painel.getBoundingClientRect().top, 300)}px`
         painel.style.overflowY = 'auto'
     }
 }

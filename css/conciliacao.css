@@ -92,11 +92,6 @@
 @media (max-width: 1100px) { .cc-area { grid-template-columns: 1fr; height: auto !important; } .cc-coluna-lista .cc-rolagem { max-height: 55vh; } }
 
 .cc-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px; }
-.cc-mes { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #4f5d55; }
-.cc-mes .fis-input { width: auto; }
-.cc-filtros { display: flex; flex-wrap: wrap; gap: 6px; }
-.cc-filtro { padding: 5px 11px; border-radius: 999px; border: 1px solid #c9d6ce; background: #fff; color: #1f2a24; font-size: 12.5px; cursor: pointer; }
-.cc-filtro.ativo { background: var(--fin-verde, #356443); border-color: var(--fin-verde, #356443); color: #fff; }
 .cc-busca { width: 100%; box-sizing: border-box; }
 
 .cc-detalhe { overflow-y: auto; min-height: 0; padding: 0; background: #f7faf8; border: 1px solid var(--fin-borda, #d6e0da); border-radius: 10px; display: flex; flex-direction: column; }
@@ -204,3 +199,18 @@ label.cc-item { cursor: pointer; }
 .cc-soma-barra.cc-soma-passou span { background: #c0392b; }
 .cc-ajuste { display: flex; flex-direction: column; gap: 4px; flex-basis: 100%; font-size: 12.5px; }
 .cc-form-lancar { padding: 12px; background: #fff; border: 1px solid #dfe7e2; border-radius: 10px; }
+
+/* Mês e filtros no painel da direita (recolhido: só os ícones) */
+.cc-tela .fin-painel { flex: none; }
+.cc-mes { display: flex; flex-direction: column; gap: 3px; padding: 6px 6px 4px; color: #5f6d65; font-size: 11px; }
+.cc-mes .fis-input { width: 100%; box-sizing: border-box; }
+.cc-filtros { display: flex; flex-direction: column; gap: 1px; padding-top: 4px; }
+.cc-filtro { position: relative; }
+.cc-filtro .cc-sit { width: 20px; height: 20px; }
+.cc-filtro .cc-sit svg { width: 13px; height: 13px; }
+.cc-sit-todas { background: #5f6d65; }
+.cc-filtro em { margin-left: auto; font-style: normal; padding: 0 7px; border-radius: 999px; background: #eef2ef; color: #4f5d55; font-size: 11px; line-height: 18px; }
+.cc-filtro.ativo { background: #e4f2dc; font-weight: 700; }
+.cc-filtro.ativo em { background: var(--fin-verde, #356443); color: #fff; }
+.fin-corpo.recolhido .cc-so-aberto, .fin-corpo.recolhido .cc-filtro em { display: none; }
+.fin-corpo.recolhido .fin-acao .cc-sit { display: inline-flex; }
