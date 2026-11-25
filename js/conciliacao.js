@@ -113,7 +113,6 @@ function desenharContasConc(todas) {
                     <div class="cc-cartao-nome">
                         <b>${escFin(c.nome)}</b>
                         <small>Banco ${escFin(c.banco)} · ag. ${escFin(c.agencia || '—')} · c/c ${escFin(contaDv(c.conta))}</small>
-                        <div class="cc-empresas" title="Empresas que pagam e recebem por esta conta">${c.contas.map(k => `<span class="${k.app === principal ? 'cc-principal-tag' : ''}">${escFin(k.app)}</span>`).join('')}</div>
                     </div>
                     <button type="button" class="fis-mini cc-editar" title="Dados e contas correntes ligadas" onclick="formularioContaBancoConc(${c.id})">${iconeFin('editar')}</button>
                 </div>`

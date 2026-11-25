@@ -17,9 +17,6 @@
 .cc-editar { flex: none; }
 .cc-editar .fin-icone { width: 16px; height: 16px; }
 .cc-cartao-nome { display: flex; flex-direction: column; gap: 3px; }
-.cc-empresas { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
-.cc-empresas span { padding: 1px 7px; border-radius: 4px; background: #eef2ef; color: #4f5d55; font-size: 11px; font-weight: 600; }
-.cc-empresas .cc-principal-tag { background: var(--fin-verde-claro, #e4f2dc); color: var(--fin-verde, #356443); }
 .cc-ultimo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; color: #5f6d65; font-size: 12px; }
 .cc-ultimo .fin-icone { width: 14px; height: 14px; }
 .cc-ultimo-atrasado b { color: #b42318; }
