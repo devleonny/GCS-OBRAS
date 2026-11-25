@@ -473,6 +473,12 @@ function ajustarAlturaConc() {
     const area = document.querySelector('[data-area-conc]')
     if (!area) return
     area.style.height = `${Math.max(window.innerHeight - area.getBoundingClientRect().top - 16, 360)}px`
+    // O painel de ações (direita) não pode passar do rodapé: senão a página inteira rola e a lista some embaixo.
+    const painel = document.querySelector('[data-corpo-conc] .fin-painel')
+    if (painel) {
+        painel.style.maxHeight = `${Math.max(window.innerHeight - painel.getBoundingClientRect().top - 16, 360)}px`
+        painel.style.overflowY = 'auto'
+    }
 }
 window.addEventListener('resize', () => ajustarAlturaConc())
 
