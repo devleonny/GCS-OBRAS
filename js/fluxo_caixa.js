@@ -4,7 +4,9 @@
 //   se há dinheiro na semana que vem, quando o saldo fica abaixo da reserva, e de onde vem / para onde vai.
 // Duas linhas para frente: "Lançado" (faturas em aberto + reembolsos pedidos) e "Com previsões" (+ o que costuma
 // acontecer todo mês e ainda não foi lançado). O livre usa o pior das duas.
-// Saldo de partida = só contas conferidas com o extrato (Conferir saldos). Planejamento = reserva, regras dos
+// Passado = extrato do banco (Conciliação bancária): saldo e realizado dos bancos com OFX vêm das linhas do extrato
+// (d.bancos); contas sem extrato, da conferência manual (Conferir saldos). O GCS fica com o que vem pela frente;
+// d.ja_no_extrato = faturas em aberto já vistas no extrato, fora da previsão. Planejamento = reserva, regras dos
 // atrasados e a trava dos pedidos de pagamento (só quem tem financeiro.planejamento).
 // Cores (dataviz): entradas azul, saídas laranja, previsões violeta tracejado, reserva vermelho; um eixo por gráfico.
 
@@ -121,10 +123,10 @@ function desenharFluxoCaixa() {
                 nota: `Entra ${dinheiro(k.proxima_semana.entradas)} · sai ${dinheiro(k.proxima_semana.saidas)}${k.proxima_semana.saidas_provaveis ? ` · mais ${dinheiro(k.proxima_semana.saidas_provaveis)} previstos` : ''}`
             })}
             ${cartaoCx({
-                titulo: 'Saldo hoje (contas conferidas)', valor: k.saldo_hoje,
+                titulo: 'Saldo hoje (pelo extrato do banco)', valor: k.saldo_hoje,
                 nota: d.tem_saldo
-                    ? `${d.contas.filter(c => c.no_saldo).length} de ${d.contas.length} contas no saldo${k.folego_dias !== null ? ` · dá para ${k.folego_dias} dias no ritmo atual` : ''}`
-                    : 'Nenhuma conta conferida com o extrato ainda.'
+                    ? `${notaSaldoCx(d)}${k.folego_dias !== null ? ` · dá para ${k.folego_dias} dias no ritmo atual` : ''}`
+                    : 'Nenhum extrato importado nem conta conferida ainda.'
             })}
         </section>
 
@@ -197,8 +199,9 @@ function desenharFluxoCaixa() {
             <details>
                 <summary><b>Como ler este painel</b></summary>
                 <ul>
-                    <li><b>Saldo hoje</b>: só as contas que o financeiro conferiu com o extrato (botão Conferir saldos). Conta sem conferência fica fora para não distorcer.</li>
-                    <li><b>Lançado</b>: saldo + tudo que está nas faturas a pagar e a receber, no dia do vencimento, mais os reembolsos pedidos que esperam aprovação.</li>
+                    <li><b>O que já aconteceu vem do banco</b>: nas contas com extrato importado na Conciliação bancária, o saldo de hoje é o saldo do banco no fim do extrato (mais os pagamentos e recebimentos registrados no GCS depois disso), e as entradas e saídas do histórico são as linhas do extrato. Transferências entre as empresas do grupo mexem no saldo, mas não contam como entrada nem saída.</li>
+                    <li><b>Contas sem extrato</b>: entram pelo saldo conferido à mão (botão Conferir saldos) mais as baixas do GCS. Sem conferência ficam fora para não distorcer.</li>
+                    <li><b>O que vem pela frente vem do GCS</b>: saldo + tudo que está nas faturas a pagar e a receber, no dia do vencimento, mais os reembolsos pedidos que esperam aprovação. Fatura em aberto que já aparece no extrato com o mesmo valor (paga ou recebida sem baixa) fica fora, para não contar duas vezes.</li>
                     <li><b>Com previsões</b>: soma o que acontece todo mês (categoria presente em 3 dos 4 últimos meses) e ainda falta lançar, no dia de costume, pela média dos 3 últimos meses.</li>
                     <li><b>Livre para gastar</b>: o menor saldo do período, pelo pior das duas linhas, menos a reserva mínima. É o que dá para comprometer sem o caixa furar a reserva em nenhum dia.</li>
                     <li><b>Atrasados</b>: hoje ${escFin(ROTULO_ATRASO_CX[d.plan.atrasados_pagar].toLowerCase())} os a pagar e ${escFin(ROTULO_ATRASO_CX[d.plan.atrasados_receber].toLowerCase())} os a receber (entram como se fossem pagos hoje). Muda em Planejamento e trava.</li>
@@ -216,13 +219,22 @@ function desenharFluxoCaixa() {
 function avisosCx(d) {
     const k = d.kpis
     const avisos = []
-    if (!d.tem_saldo) avisos.push(['alerta', `O saldo de partida está em R$ 0 porque nenhuma conta foi conferida com o extrato. As linhas mostram só a variação do caixa.
-        ${d.pode_planejar ? '<button type="button" class="fis-mini" onclick="conferirSaldosCx()">Conferir saldos agora</button>' : ''}`])
+    const conciliar = typeof telaConciliacaoFin === 'function' && pode('financeiro.conciliacao')
+        ? '<button type="button" class="fis-mini" onclick="telaConciliacaoFin()">Conciliação bancária</button>' : ''
+    if (!d.tem_saldo) avisos.push(['alerta', `O saldo de partida está em R$ 0: nenhum extrato importado na Conciliação bancária e nenhuma conta conferida. As linhas mostram só a variação do caixa.
+        ${conciliar} ${d.pode_planejar ? '<button type="button" class="fis-mini" onclick="conferirSaldosCx()">Conferir saldos agora</button>' : ''}`])
     else {
-        const faltam = d.contas.filter(c => !c.conferida && !c.fora && Math.abs(Number(c.saldo)) > 0.009)
-        if (faltam.length) avisos.push(['info', `${faltam.length} conta(s) com movimento ainda sem conferência ficaram fora do saldo.
-            ${d.pode_planejar ? '<button type="button" class="fis-mini" onclick="conferirSaldosCx()">Conferir</button>' : ''}`])
+        const faltam = d.contas.filter(c => !c.extrato && !c.conferida && !c.fora && Math.abs(Number(c.saldo)) > 0.009)
+        if (faltam.length) avisos.push(['info', `${faltam.length} conta(s) com movimento sem extrato importado nem conferência ficaram fora do saldo.
+            ${conciliar} ${d.pode_planejar ? '<button type="button" class="fis-mini" onclick="conferirSaldosCx()">Conferir</button>' : ''}`])
     }
+    for (const b of (d.bancos || []).filter(b => !b.fora && b.dias_sem_extrato > 3))
+        avisos.push(['alerta', `O extrato de <b>${escFin(b.nome)}</b> vai só até ${diaCx(b.fim)} (${b.dias_sem_extrato} dias). Depois disso o saldo soma o que foi registrado no GCS. ${conciliar}`])
+    const ja = d.ja_no_extrato
+    if (ja && (ja.PAGAR.n || ja.RECEBER.n)) avisos.push(['info', `${[
+        ja.RECEBER.n ? `${ja.RECEBER.n} fatura(s) a receber (${dinheiro(ja.RECEBER.valor)})` : '',
+        ja.PAGAR.n ? `${ja.PAGAR.n} a pagar (${dinheiro(ja.PAGAR.valor)})` : ''].filter(Boolean).join(' e ')}
+        já aparecem no extrato com o mesmo valor, mas sem baixa no GCS: ficaram fora da previsão para não contar duas vezes. Concilie para dar a baixa. ${conciliar}`])
     if (d.tem_saldo && k.negativo_em) avisos.push(['perigo', `<b>Caixa negativo em ${diaCx(k.negativo_em)} (${semanaCx(k.negativo_em)})</b> pelo que já está lançado.`])
     else if (d.tem_saldo && k.abaixo_reserva_em && k.reserva) avisos.push(['alerta', `<b>Abaixo da reserva em ${diaCx(k.abaixo_reserva_em)}</b> (${semanaCx(k.abaixo_reserva_em)}).`])
     const t = d.trava
@@ -237,6 +249,16 @@ function avisosCx(d) {
             `Teto semanal de pedidos: ${dinheiro(s.valor)} de ${dinheiro(t.teto_semanal)} usados desde ${diaCx(s.de)} (${s.n} pedidos).`])
     }
     return avisos.length ? `<div class="cx-avisos">${avisos.map(([tipo, html]) => `<div class="cx-aviso cx-aviso-${tipo}" role="${tipo === 'perigo' ? 'alert' : 'status'}">${html}</div>`).join('')}</div>` : ''
+}
+
+// "2 bancos pelo extrato (até 25/11) + 1 conta conferida à mão".
+function notaSaldoCx(d) {
+    const bancos = (d.bancos || []).filter(b => !b.fora)
+    const manuais = d.contas.filter(c => c.no_saldo).length
+    const partes = []
+    if (bancos.length) partes.push(`${bancos.length} ${bancos.length > 1 ? 'bancos' : 'banco'} pelo extrato (até ${diaCx(bancos.map(b => b.fim).sort()[0])})`)
+    if (manuais) partes.push(`${manuais} ${manuais > 1 ? 'contas conferidas' : 'conta conferida'} à mão`)
+    return partes.join(' + ')
 }
 
 function cartaoCx({ titulo, valor, nota = '', destaque = false }) {
@@ -588,7 +610,9 @@ async function conferirSaldosCx() {
         confirmarFechar: false,
         linhas: [{ elemento: `
             <div class="fis-form cx-conferir" data-cx-conferir>
-                <p class="cx-plan-nota">Digite o saldo que o <b>extrato do banco</b> mostra no <b>fim do dia</b> escolhido. A partir do dia seguinte o GCS soma
+                ${(d.bancos || []).length ? `<p class="cx-plan-nota">Contas ligadas a um banco com extrato importado na Conciliação bancária não precisam de conferência: o saldo vem do banco
+                    (${d.bancos.map(b => `<b>${escFin(b.nome)}</b> ${dinheiro(b.saldo_hoje)}`).join(' · ')}). "No fluxo" do banco é o da conta principal dele.</p>` : ''}
+                <p class="cx-plan-nota">Nas outras, digite o saldo que o <b>extrato do banco</b> mostra no <b>fim do dia</b> escolhido. A partir do dia seguinte o GCS soma
                     só os pagamentos e recebimentos registrados aqui. Deixe em branco o que não for conferir agora.
                     Desmarque "No fluxo" para contas que não são dinheiro disponível (cartão, empréstimo, conta de outra empresa).</p>
                 <div class="fis-tabela-rolagem">
@@ -596,7 +620,13 @@ async function conferirSaldosCx() {
                         <thead><tr><th>Conta</th><th class="fis-num">Saldo no GCS</th><th>Conferida</th><th class="fis-num">Saldo do extrato</th><th>No fim do dia</th><th>No fluxo</th></tr></thead>
                         <tbody>${[...porApp].map(([app, contas]) => `
                             <tr class="cx-grupo"><td colspan="6">${escFin(app)}</td></tr>
-                            ${contas.map(c => `
+                            ${contas.map(c => c.extrato ? `
+                            <tr data-conta="${c.id}">
+                                <td>${escFin(c.nome)} <small>${escFin(TIPOS_CONTA_FIN[c.tipo] || c.tipo)}</small></td>
+                                <td class="fis-num ${sinalCx(c.saldo)}">${dinheiro(c.saldo)}</td>
+                                <td colspan="3"><small>Pelo extrato de <b>${escFin(c.extrato.banco)}</b>, até ${escFin(dataFin(c.extrato.ate))}</small></td>
+                                <td><label class="fis-check"><input type="checkbox" name="no_fluxo" ${c.fora ? '' : 'checked'}></label></td>
+                            </tr>` : `
                             <tr data-conta="${c.id}">
                                 <td>${escFin(c.nome)} <small>${escFin(TIPOS_CONTA_FIN[c.tipo] || c.tipo)}</small></td>
                                 <td class="fis-num ${sinalCx(c.saldo)}">${dinheiro(c.saldo)}</td>
@@ -616,7 +646,7 @@ async function conferirSaldosCx() {
 
 async function salvarConferenciaCx(botao) {
     const linhas = [...document.querySelectorAll('[data-cx-conferir] tr[data-conta]')]
-    const contas = linhas.filter(l => l.querySelector('[name="saldo"]').value !== '')
+    const contas = linhas.filter(l => (l.querySelector('[name="saldo"]')?.value ?? '') !== '')
         .map(l => ({ id: Number(l.dataset.conta), saldo: Number(l.querySelector('[name="saldo"]').value), data: l.querySelector('[name="data"]').value }))
     const fora = linhas.filter(l => !l.querySelector('[name="no_fluxo"]').checked).map(l => Number(l.dataset.conta))
     // Contas de outra empresa (filtro) continuam como estavam.
