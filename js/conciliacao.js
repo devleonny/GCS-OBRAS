@@ -108,7 +108,7 @@ function desenharContasConc(todas) {
                 <div class="cc-cartao-topo">
                     <span class="fin-avatar">${escFin((c.contas.find(k => String(k.id) === String(c.conta_principal_id)) || c.contas[0] || {}).app || '?')}</span>
                     <div>
-                        <b>${escFin(c.nome)}</b>
+                        <b>${escFin(c.nome)}${semHoje.includes(c) ? ' <span class="cc-chip cc-chip-sempar cc-hoje" title="O extrato de hoje ainda não foi importado">sem extrato hoje</span>' : ''}</b>
                         <small>Banco ${escFin(c.banco)} · ag. ${escFin(c.agencia || '—')} · conta ${escFin(c.conta)} · ${escFin(c.contas.map(k => k.app).join(', '))}</small>
                         <small>${c.ultima_importacao ? `Último extrato ${new Date(c.ultima_importacao.criado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} por ${escFin(c.ultima_importacao.criado_por || '')}` : 'Nenhum extrato importado'}</small>
                     </div>
@@ -117,7 +117,7 @@ function desenharContasConc(todas) {
                 <div class="cc-saldos">
                     <div><small>Saldo no banco${c.saldo_dia ? ` (${dataFin(c.saldo_dia)})` : ''}</small><b>${c.saldo_banco != null ? dinheiro(c.saldo_banco) : '—'}</b></div>
                     <div><small>Saldo no GCS${c.saldo_dia ? ` (${dataFin(c.saldo_dia)})` : ''}</small><b>${conferida ? dinheiro(c.saldo_gcs) : '<span class="cc-cinza" title="O saldo do GCS só vale depois do primeiro fechamento">a conferir</span>'}</b></div>
-                    <div><small>Falta explicar</small><b class="${Math.abs(dif) < 0.005 ? 'cc-ok' : 'cc-falta'}">${Math.abs(dif) < 0.005 ? '✔ R$ 0,00' : dinheiro(dif)}</b></div>
+                    <div><small>Falta explicar</small>${!c.ultima_importacao ? '<b class="cc-cinza">—</b>' : `<b class="${Math.abs(dif) < 0.005 ? 'cc-ok' : 'cc-falta'}">${Math.abs(dif) < 0.005 ? '✔ R$ 0,00' : dinheiro(dif)}</b>`}</div>
                 </div>
                 <div class="cc-barra" title="Casadas / fora do Financeiro / pendentes"><span style="width:${pct(c.casadas)}%"></span><span class="cc-barra-ign" style="width:${pct(c.ignoradas)}%"></span></div>
                 <div class="cc-chips">
@@ -141,8 +141,15 @@ function desenharContasConc(todas) {
         <hr>
         <small class="cc-nota">Conta com tudo casado até uma data e fechada entra com saldo conferido no Fluxo de Caixa.</small>`
     tela.innerHTML = janelaConc('Conciliação bancária', `
-        ${semHoje.length ? `<div class="cf-faixa cf-falta">Hoje (${dataFin(hojeFin())}) ainda não foi importado o extrato de: <b>${semHoje.map(c => escFin(c.nome)).join(', ')}</b>.
-            <span class="fis-link" onclick="importarOfxConc()">Importar agora</span></div>` : ''}
+        ${semHoje.length ? `
+        <div class="cc-aviso" role="status">
+            <span class="cc-aviso-icone">${iconeFin('alerta')}</span>
+            <div class="cc-aviso-texto">
+                <b>Extrato de hoje (${dataFin(hojeFin())}) ainda não importado${semHoje.length === contas.length && contas.length > 1 ? ' em nenhuma conta' : ` em ${semHoje.length} conta${semHoje.length === 1 ? '' : 's'}`}</b>
+                <div class="cc-aviso-contas">${semHoje.map(c => `<span>${escFin(c.nome)}</span>`).join('')}</div>
+            </div>
+            <button type="button" class="fis-botao" onclick="importarOfxConc()">Importar OFX</button>
+        </div>` : ''}
         <div class="cc-cartoes">${contas.map(cartao).join('') || '<div class="fis-vazio">Nenhuma conta do banco cadastrada. Use "Nova conta do banco" no painel.</div>'}</div>
         <section class="cc-bloco">
             <div class="cc-bloco-topo"><b>${todas ? 'Todas as importações' : 'Últimas importações'}</b><small>linha repetida é ignorada (mesmo dia, valor e descrição)</small></div>

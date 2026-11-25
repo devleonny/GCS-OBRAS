@@ -1,5 +1,14 @@
 /* Conciliação bancária (js/conciliacao.js), dentro do layout financeiro (.fin-tela); painel igual ao das Faturas do cartão */
 .cc-tela .cf-faixa { margin-bottom: 10px; }
+.cc-aviso { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 10px 14px; border: 1px solid #f1b8b3; border-radius: 8px; background: #fff5f4; color: #8a1c12; }
+.cc-aviso-icone { flex: none; display: flex; color: #c2410c; }
+.cc-aviso-icone .fin-icone { width: 22px; height: 22px; }
+.cc-aviso-texto { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.cc-aviso-contas { display: flex; flex-wrap: wrap; gap: 6px; }
+.cc-aviso-contas span { padding: 2px 10px; border-radius: 999px; background: #fff; border: 1px solid #f1c4bf; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.cc-aviso .fis-botao { flex: none; }
+.cc-hoje { margin-left: 6px; vertical-align: middle; font-size: 10.5px; }
+@media (max-width: 700px) { .cc-aviso { flex-wrap: wrap; } }
 .cc-cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; margin-bottom: 14px; }
 .cc-cartao { display: flex; flex-direction: column; gap: 12px; padding: 16px; background: #fff; border: 1px solid var(--fin-borda, #d6e0da); border-radius: 8px; }
 .cc-cartao-topo { display: flex; align-items: flex-start; gap: 10px; }
