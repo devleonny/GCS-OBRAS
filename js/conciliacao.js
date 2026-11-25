@@ -426,7 +426,7 @@ function desenharConciliarConc() {
     const pct = todas.length ? Math.floor(resolvidas / todas.length * 100) : 0
     const progresso = todas.length ? `
         <div class="cc-progresso ${pct === 100 ? 'cc-progresso-ok' : ''}" title="${resolvidas} de ${todas.length} resolvidas (casadas ou fora do Financeiro)">
-            <div class="cc-progresso-topo"><b>${pct}%</b><small>conciliado em ${mesNomeConc(d.mes)}<br>${resolvidas} de ${todas.length} linhas</small></div>
+            <b>${pct}%</b>
             <div class="cc-progresso-barra"><span style="width:${pct}%"></span></div>
         </div>` : ''
     const painel = `
