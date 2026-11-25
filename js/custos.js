@@ -49,7 +49,7 @@ async function painelCustos(contrato) {
         } = await buscarPainelCustos(contrato)
 
         if (!existe)
-            return popup({ mensagem: 'Não existe centro de custo criado para este orçamento. <br><small>Mude o orçamento para aprovado primeiro!</small>' })
+            return popup({ mensagem: 'Centro de custo ainda não criado para este orçamento. <br><small>Ele aparece em instantes, depois que o orçamento é salvo.</small>' })
 
         const orcamento = Number(total_geral || 0)
         const percentual = orcamento ? Math.round(custo_total / orcamento * 1000) / 10 : null
