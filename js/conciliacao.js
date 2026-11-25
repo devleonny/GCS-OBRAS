@@ -24,6 +24,19 @@ const chipConc = s => {
     const [t, c] = SITUACOES_CONC[s] || [s, '']
     return `<span class="cc-chip ${c}">${escFin(t)}</span>`
 }
+// Situação na lista e no cartão da linha: só o ícone (o nome fica na dica e no leitor de tela).
+const ICONES_SITUACAO_CONC = {
+    CASADA: '<path d="M7 12.5l3.2 3.2L17 9"/>',
+    SEM_PAR: '<path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/>',
+    SUGESTAO: '<path d="M13 5l-5 8h4l-1 6 5-8h-4z"/>',
+    IGNORADA: '<path d="M8 12h8"/>',
+    SO_GCS: '<path d="M12 7.5v5.5"/><circle cx="12" cy="16.3" r="0.6"/>'
+}
+const iconeSitConc = s => {
+    const [t] = SITUACOES_CONC[s] || [s]
+    return `<span class="cc-sit cc-sit-${String(s).toLowerCase()}" title="${escFin(t)}" role="img" aria-label="${escFin(t)}">
+        <svg viewBox="0 0 24 24" aria-hidden="true">${ICONES_SITUACAO_CONC[s] || ''}</svg></span>`
+}
 const mesNomeConc = m => {
     const [a, n] = String(m || '').split('-')
     return a ? `${['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][Number(n) - 1]}/${a}` : ''
@@ -471,7 +484,7 @@ function desenharTabelaConc() {
     const texto = h => String(h).replace(/<[^>]+>/g, '')
     caixa.innerHTML = `
         <table class="fis-tabela fin-extrato cc-tabela">
-            <thead><tr><th class="cc-col-data">Dia</th><th>Descrição no banco</th><th class="fis-num cc-col-valor">Valor</th><th class="cc-col-sit">Situação</th></tr></thead>
+            <thead><tr><th class="cc-col-data">Dia</th><th>Descrição no banco</th><th class="fis-num cc-col-valor">Valor</th><th class="cc-col-sit" title="Situação"></th></tr></thead>
             <tbody>${linhas.map(l => {
                 const noGcs = l.gcs ? `Baixa sem linha no extrato · ${escFin(l.baixa.conta)}`
                     : l.sit === 'CASADA' ? '→ ' + l.casadas.map(b => escFin([b.participante || b.descricao, b.numero && `nº ${b.numero}`].filter(Boolean).join(' · '))).join(' + ') + (l.casadas.some(b => b.automatico) ? ' (sozinha)' : '')
@@ -486,7 +499,7 @@ function desenharTabelaConc() {
                         ${noGcs ? `<small class="cc-desc-gcs" title="${escFin(texto(noGcs))}">${noGcs}</small>` : ''}
                     </td>
                     <td class="fis-num cc-col-valor"><b>${sinalConc(l.valor)}</b></td>
-                    <td class="cc-col-sit">${chipConc(l.sit)}${l.fechada ? ' <span title="Período fechado">🔒</span>' : ''}</td>
+                    <td class="cc-col-sit">${iconeSitConc(l.sit)}${l.fechada ? '<span class="cc-cadeado" title="Período fechado">🔒</span>' : ''}</td>
                 </tr>`
             }).join('') || '<tr><td colspan="4" class="fis-vazio">Nada neste filtro.</td></tr>'}</tbody>
             ${linhas.length ? `<tfoot><tr><td colspan="2">${linhas.length} linha${linhas.length === 1 ? '' : 's'}</td><td class="fis-num"><b>${sinalConc(total)}</b></td><td></td></tr></tfoot>` : ''}
@@ -522,7 +535,7 @@ function cabecaConc(l) {
                 <b class="cc-heroi-valor">${entrada ? '+' : '−'} ${dinheiro(Math.abs(Number(l.valor)))}</b>
                 <span class="cc-heroi-desc" title="${escFin(l.descricao || '')}">${escFin(l.descricao || '—')}</span>
             </div>
-            <div class="cc-heroi-sit">${chipConc(l.sit)}${l.documento ? `<small>${escFin(l.documento)}</small>` : ''}</div>
+            <div class="cc-heroi-sit">${iconeSitConc(l.sit)}${l.documento ? `<small>${escFin(l.documento)}</small>` : ''}</div>
         </div>`
 }
 
