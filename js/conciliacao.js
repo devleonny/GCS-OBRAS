@@ -495,45 +495,103 @@ function desenharTabelaConc() {
 
 // ------------------------------------------------------------ uma linha: resolver
 
+// ---- peças visuais do detalhe
+
+// Círculo com as iniciais (cor fixa por nome), como o avatar do painel.
+const CORES_AVATAR_CONC = ['#356443', '#1d4f7c', '#7a4a06', '#6d28d9', '#0f766e', '#9d174d', '#4d7c0f', '#b45309']
+function avatarConc(nome) {
+    const t = String(nome || '?').replace(/[^A-Za-zÀ-ú0-9 ]/g, ' ').trim()
+    const p = t.split(/\s+/).filter(x => x.length > 2)
+    const ini = ((p[0] || t)[0] || '?') + ((p[1] || '')[0] || '')
+    let h = 0
+    for (const ch of t) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+    return `<span class="cc-avatar" style="background:${CORES_AVATAR_CONC[h % CORES_AVATAR_CONC.length]}">${escFin(ini.toUpperCase())}</span>`
+}
+const tagConc = (texto, tipo = '') => `<span class="cc-tag ${tipo ? `cc-tag-${tipo}` : ''}">${texto}</span>`
+const ICONE_ENTRADA_CONC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 7L7 17M7 9v8h8"/></svg>'
+const ICONE_SAIDA_CONC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>'
+
+// Cartão de cima: entrada/saída, valor grande, descrição do banco e a situação.
+function cabecaConc(l) {
+    const entrada = Number(l.valor) > 0
+    return `
+        <div class="cc-heroi ${entrada ? 'cc-heroi-entrada' : 'cc-heroi-saida'}">
+            <span class="cc-heroi-icone">${entrada ? ICONE_ENTRADA_CONC : ICONE_SAIDA_CONC}</span>
+            <div class="cc-heroi-texto">
+                <small>${l.gcs ? 'Baixa no GCS' : entrada ? 'Entrada no banco' : 'Saída do banco'} · ${dataFin(l.data)}</small>
+                <b class="cc-heroi-valor">${entrada ? '+' : '−'} ${dinheiro(Math.abs(Number(l.valor)))}</b>
+                <span class="cc-heroi-desc" title="${escFin(l.descricao || '')}">${escFin(l.descricao || '—')}</span>
+            </div>
+            <div class="cc-heroi-sit">${chipConc(l.sit)}${l.documento ? `<small>${escFin(l.documento)}</small>` : ''}</div>
+        </div>`
+}
+
+// Item de lista (fatura, baixa, sugestão): avatar, nome, detalhes, etiquetas e valor.
+function itemConc({ nome, detalhe = '', tags = '', valor = null, depois = '', antes = '', marcar = false, classe = '' }) {
+    const tag = marcar ? 'label' : 'div'
+    return `
+        <${tag} class="cc-item ${classe}">
+            ${antes}
+            ${avatarConc(nome)}
+            <span class="cc-item-texto">
+                <b>${escFin(nome || '—')}</b>
+                ${detalhe ? `<small>${detalhe}</small>` : ''}
+                ${tags ? `<span class="cc-tags">${tags}</span>` : ''}
+            </span>
+            ${valor != null ? `<b class="cc-item-valor">${sinalConc(valor)}</b>` : ''}
+            ${depois}
+        </${tag}>`
+}
+
+const vazioConc = (icone, texto) => `<div class="cc-vazio-detalhe">${iconeFin(icone)}<span>${texto}</span></div>`
+
+// Barra do rodapé do detalhe: quanto já foi marcado do valor da linha.
+function barraSomaConc(soma, alvo, ok) {
+    const pct = alvo ? Math.min(100, Math.round(Math.abs(soma) * 100 / Math.abs(alvo))) : 0
+    return `
+        <div class="cc-soma-info">
+            <span>Marcado <b class="${ok ? 'cc-ok' : ''}">${dinheiro(Math.abs(soma))}</b> de ${dinheiro(Math.abs(alvo))}${ok ? ' ✔' : soma ? ` · falta ${dinheiro(Math.abs(Math.abs(alvo) - Math.abs(soma)))}` : ''}</span>
+            <div class="cc-soma-barra ${ok ? 'cc-soma-ok' : Math.abs(soma) > Math.abs(alvo) + 0.004 ? 'cc-soma-passou' : ''}"><span style="width:${pct}%"></span></div>
+        </div>`
+}
+
 async function escolherLinhaConc(chave, redesenhar = true) {
     estadoConc.sel = chave
     if (redesenhar) document.querySelectorAll('[data-tabela-conc] .cc-linha').forEach(tr => tr.classList.toggle('cc-ativa', tr.dataset.chave === chave))
     const l = linhasConc().find(x => x.chave === chave)
     const caixa = document.querySelector('[data-detalhe-conc]')
     if (!l || !caixa) return
-    const cabeca = `
-        <div class="cc-detalhe-topo">
-            <small>${l.gcs ? 'Baixa no GCS' : 'Linha do extrato'}</small>
-            <b>${dataFin(l.data)} · ${escFin(l.descricao || '—')}</b>
-            <b>${sinalConc(l.valor)}</b> ${chipConc(l.sit)}
-        </div>`
+    const cabeca = cabecaConc(l)
     if (l.gcs) {
         const b = l.baixa
         caixa.innerHTML = `${cabeca}
-            <p class="cc-explica">Está baixada no GCS na conta <b>${escFin(b.conta)}</b> (${escFin(b.app)}), mas não aparece no extrato. Ou saiu de outra conta, ou a data está errada, ou ainda não aconteceu.
-                ${b.criado_por ? `Lançada por ${escFin(b.criado_por)}.` : ''}</p>
-            <div class="cc-botoes">
-                <button type="button" class="fis-botao" onclick="abrirFaturaFin(${b.titulo_id})">Abrir a fatura</button>
+            <div class="cc-alerta-gcs">${iconeFin('alerta')}<span>Está baixada no GCS na conta <b>${escFin(b.conta)}</b> (${escFin(b.app)}), mas <b>não aparece no extrato</b>. Ou saiu de outra conta, ou a data está errada, ou ainda não aconteceu.</span></div>
+            ${itemConc({ nome: b.participante_nome || b.descricao, detalhe: escFin([b.descricao, b.categoria, b.app].filter(Boolean).join(' · ')),
+                tags: [tagConc(`baixa em ${dataFin(b.data)}`), b.criado_por ? tagConc(`por ${escFin(b.criado_por)}`) : ''].join(''), valor: b.mov })}
+            <div class="cc-rodape-detalhe">
                 ${l.fechada ? '' : `<button type="button" class="fis-mini" onclick="estornarBaixaConc(${b.id})">Desfazer o pagamento</button>`}
+                <button type="button" class="fis-botao" onclick="abrirFaturaFin(${b.titulo_id})">Abrir a fatura</button>
             </div>`
         return
     }
     if (l.sit === 'CASADA' || l.sit === 'IGNORADA') {
         caixa.innerHTML = `${cabeca}
-            ${l.sit === 'IGNORADA' ? `<p class="cc-explica">Marcada como fora do Financeiro por ${escFin(l.resolvido_por || '')}: ${escFin(l.observacao || '')}</p>` : `
-            <div class="cc-lista">${l.casadas.map(b => `
-                <div class="cc-item">
-                    <span><b>${escFin(b.tipo === 'RECEBER' ? 'Receber' : 'Pagar')} · ${escFin(b.participante || '—')}</b> · ${escFin([b.descricao, b.numero && `nº ${b.numero}`, b.app, b.conta].filter(Boolean).join(' · '))}
-                        ${b.criou ? '<small class="cc-cinza">(baixa feita aqui)</small>' : ''}</span>
-                    <b>${sinalConc(b.mov)}</b>
-                    <button type="button" class="fis-mini" onclick="abrirFaturaFin(${b.titulo_id})">Fatura</button>
-                </div>`).join('')}</div>`}
-            ${l.fechada ? '<p class="cc-explica">Período fechado: reabra para mudar.</p>' : `
-            <div class="cc-botoes"><button type="button" class="fis-mini" onclick="desfazerLinhaConc(${l.id}, ${l.casadas?.some(b => b.criou) ? 'true' : 'false'})">Desfazer</button></div>`}`
+            ${l.sit === 'IGNORADA'
+                ? `<div class="cc-alerta-gcs cc-alerta-neutro">${iconeFin('cancelar')}<span>Fora do Financeiro, por ${escFin(l.resolvido_por || '')}: <b>${escFin(l.observacao || '')}</b></span></div>`
+                : `<b class="cc-sub-titulo">${iconeFin('check')} Casada com ${l.casadas.length === 1 ? 'esta baixa' : `estas ${l.casadas.length} baixas`}</b>
+            <div class="cc-lista">${l.casadas.map(b => itemConc({
+                nome: b.participante || b.descricao, valor: b.mov,
+                detalhe: escFin([b.tipo === 'RECEBER' ? 'Receber' : 'Pagar', b.descricao, b.numero && `nº ${b.numero}`, b.conta].filter(Boolean).join(' · ')),
+                tags: [b.automatico ? tagConc('casou sozinha', 'ok') : '', b.criou ? tagConc('baixa feita aqui', 'azul') : '', tagConc(escFin(b.app))].join(''),
+                depois: `<button type="button" class="fis-mini" onclick="abrirFaturaFin(${b.titulo_id})">Fatura</button>`
+            })).join('')}</div>`}
+            <div class="cc-rodape-detalhe">
+                ${l.fechada ? '<small class="cc-cinza">Período fechado: reabra para mudar.</small>' : `<button type="button" class="fis-mini" onclick="desfazerLinhaConc(${l.id}, ${l.casadas?.some(b => b.criou) ? 'true' : 'false'})">Desfazer</button>`}
+            </div>`
         return
     }
-    if (l.fechada) { caixa.innerHTML = `${cabeca}<p class="cc-explica">Período fechado.</p>`; return }
-    caixa.innerHTML = `${cabeca}<p class="cc-explica">Carregando as opções…</p>`
+    if (l.fechada) { caixa.innerHTML = `${cabeca}${vazioConc('vencimento', 'Período fechado.')}`; return }
+    caixa.innerHTML = `${cabeca}${vazioConc('relogio', 'Procurando faturas e baixas…')}`
     try {
         detalheConc = await apiFin('conciliacao/linha', { id: l.id })
     } catch (err) {
@@ -542,66 +600,80 @@ async function escolherLinhaConc(chave, redesenhar = true) {
     }
     if (estadoConc.sel !== chave) return
     detalheConc.sugestoes = l.sugestoes || []
+    detalheConc.cabeca = cabeca
     if (!estadoConc.aba || estadoConc.abaDe !== chave) {
         estadoConc.aba = detalheConc.sugestoes.length ? 'sugestao' : detalheConc.combinacao || detalheConc.faturas.some(f => f.mesmo_documento || Math.abs(f.saldo - Math.abs(l.valor)) < 0.005) ? 'faturas'
             : detalheConc.transferencias.length ? 'transferencia' : detalheConc.baixas.length ? 'baixas' : 'lancar'
         estadoConc.abaDe = chave
     }
-    desenharDetalheConc(cabeca)
+    desenharDetalheConc()
 }
 
-function desenharDetalheConc(cabeca = null) {
+function desenharDetalheConc() {
     const caixa = document.querySelector('[data-detalhe-conc]')
     if (!caixa || !detalheConc) return
-    const { linha: l, tipo, baixas, faturas, combinacao, transferencias, destinos, apps, sugestoes } = detalheConc
-    cabeca = cabeca || caixa.querySelector('.cc-detalhe-topo')?.outerHTML || ''
+    const { linha: l, tipo, baixas, faturas, combinacao, transferencias, destinos, apps, sugestoes, cabeca } = detalheConc
     const abs = Math.abs(l.valor)
-    const abas = [['sugestao', `Sugestões (${sugestoes.length})`, sugestoes.length], ['faturas', `Dar baixa numa fatura (${faturas.length})`, true],
-        ['baixas', `Baixas já lançadas (${baixas.length})`, true], ['lancar', l.valor < 0 ? 'Lançar (tarifa, IOF…)' : 'Lançar (rendimento…)', true],
-        ['transferencia', `Transferência (${transferencias.length})`, true]]
+    const abas = [
+        ['sugestao', 'raio', 'Sugestões', sugestoes.length, sugestoes.length],
+        ['faturas', 'baixa', 'Faturas', faturas.length, true],
+        ['baixas', 'check', 'Baixas lançadas', baixas.length, true],
+        ['lancar', 'incluir', l.valor < 0 ? 'Lançar despesa' : 'Lançar receita', null, true],
+        ['transferencia', 'repetir', 'Transferência', transferencias.length, true]
+    ]
     const aba = estadoConc.aba
-    let corpo = ''
+    let corpo = '', rodape = ''
     if (aba === 'sugestao') {
-        corpo = sugestoes.map((s, i) => `
-            <div class="cc-item">
-                <span>${s.itens.length > 1 ? `<b>${s.itens.length} baixas ${s.tipo === 'grupo' ? 'do mesmo dia' : ''} somam o valor</b><small class="cf-sub">${s.itens.slice(0, 6).map(b => escFin(b.participante_nome || b.descricao || '')).join(', ')}${s.itens.length > 6 ? '…' : ''}</small>`
-                    : `<b>${escFin(s.itens[0].tipo === 'RECEBER' ? 'Receber' : 'Pagar')} · ${escFin(s.itens[0].participante_nome || '—')}</b> · ${escFin([s.itens[0].descricao, s.itens[0].categoria, s.itens[0].app, s.itens[0].conta].filter(Boolean).join(' · '))}`}
-                    <small class="cf-sub">${s.dias ? `${s.dias} dia${s.dias === 1 ? '' : 's'} de diferença` : 'mesma data'} · baixa em ${dataFin(s.itens[0].data)}${s.doc ? ' · mesmo CPF/CNPJ' : ''}</small></span>
-                <b>${sinalConc(s.itens.reduce((a, b) => a + b.mov, 0))}</b>
-                <button type="button" class="fis-botao" onclick="casarConc(${l.id}, [${s.baixas.join(',')}])">Confirmar</button>
-            </div>`).join('') || '<p class="cc-explica">Sem sugestão.</p>'
+        corpo = sugestoes.map(s => {
+            const um = s.itens.length === 1 ? s.itens[0] : null
+            return itemConc({
+                nome: um ? (um.participante_nome || um.descricao) : `${s.itens.length} baixas ${s.tipo === 'grupo' ? 'do mesmo dia' : ''}`,
+                detalhe: um ? escFin([um.tipo === 'RECEBER' ? 'Receber' : 'Pagar', um.descricao, um.categoria, um.conta].filter(Boolean).join(' · '))
+                    : escFin(s.itens.slice(0, 5).map(b => b.participante_nome || b.descricao || '').join(', ') + (s.itens.length > 5 ? '…' : '')),
+                tags: [tagConc('valor exato', 'azul'), s.doc ? tagConc('mesmo CPF/CNPJ', 'ok') : '',
+                    tagConc(s.dias ? `${s.dias} dia${s.dias === 1 ? '' : 's'} de diferença` : 'mesma data', s.dias ? '' : 'ok'),
+                    um ? tagConc(escFin(um.app)) : ''].join(''),
+                valor: s.itens.reduce((a, b) => a + b.mov, 0), classe: 'cc-item-sugestao',
+                depois: `<button type="button" class="fis-botao" onclick="casarConc(${l.id}, [${s.baixas.join(',')}])">Confirmar</button>`
+            })
+        }).join('') || vazioConc('raio', 'Sem sugestão.')
     } else if (aba === 'baixas') {
         corpo = `
             <p class="cc-explica">Baixas de ${tipo === 'RECEBER' ? 'recebimento' : 'pagamento'} destas contas, até 10 dias antes ou depois, que ainda não casaram. Marque as que formam esta linha (ex.: as pessoas do lote de salários).</p>
-            <div class="cc-lista cc-lista-marcar" data-marcar-baixas>${baixas.map(b => `
-                <label class="cc-item">
-                    <input type="checkbox" value="${b.id}" data-valor="${b.mov}" onchange="somarMarcadasConc()">
-                    <span><b>${escFin(b.participante_nome || '—')}</b> · ${escFin([b.descricao, b.categoria, b.app].filter(Boolean).join(' · '))}<small class="cf-sub">baixa em ${dataFin(b.data)} · ${escFin(b.conta)}${b.criado_por ? ` · por ${escFin(b.criado_por)}` : ''}</small></span>
-                    <b>${sinalConc(b.mov)}</b>
-                </label>`).join('') || '<p class="cc-explica">Nenhuma baixa sem par por perto.</p>'}</div>
-            <div class="cc-somatorio"><span data-soma-baixas>Marcadas: R$ 0,00 de ${dinheiro(abs)}</span>
-                <button type="button" class="fis-mini" onclick="marcarDiaConc()">Marcar todas do dia ${dataFin(l.data)}</button>
-                <button type="button" class="fis-botao" data-casar-marcadas disabled onclick="casarMarcadasConc(${l.id})">Casar com as marcadas</button></div>`
+            <div class="cc-lista" data-marcar-baixas>${baixas.map(b => itemConc({
+                nome: b.participante_nome || b.descricao, marcar: true, valor: b.mov,
+                antes: `<input type="checkbox" value="${b.id}" data-valor="${b.mov}" onchange="somarMarcadasConc()">`,
+                detalhe: escFin([b.descricao, b.categoria, b.conta].filter(Boolean).join(' · ')),
+                tags: [Math.abs(Math.abs(b.mov) - abs) < 0.005 ? tagConc('valor exato', 'azul') : '', b.data === l.data ? tagConc('mesmo dia', 'ok') : tagConc(`baixa em ${dataFin(b.data)}`),
+                    tagConc(escFin(b.app)), b.criado_por ? tagConc(`por ${escFin(b.criado_por)}`) : ''].join('')
+            })).join('') || vazioConc('check', 'Nenhuma baixa sem par por perto.')}</div>`
+        rodape = `
+            <div class="cc-rodape-detalhe">
+                <div data-soma-baixas>${barraSomaConc(0, l.valor, false)}</div>
+                <button type="button" class="fis-mini" onclick="marcarDiaConc()">Todas do dia ${dataFin(l.data).slice(0, 5)}</button>
+                <button type="button" class="fis-botao" data-casar-marcadas disabled onclick="casarMarcadasConc(${l.id})">Casar</button>
+            </div>`
     } else if (aba === 'faturas') {
         const marcadas = new Set(combinacao || (faturas.length && Math.abs(faturas[0].saldo - abs) < 0.005 ? [faturas[0].id] : []))
         corpo = `
             <p class="cc-explica">Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto com valor parecido ou do mesmo favorecido.${combinacao ? ' <b>Já marcadas as que somam exatamente o valor.</b>' : ''} A baixa sai com a data da linha (${dataFin(l.data)}).</p>
-            <div class="cc-lista cc-lista-marcar" data-marcar-faturas>${faturas.map(f => `
-                <label class="cc-item">
-                    <input type="checkbox" value="${f.id}" ${marcadas.has(f.id) ? 'checked' : ''} onchange="somarFaturasConc()">
-                    <span><b>${escFin(f.participante_nome || '—')}</b> · ${escFin([f.numero_documento && `nº ${f.numero_documento}`, f.parcela_texto, f.categoria, f.app].filter(Boolean).join(' · '))}
-                        <small class="cf-sub">vence ${dataFin(f.vencimento)} · ${escFin(situacaoTextoConc(f.situacao))} · saldo ${dinheiro(f.saldo)}${f.mesmo_documento ? ' · mesmo CPF/CNPJ' : f.mesmo_nome ? ' · nome parecido' : ''}</small></span>
-                    <input class="fis-input fis-num cc-valor" type="number" step="0.01" min="0.01" value="${f.saldo.toFixed(2)}" data-saldo="${f.saldo}" oninput="somarFaturasConc()">
-                    <button type="button" class="fis-mini" onclick="event.preventDefault(); abrirFaturaFin(${f.id})">Ver</button>
-                </label>`).join('') || '<p class="cc-explica">Nenhuma fatura em aberto parecida. Use "Lançar" se não existir fatura.</p>'}</div>
-            <div class="cc-somatorio" data-ajuste-faturas></div>`
+            <div class="cc-lista" data-marcar-faturas>${faturas.map(f => itemConc({
+                nome: f.participante_nome, marcar: true,
+                antes: `<input type="checkbox" value="${f.id}" ${marcadas.has(f.id) ? 'checked' : ''} onchange="somarFaturasConc()">`,
+                detalhe: escFin([f.numero_documento && `nº ${f.numero_documento}`, f.parcela_texto, f.categoria].filter(Boolean).join(' · ')),
+                tags: [Math.abs(f.saldo - abs) < 0.005 ? tagConc('valor exato', 'azul') : '', f.mesmo_documento ? tagConc('mesmo CPF/CNPJ', 'ok') : f.mesmo_nome ? tagConc('nome parecido', 'ok') : '',
+                    tagConc(`vence ${dataFin(f.vencimento)}`, f.situacao === 'ATRASADO' ? 'alerta' : ''), tagConc(escFin(f.app))].join(''),
+                depois: `<span class="cc-item-campo"><input class="fis-input fis-num cc-valor" type="number" step="0.01" min="0.01" value="${f.saldo.toFixed(2)}" data-saldo="${f.saldo}" oninput="somarFaturasConc()" title="Valor a baixar (saldo ${escFin(dinheiro(f.saldo))})">
+                    <button type="button" class="fis-mini" onclick="event.preventDefault(); abrirFaturaFin(${f.id})">Ver</button></span>`
+            })).join('') || vazioConc('baixa', 'Nenhuma fatura em aberto parecida. Use "Lançar" se não existir fatura.')}</div>`
+        rodape = `<div class="cc-rodape-detalhe cc-rodape-faturas" data-ajuste-faturas></div>`
     } else if (aba === 'lancar') {
         const cats = opcoesFinCache?.categorias || []
         const sugestaoCat = l.valor < 0 ? (/IOF/i.test(l.descricao) ? 94 : /TAR|TARIFA|PACOTE|MANUT/i.test(l.descricao) ? 155 : '') : (/REND|APLIC|RESG/i.test(l.descricao) ? 140 : '')
         const principal = (detalheConc.conta.contas.find(k => String(k.id) === String(detalheConc.conta.conta_principal_id)) || {}).app
         corpo = `
             <p class="cc-explica">Para o que só existe no banco e não tem fatura: tarifa, IOF, juros, rendimento… Vira uma fatura já ${tipo === 'RECEBER' ? 'recebida' : 'paga'} em ${dataFin(l.data)}.</p>
-            <div class="fis-form" data-lancar-conc>
+            <div class="fis-form cc-form-lancar" data-lancar-conc>
                 <div class="fis-grade">
                     <label class="fis-campo"><span>Empresa</span><select class="fis-input" name="app">${apps.map(a => `<option ${a === principal ? 'selected' : ''}>${escFin(a)}</option>`).join('')}</select></label>
                     <label class="fis-campo fis-largo"><span>Categoria</span><select class="fis-input" name="categoria_id">${opcoesCategoriasFin(cats, tipo, sugestaoCat)}</select></label>
@@ -610,18 +682,17 @@ function desenharDetalheConc(cabeca = null) {
                     <label class="fis-campo"><span>${tipo === 'RECEBER' ? 'Pagador' : 'Favorecido'}</span><input class="fis-input" name="participante_nome" maxlength="150" value="${escFin(/TAR|IOF|PACOTE/i.test(l.descricao) ? 'Banco' : '')}"></label>
                     <label class="fis-campo fis-largo"><span>Descrição</span><input class="fis-input" name="descricao" maxlength="300" value="${escFin(l.descricao || '')}"></label>
                 </div>
-                <div class="cc-botoes"><button type="button" class="fis-botao" onclick="lancarConc(${l.id})">Lançar ${sinalConc(l.valor)}</button></div>
             </div>`
+        rodape = `<div class="cc-rodape-detalhe"><button type="button" class="fis-botao" onclick="lancarConc(${l.id})">Lançar ${sinalConc(l.valor)}</button></div>`
     } else if (aba === 'transferencia') {
         corpo = `
             <p class="cc-explica">Dinheiro que só mudou de conta (não é custo nem receita). Lança a saída e a entrada com as categorias de transferência.</p>
             ${transferencias.length ? `<b class="cc-sub-titulo">No extrato de outra conta, com o mesmo valor ao contrário</b>
-            <div class="cc-lista">${transferencias.map(t => `
-                <div class="cc-item">
-                    <span><b>${escFin(t.conta)}</b> · ${escFin(t.descricao || '')}<small class="cf-sub">${dataFin(t.data)}</small></span>
-                    <b>${sinalConc(t.valor)}</b>
-                    <button type="button" class="fis-botao" onclick="transferirConc(${l.id}, { destino_linha_id: ${t.id} })">É esta</button>
-                </div>`).join('')}</div>` : ''}
+            <div class="cc-lista">${transferencias.map(t => itemConc({
+                nome: t.conta, detalhe: escFin(t.descricao || ''), valor: t.valor,
+                tags: [tagConc('valor exato', 'azul'), tagConc(t.data === l.data ? 'mesmo dia' : dataFin(t.data), t.data === l.data ? 'ok' : '')].join(''),
+                depois: `<button type="button" class="fis-botao" onclick="transferirConc(${l.id}, { destino_linha_id: ${t.id} })">É esta</button>`
+            })).join('')}</div>` : ''}
             <b class="cc-sub-titulo">Ou ${l.valor < 0 ? 'foi para' : 'veio de'} uma conta sem extrato aqui (aplicação, caixinha, mútuo…)</b>
             <div class="cc-botoes">
                 <select class="fis-input" data-destino-conc>${destinos.map(k => `<option value="${k.id}">${escFin(k.app)} · ${escFin(k.nome)}${k.caixa === false ? ' (técnica)' : ''}</option>`).join('')}</select>
@@ -629,9 +700,13 @@ function desenharDetalheConc(cabeca = null) {
             </div>`
     }
     caixa.innerHTML = `${cabeca}
-        <div class="cc-abas">${abas.filter(([, , mostra]) => mostra).map(([k, t]) => `<button type="button" class="cc-aba ${aba === k ? 'ativo' : ''}" onclick="estadoConc.aba = '${k}'; desenharDetalheConc()">${t}</button>`).join('')}
-            <button type="button" class="cc-aba cc-aba-ignorar" onclick="ignorarLinhaConc(${l.id})">Fora do Financeiro…</button></div>
-        <div class="cc-aba-corpo">${corpo}</div>`
+        <div class="cc-abas" role="tablist">${abas.filter(a => a[4]).map(([k, ic, t, n]) => `
+            <button type="button" role="tab" aria-selected="${aba === k}" class="cc-aba ${aba === k ? 'ativo' : ''}" onclick="estadoConc.aba = '${k}'; desenharDetalheConc()">
+                ${iconeFin(ic)}<span>${t}</span>${n != null ? `<em>${n}</em>` : ''}</button>`).join('')}
+            <button type="button" class="cc-aba cc-aba-ignorar" onclick="ignorarLinhaConc(${l.id})" title="Marcar como fora do Financeiro">${iconeFin('cancelar')}<span>Fora</span></button>
+        </div>
+        <div class="cc-aba-corpo">${corpo}</div>
+        ${rodape}`
     if (aba === 'faturas') somarFaturasConc()
 }
 
@@ -641,9 +716,9 @@ function somarMarcadasConc() {
     const marcadas = [...document.querySelectorAll('[data-marcar-baixas] input:checked')]
     const soma = r2Fin(marcadas.reduce((a, i) => a + Number(i.dataset.valor), 0))
     const alvo = r2Fin(detalheConc.linha.valor)
-    const ok = marcadas.length && Math.abs(soma - alvo) < 0.005
+    const ok = Boolean(marcadas.length && Math.abs(soma - alvo) < 0.005)
     const el = document.querySelector('[data-soma-baixas]')
-    if (el) el.innerHTML = `Marcadas (${marcadas.length}): <b class="${ok ? 'cc-ok' : 'cc-falta'}">${sinalConc(soma)}</b> de ${sinalConc(alvo)}${ok ? ' ✔' : marcadas.length ? ` · falta ${dinheiro(Math.abs(alvo - soma))}` : ''}`
+    if (el) el.innerHTML = barraSomaConc(soma, alvo, ok)
     const b = document.querySelector('[data-casar-marcadas]')
     if (b) b.disabled = !ok
 }
@@ -663,7 +738,7 @@ function somarFaturasConc() {
     const soma = r2Fin(marcadas.reduce((a, it) => a + Number(it.querySelector('.cc-valor').value || 0), 0))
     const um = marcadas.length === 1 ? Number(marcadas[0].querySelector('.cc-valor').dataset.saldo) : null
     const dif = um != null ? r2Fin(abs - um) : 0
-    const bate = marcadas.length && Math.abs(soma - abs) < 0.005
+    const bate = Boolean(marcadas.length && Math.abs(soma - abs) < 0.005)
     let ajuste = ''
     if (um != null && Math.abs(dif) >= 0.005 && Math.abs(Number(marcadas[0].querySelector('.cc-valor').value) - um) < 0.005) {
         ajuste = dif > 0
@@ -672,8 +747,8 @@ function somarFaturasConc() {
                <label class="fis-check"><input type="radio" name="ajuste" value="parcial"> Foi só uma parte: baixa parcial de ${dinheiro(abs)}</label>`
     }
     caixa.innerHTML = `
-        <span>Marcadas (${marcadas.length}): <b class="${bate || ajuste ? 'cc-ok' : 'cc-falta'}">${dinheiro(soma)}</b> de ${dinheiro(abs)}</span>
-        ${ajuste}
+        ${barraSomaConc(soma, abs, bate || Boolean(ajuste))}
+        ${ajuste ? `<div class="cc-ajuste">${ajuste}</div>` : ''}
         <button type="button" class="fis-botao" ${marcadas.length && (bate || ajuste) ? '' : 'disabled'} onclick="baixarFaturasConc(${detalheConc.linha.id})">Dar baixa</button>`
 }
 
