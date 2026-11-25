@@ -617,6 +617,78 @@ tr.item-em-exclusao,
         text-align: left;
     }
 
+    /* Larguras de coluna escolhidas no computador (alça do cabeçalho: width/min/max inline +
+       .cab-largura-fixa) e os max-width de telas (Financeiro): no cartão a célula usa a linha toda
+       e o texto quebra, em vez de espremer o valor e encostar a célula seguinte ao lado. */
+    .modtab.cartoes-celular .tabela > tbody > tr > td:not(.celula-cartao-acoes):not(.celula-cartao-detalhes) {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+
+    .modtab.cartoes-celular .tabela > tbody > tr > td.cab-largura-fixa {
+        overflow: visible;
+        white-space: normal;
+    }
+
+    /* Tabela na altura das linhas (o Financeiro estica até a altura disponível com a .fin-enchimento). */
+    .modtab.cartoes-celular .tabela {
+        height: auto !important;
+    }
+
+    .modtab.cartoes-celular .tabela > tbody.fin-enchimento {
+        display: none;
+    }
+
+    /* Rodapé de totais: no desktop é sticky no fim da área que rola; aqui vira um último cartão,
+       parado no fluxo (sticky deixava os cartões passando por baixo dele). */
+    .modtab.cartoes-celular .tabela > tfoot {
+        display: block;
+    }
+
+    .modtab.cartoes-celular .tabela > tfoot > tr {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 8px;
+        padding: 4px 0;
+        background-color: #f1f5f2;
+        border: 1px solid #cddbd2;
+        border-radius: 8px;
+    }
+
+    .modtab.cartoes-celular .tabela > tfoot > tr > td {
+        position: static !important;
+        display: flow-root;
+        flex: 1 1 100%;
+        box-sizing: border-box;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        padding: 5px 12px;
+        font-size: 12px;
+        text-align: left !important;
+        white-space: normal;
+        background: transparent !important;
+        border: none !important;
+    }
+
+    .modtab.cartoes-celular .tabela > tfoot > tr > td:empty {
+        display: none;
+    }
+
+    .modtab.cartoes-celular .tabela > tfoot > tr > td[data-rotulo] {
+        padding-left: calc(7.5rem + 18px);
+    }
+
+    .modtab.cartoes-celular .tabela > tfoot > tr > td[data-rotulo]::before {
+        content: attr(data-rotulo);
+        float: left;
+        width: 7.5rem;
+        margin-left: calc(-7.5rem - 6px);
+        color: #5b6f62;
+        font-weight: 600;
+    }
+
     /* Blocos dentro da célula (etiquetas, fotos, grupos em flex) também começam na esquerda. */
     .modtab.cartoes-celular .tabela > tbody > tr > td > * {
         max-width: 100%;

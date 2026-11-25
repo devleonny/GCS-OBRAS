@@ -562,6 +562,25 @@ function mostrarMenus(operacao) {
 
 }
 
+// Celular: o menu é uma gaveta que sobe de baixo (css/estilo.css). Fecha ao tocar fora dela
+// (o toque não chega ao que está embaixo do escurecido) e ao escolher uma tela (acaoMenu).
+const gavetaMenuCelular = () => matchMedia('(max-width: 760px)').matches
+
+function fecharGavetaMenu() {
+    const menu = document.querySelector('.side-menu')
+    if (!menu?.classList.contains('active')) return
+    menu.classList.remove('active')
+    document.querySelector('.tela')?.classList.remove('active')
+}
+
+document.addEventListener('click', evento => {
+    if (!gavetaMenuCelular() || !document.querySelector('.side-menu.active')) return
+    if (evento.target.closest('.side-menu, [onclick^="mostrarMenus"]')) return
+    evento.preventDefault()
+    evento.stopPropagation()
+    fecharGavetaMenu()
+}, true)
+
 let shell = null;
 if (typeof window !== 'undefined' && window.process && window.process.type) {
     const { shell: electronShell } = require('electron');

@@ -823,7 +823,7 @@ function rotularCelulasCartao(tbody) {
 
     const colunas = [...linhaTitulo.cells].map(th => ({
         detalhes: th.classList.contains('tabela-coluna-detalhes'),
-        rotulo: th.classList.contains('tabela-coluna-detalhes') ? '' : th.textContent.replace(/\s+/g, ' ').trim(),
+        rotulo: th.classList.contains('tabela-coluna-detalhes') ? '' : textoTituloColuna(th),
         ocultar: th.dataset.celular === 'nao',
         principal: th.dataset.principal === 'S'
     }))
@@ -861,6 +861,24 @@ function rotularCelulasCartao(tbody) {
             td.classList.toggle('celula-cartao-vazia', !texto && !interativo && !coluna.detalhes)
         }
     }
+
+    // Rodapé de totais (Financeiro): no celular vira um cartão no fim, com o nome de cada coluna.
+    for (const tr of tbody.closest('table')?.tFoot?.rows || []) {
+        let posicao = 0
+        for (const td of tr.cells) {
+            const coluna = colunas[posicao] || {}
+            posicao += td.colSpan || 1
+            if (coluna.rotulo) td.dataset.rotulo = coluna.rotulo
+            else delete td.dataset.rotulo
+        }
+    }
+}
+
+// Nome da coluna sem o texto dos botões do título ("«" de recolher, ordenar...).
+function textoTituloColuna(th) {
+    const copia = th.cloneNode(true)
+    copia.querySelectorAll('button, .cab-recolher, .cab-alca-largura').forEach(el => el.remove())
+    return copia.textContent.replace(/\s+/g, ' ').trim()
 }
 
 // Botão "Filtrar" do topo (só aparece no celular): abre/fecha a linha de filtros como um painel.

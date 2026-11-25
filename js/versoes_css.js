@@ -16,7 +16,7 @@ const VERSOES_CSS = {
     "custos": "0fbcf30d",
     "custos_pessoal": "c5dbe7fd",
     "dashboard_chamados": "928a2e8b",
-    "estilo": "b261d7d8",
+    "estilo": "a9adc3fc",
     "estoque": "ff848a67",
     "festas": "81ec7e62",
     "financeiro": "294e76c3",
@@ -49,7 +49,7 @@ const VERSOES_CSS = {
     "seletor-cores": "c0e10ff3",
     "status": "58249c5d",
     "tabelas-parceiro": "22c15cc9",
-    "tabelas": "f568bf4b",
+    "tabelas": "f98aa5b5",
     "veiculos": "76187e75",
     "velocimetro": "2cfa4cff"
 }
