@@ -438,6 +438,7 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
                     <div class="fin-barra">
                     <button type="button" onclick="formularioFaturaFin('${tipo}')">${iconeFin('incluir')} Incluir</button>
                     <button type="button" onclick="baixarExcelFaturasFin()" title="Com faturas marcadas, baixa só as marcadas; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
+                    ${pagar ? botaoComprovantesFin() : ''}
                     ${filtroExtra ? `<button type="button" onclick="telaFaturasFin('${tipo}')">${iconeFin('fechar')} Limpar filtro</button>` : ''}
                     </div>
                 </header>
@@ -484,6 +485,8 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
                 'Desconto': { chave: 'desconto', tipoOrdenacao: 'numero' },
                 'Juros e multas': { chave: 'juros_multa', tipoOrdenacao: 'numero' },
                 'Valor pago': { chave: 'valor_pago', tipoOrdenacao: 'numero' },
+                // Só a pagar: o comprovante do banco no pagamento (js/financeiro_comprovantes.js).
+                ...(pagar ? { 'Comprovante': { chave: 'comprovante', tipoPesquisa: 'select', rotulos: { 'NÃO': 'FALTA' } } } : {}),
                 'Observação': { chave: 'observacao' },
                 'Departamento': { chave: 'departamentos' },
                 'Categorias': { chave: 'categorias_texto' },
@@ -648,6 +651,7 @@ async function baixarExcelFaturasFin() {
             { titulo: 'Desconto', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.desconto) || 0 },
             { titulo: 'Juros e multas', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.juros_multa) || 0 },
             { titulo: 'Valor pago', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor_pago) || 0 },
+            ...(pagar ? [{ titulo: 'Comprovante', largura: 13, centro: true, valor: d => d.comprovante === 'NÃO' ? 'Falta' : d.comprovante === 'SIM' ? 'Sim' : '' }] : []),
             { titulo: 'Observação', largura: 40, quebra: true, valor: d => d.observacao || '' },
             { titulo: 'Categoria', largura: 34, quebra: true, valor: categorias },
             { titulo: 'Departamento', largura: 22, quebra: true, valor: departamentos },
@@ -1138,6 +1142,7 @@ function criarLinhaFaturaFin(d) {
             <td class="fis-num">${dinheiro(d.desconto)}</td>
             <td class="fis-num">${dinheiro(d.juros_multa)}</td>
             <td class="fis-num">${dinheiro(d.valor_pago)}</td>
+            ${(d.tipo || tipoFaturasFin) === 'PAGAR' ? `<td class="fin-centro">${colunaComprovanteFin(d)}</td>` : ''}
             <td class="fin-obs" title="${escFin(d.observacao || '')}"><span class="fin-obs-txt">${escFin(d.observacao || '')}</span></td>
             <td class="fin-obs fin-deps" title="${escFin(d.departamentos || '')}"><span class="fin-obs-txt">${escFin(d.departamentos || '')}</span></td>
             <td class="fin-obs fin-deps" title="${escFin(d.categorias_texto || '')}"><span class="fin-obs-txt">${escFin(d.categorias_texto || '')}</span></td>
@@ -1883,7 +1888,7 @@ function abaPagamentosFin(t, baixas, pagar, cancelada) {
                 ${baixas.length ? `
                 <div class="fis-tabela-rolagem">
                     <table class="fis-tabela">
-                        <thead><tr><th>Data</th><th>Conta</th><th>Forma</th><th class="fis-num">Abate</th><th class="fis-num">Desconto</th><th class="fis-num">Juros/multa</th><th class="fis-num">Total ${pagar ? 'pago' : 'recebido'}</th><th>Por</th><th></th></tr></thead>
+                        <thead><tr><th>Data</th><th>Conta</th><th>Forma</th><th class="fis-num">Abate</th><th class="fis-num">Desconto</th><th class="fis-num">Juros/multa</th><th class="fis-num">Total ${pagar ? 'pago' : 'recebido'}</th><th>Comprovante</th><th>Por</th><th></th></tr></thead>
                         <tbody>${baixas.map(b => `
                             <tr class="${b.estornada ? 'fis-estornado' : ''}" title="${escFin(b.observacao || '')}">
                                 <td>${dataFin(b.data)}</td>
@@ -1893,6 +1898,7 @@ function abaPagamentosFin(t, baixas, pagar, cancelada) {
                                 <td class="fis-num">${Number(b.desconto) ? dinheiro(b.desconto) : ''}</td>
                                 <td class="fis-num">${Number(b.juros) + Number(b.multa) ? dinheiro(Number(b.juros) + Number(b.multa)) : ''}</td>
                                 <td class="fis-num"><b>${dinheiro(Number(b.valor) + Number(b.juros) + Number(b.multa) - Number(b.desconto))}</b></td>
+                                <td>${celulaComprovanteBaixaFin(b, t.id)}</td>
                                 <td><small>${escFin(b.criado_por || '')}${b.estornada ? ` · desfeito: ${escFin(b.estorno_motivo || '')}` : ''}</small></td>
                                 <td>${b.estornada ? '' : `<button type="button" class="fis-mini" onclick="estornarBaixaFin('${escFin(b.id)}', '${id}')">Desfazer</button>`}</td>
                             </tr>`).join('')}

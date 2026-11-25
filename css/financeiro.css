@@ -1247,3 +1247,57 @@
 .fin-leitor-camera video { width: 100%; border-radius: 8px; background: #111; aspect-ratio: 4 / 3; object-fit: cover; }
 .fin-leitor-mira { position: absolute; left: 12%; right: 12%; top: 30%; height: 28%; border: 2px solid rgba(127, 255, 160, 0.85); border-radius: 8px; pointer-events: none; }
 .fin-leitor-camera small { color: #4b5a51; font-size: 0.78rem; }
+
+/* ---------------- Comprovantes do Itaú (js/financeiro_comprovantes.js) */
+.fin-barra .fin-barra-arquivo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: var(--fin-verde);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.fin-barra .fin-barra-arquivo:hover { background: #eef6f0; }
+.fin-barra .fin-barra-forte { background: var(--fin-verde); color: #fff; }
+.fin-barra .fin-barra-forte:hover { background: #2a5236; }
+.fin-comp-arquivo { font-size: 0.6em; font-weight: 400; color: #64748b; margin-left: 8px; }
+.fin-comp-corpo { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; min-height: 0; flex: 1; overflow: hidden; }
+.fin-comp-resumo { display: flex; flex-wrap: wrap; gap: 10px; }
+.fin-comp-cartao { display: flex; flex-direction: column; min-width: 130px; padding: 8px 14px; border: 1px solid var(--fin-borda); border-radius: 8px; background: #fff; }
+.fin-comp-cartao small { color: #64748b; }
+.fin-comp-cartao b { font-size: 1.35em; color: #334155; }
+.fin-comp-cartao.ok b { color: var(--fin-verde); }
+.fin-comp-cartao.alerta b { color: #b45309; }
+.fin-comp-tabela { flex: 1; min-height: 0; overflow: auto; }
+.fin-comp-tabela td { vertical-align: top; }
+.fin-comp-lido { display: flex; flex-direction: column; gap: 2px; min-width: 220px; max-width: 320px; }
+.fin-comp-lido span { color: #64748b; font-size: 0.9em; }
+.fin-comp-lido strong { color: #0f172a; }
+.fin-comp-aviso { color: #b45309; }
+.fin-comp-fatura { min-width: 320px; }
+.fin-comp-escolha { display: flex; gap: 6px; align-items: center; }
+.fin-comp-escolha select { flex: 1; min-width: 0; }
+.fin-comp-obs { display: block; margin-top: 4px; color: #64748b; max-width: 420px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fin-comp-pag { display: flex; flex-wrap: wrap; gap: 6px; }
+.fin-comp-pag label { display: flex; flex-direction: column; font-size: 0.85em; color: #64748b; }
+.fin-comp-pag input[type="date"] { width: 140px; }
+.fin-comp-pag input[type="number"] { width: 110px; }
+.fin-comp-conta select { max-width: 220px; }
+.fin-comp-dif { display: block; margin-top: 4px; color: #b45309; }
+.fin-comp-ok { color: var(--fin-verde); font-weight: 600; }
+.fin-comp-erro { color: #b91c1c; }
+.fin-comp-feita { background: #f3faf5; }
+.fin-comp-dup { opacity: 0.65; }
+.fin-comp-busca { min-width: min(720px, 90vw); display: flex; flex-direction: column; gap: 8px; }
+.fin-comp-resultados { display: flex; flex-direction: column; gap: 4px; max-height: 55vh; overflow: auto; }
+.fin-comp-opcao { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; border: 1px solid var(--fin-borda); border-radius: 6px; background: #fff; text-align: left; cursor: pointer; }
+.fin-comp-opcao:hover { background: #eef6f0; border-color: #8cb69a; }
+.fin-comp-opcao small { color: #64748b; }
+.fin-comp-tem { color: var(--fin-verde); font-weight: 600; white-space: nowrap; }
+.fin-comp-falta { color: #b45309; white-space: nowrap; }
+.fin-comp-celula { display: inline-flex; gap: 4px; }
+.fin-comp-anexar { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.fin-comp-anexar .fin-icone, .fin-comp-celula .fin-icone { width: 14px; height: 14px; }
