@@ -599,16 +599,19 @@ tr.item-em-exclusao,
         overflow-wrap: anywhere;
     }
 
+    /* Rótulo em float na margem esquerda (largura fixa, margem negativa = fica no padding): não
+       empurra o valor, mas a célula (flow-root) cresce com ele. Antes era absolute e o rótulo de
+       duas linhas ("Total do Orçamento") vazava por cima do pé do cartão. */
     .modtab.cartoes-celular .tabela > tbody > tr > td[data-rotulo] {
-        padding-left: calc(38% + 18px);
+        display: flow-root;
+        padding-left: calc(7.5rem + 18px);
     }
 
     .modtab.cartoes-celular .tabela > tbody > tr > td[data-rotulo]::before {
         content: attr(data-rotulo);
-        position: absolute;
-        top: 5px;
-        left: 12px;
-        width: 38%;
+        float: left;
+        width: 7.5rem;
+        margin-left: calc(-7.5rem - 6px);
         color: #5b6f62;
         font-weight: 600;
         text-align: left;

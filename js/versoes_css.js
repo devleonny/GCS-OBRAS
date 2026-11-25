@@ -49,7 +49,7 @@ const VERSOES_CSS = {
     "seletor-cores": "c0e10ff3",
     "status": "58249c5d",
     "tabelas-parceiro": "22c15cc9",
-    "tabelas": "586728ce",
+    "tabelas": "f568bf4b",
     "veiculos": "76187e75",
     "velocimetro": "2cfa4cff"
 }
