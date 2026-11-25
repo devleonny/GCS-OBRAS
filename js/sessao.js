@@ -72,7 +72,50 @@ function renovarSessao({ forcar = false, tokenRecusado = null } = {}) {
 // Camada única sobre o fetch: toda chamada que leva "Authorization: Bearer" sai com token
 // válido (renova antes se venceu, ex.: PC acordando) e, se mesmo assim vier 401, renova e
 // repete uma vez. As telas não precisam tratar a expiração.
-const fetchOriginalGCS = window.fetch.bind(window)
+const fetchNativoGCS = window.fetch.bind(window)
+
+// Reinício do servidor (alguns segundos fora): a chamada à API não falha de cara, espera e
+// tenta de novo em silêncio. Fora do ar, o túnel da Cloudflare responde 502/52x sem CORS, que
+// chega aqui como erro de rede. O 503 da manutenção (JSON) não é repetido. O servidor termina
+// o que já recebeu antes de sair, então o que é repetido aqui não chegou lá (não grava em dobro).
+const ESPERAS_REINICIO_MS = [500, 1000, 1500, 2000, 2500, 3000, 4000, 5000] // ~20 s no total
+
+function chamadaDaApiGCS(entrada) {
+    try {
+        return /^(api|read)\.gcs\.app\.br$/.test(new URL(String(entrada), location.href).hostname)
+    } catch {
+        return false
+    }
+}
+
+function respostaDeServidorReiniciando(resposta) {
+    const s = resposta.status
+    if (s === 502 || s === 504 || (s >= 520 && s <= 530))
+        return true
+    return s === 503 && !(resposta.headers.get('content-type') || '').includes('json')
+}
+
+async function fetchOriginalGCS(entrada, opcoes) {
+    const corpoUnico = typeof ReadableStream !== 'undefined' && opcoes?.body instanceof ReadableStream
+    if (corpoUnico || (typeof entrada !== 'string' && !(entrada instanceof URL)) || !chamadaDaApiGCS(entrada))
+        return fetchNativoGCS(entrada, opcoes)
+
+    for (let tentativa = 0; ; tentativa++) {
+        const ultima = tentativa >= ESPERAS_REINICIO_MS.length
+        try {
+            const resposta = await fetchNativoGCS(entrada, opcoes)
+            if (ultima || !respostaDeServidorReiniciando(resposta))
+                return resposta
+        } catch (erro) {
+            // Cancelada pela tela ou sem internet no PC: não é reinício, falha na hora.
+            if (ultima || erro?.name === 'AbortError' || navigator.onLine === false)
+                throw erro
+        }
+        await new Promise(resolve => setTimeout(resolve, ESPERAS_REINICIO_MS[tentativa]))
+        if (opcoes?.signal?.aborted)
+            throw new DOMException('Cancelada', 'AbortError')
+    }
+}
 
 window.fetch = async function (entrada, opcoes = {}) {
     const cabecalhos = new Headers(opcoes?.headers || {})
