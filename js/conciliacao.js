@@ -156,7 +156,7 @@ function desenharContasConc(todas) {
                 <div class="cc-saldos">
                     <div><small>Banco</small><b>${c.saldo_banco != null ? dinheiro(c.saldo_banco) : '—'}</b></div>
                     <div><small>GCS</small><b>${conferida ? dinheiro(c.saldo_gcs) : '<span class="cc-cinza" title="O saldo do GCS só vale depois do primeiro fechamento">a conferir</span>'}</b></div>
-                    <div class="${ok ? 'cc-saldo-ok' : 'cc-saldo-falta'}"><small>Falta explicar</small><b>${ok ? '✔ R$ 0,00' : dinheiro(dif)}</b></div>
+                    <div class="${ok ? 'cc-saldo-ok' : 'cc-saldo-falta'}"><small>Falta explicar</small><b title="${ok ? '' : escFin(dinheiro(dif))}">${ok ? '✔ R$ 0,00' : dinheiro(dif)}</b></div>
                 </div>
                 <small class="cc-saldos-dia">Saldos no fim de ${dataFin(c.saldo_dia)}</small>
                 <div class="cc-progresso">

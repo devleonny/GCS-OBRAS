@@ -21,9 +21,10 @@
 .cc-ultimo .fin-icone { width: 14px; height: 14px; }
 .cc-ultimo-atrasado b { color: #b42318; }
 .cc-saldos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.cc-saldos > div { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 6px; background: #f6f9f7; }
+.cc-saldos > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 8px 10px; border-radius: 6px; background: #f6f9f7; container-type: inline-size; }
 .cc-saldos small { color: #5f6d65; font-size: 11px; }
-.cc-saldos b { font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Fonte acompanha a largura do quadro: valor grande (R$ -4.070.340,19) não vaza; reticências em último caso. */
+.cc-saldos b { font-size: clamp(10px, 11cqi, 15px); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cc-saldos .cc-saldo-ok { background: #f0faf3; }
 .cc-saldos .cc-saldo-ok b { color: #1f7a3d; }
 .cc-saldos .cc-saldo-falta { background: #fff5f4; }
