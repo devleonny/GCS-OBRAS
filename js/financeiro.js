@@ -868,7 +868,7 @@ function desenharPainelFin() {
         ${acao('ver', 'Ver fatura', `abrirFaturaFin('${id}')`, { ativo: !!d, motivo: nada })}
         ${acao('editar', 'Editar', `formularioFaturaFin('${tipo}', '${id}')`, { ativo: !!d && !cancelada, motivo: d ? 'Fatura excluída' : nada })}
         ${acao('raio', pagar ? 'Pagar agora' : 'Receber agora', `formularioBaixaRapidaFin('${id}')`, { ativo: aberta, motivo: motivoQuitada })}
-        ${acao('parcial', `${pagar ? 'Pagamento' : 'Recebimento'} parcial / com juros`, `formularioBaixaFin('${id}')`, { ativo: aberta, motivo: motivoQuitada })}
+        ${acao('parcial', `Registrar ${termoFin('pagamento')} (parcial, juros...)`, `formularioFaturaFin('${tipo}', '${id}', null, 'pagamentos')`, { ativo: aberta, motivo: motivoQuitada })}
         ${d ? `<div data-danfe-fin="${id}"></div>` : ''}
         ${d?.recorrencia_id ? `
             ${acao('repetir', 'Editar repetição', `formularioFaturaFin('${tipo}', null, '${rec}')`)}
@@ -1180,7 +1180,7 @@ async function abrirFaturaFin(id) {
                     <div class="fis-acoes-claras fis-nota-acoes">
                         ${!['PAGO', 'CANCELADO'].includes(t.situacao) ? `
                             <button type="button" class="fis-botao" onclick="formularioBaixaRapidaFin('${escFin(t.id)}')">Dar baixa (${pagar ? 'pago' : 'recebido'})</button>
-                            <button type="button" class="fis-mini" onclick="formularioBaixaFin('${escFin(t.id)}')">${pagar ? 'Pagamento' : 'Recebimento'} parcial / com juros</button>` : ''}
+                            <button type="button" class="fis-mini" onclick="formularioFaturaFin('${t.tipo}', '${escFin(t.id)}', null, 'pagamentos')">Registrar ${pagar ? 'pagamento' : 'recebimento'} (parcial, juros...)</button>` : ''}
                         ${t.situacao !== 'CANCELADO' ? `<button type="button" class="fis-mini" onclick="formularioFaturaFin('${t.tipo}', '${escFin(t.id)}')">Editar</button>` : ''}
                         ${t.situacao !== 'CANCELADO' && vivas.length ? `<button type="button" class="fis-mini" onclick="cancelarPagamentosFin('${escFin(t.id)}')">Cancelar ${pagar ? 'pagamento' : 'recebimento'}</button>` : ''}
                         ${['MANUAL', 'RECORRENCIA'].includes(t.origem) && t.situacao !== 'CANCELADO' && !vivas.length ? `<button type="button" class="fis-mini" onclick="excluirFaturaFin('${escFin(t.id)}')">Excluir</button>` : ''}
@@ -1366,28 +1366,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
 
                         ${t ? `
                         <div class="fin-aba" data-painel-aba="pagamentos" ${aba === 'pagamentos' ? '' : 'hidden'}>
-                            ${baixas.length ? `
-                            <table class="fis-tabela">
-                                <thead><tr><th>Data</th><th>Conta</th><th>Forma</th><th class="fis-num">Valor</th><th class="fis-num">Juros/multa</th><th class="fis-num">Desconto</th><th>Por</th><th></th></tr></thead>
-                                <tbody>${baixas.map(b => `
-                                    <tr class="${b.estornada ? 'fis-estornado' : ''}">
-                                        <td>${dataFin(b.data)}</td>
-                                        <td>${escFin(b.conta)}</td>
-                                        <td>${escFin(nomeFormaFin(b.forma))}</td>
-                                        <td class="fis-num">${dinheiro(b.valor)}</td>
-                                        <td class="fis-num">${Number(b.juros) + Number(b.multa) ? dinheiro(Number(b.juros) + Number(b.multa)) : ''}</td>
-                                        <td class="fis-num">${Number(b.desconto) ? dinheiro(b.desconto) : ''}</td>
-                                        <td class="fis-num"><b>${dinheiro(Number(b.valor) + Number(b.juros) + Number(b.multa) - Number(b.desconto))}</b></td>
-                                        <td><small>${escFin(b.criado_por || '')}${b.estornada ? ` · desfeito: ${escFin(b.estorno_motivo || '')}` : ''}</small></td>
-                                        <td>${b.estornada ? '' : `<button type="button" class="fis-mini" onclick="estornarBaixaFin('${escFin(b.id)}', '${escFin(t.id)}')">Desfazer</button>`}</td>
-                                    </tr>`).join('')}
-                                </tbody>
-                            </table>` : `<div class="fis-vazio">Nenhum ${pagar ? 'pagamento' : 'recebimento'} registrado.</div>`}
-                            <div class="fin-pagamentos-resumo">
-                                <span>Valor <b>${dinheiro(t.valor)}</b></span>
-                                <span>${pagar ? 'Pago' : 'Recebido'} <b>${dinheiro(Number(t.pago) + Number(t.acrescimos || 0))}</b>${Number(t.acrescimos) ? ` <small>(${Number(t.acrescimos) > 0 ? '+' : '−'}${dinheiro(Math.abs(t.acrescimos))} de ${Number(t.acrescimos) > 0 ? 'juros' : 'desconto'})</small>` : ''}</span>
-                                <span>Falta <b>${dinheiro(t.saldo)}</b></span>
-                            </div>
+                            ${abaPagamentosFin(t, baixas, pagar, cancelada)}
                         </div>` : ''}
                     </div>
                     <div class="fin-lateral">
@@ -1877,6 +1856,54 @@ function removerAnexoFin(i) {
     desenharAnexosFin()
 }
 
+// Aba Pagamentos da fatura: lista dos pagamentos à esquerda, totais e os botões Registrar / Cancelar à direita.
+// "Pagar agora" (painel) é o atalho rápido; aqui ficam o pagamento parcial e os detalhes (desconto, juros, multa...).
+function abaPagamentosFin(t, baixas, pagar, cancelada) {
+    const vivas = baixas.filter(b => !b.estornada)
+    const soma = campo => vivas.reduce((s, b) => s + Number(b[campo] || 0), 0)
+    const pago = vivas.reduce((s, b) => s + Number(b.valor) + Number(b.juros) + Number(b.multa) - Number(b.desconto), 0)
+    const aberta = !['PAGO', 'CANCELADO'].includes(t.situacao)
+    const id = escFin(t.id)
+    const pg = pagar ? 'pagamento' : 'recebimento'
+    const total = (rotulo, valor, forte = false) => `
+        <label class="fis-campo"><span>${rotulo}</span><div class="fin-pag-total ${forte ? 'forte' : ''}">${dinheiro(valor)}</div></label>`
+    return `
+        <div class="fin-pagamentos">
+            <div class="fin-pagamentos-lista">
+                <span class="fin-pagamentos-rotulo">${pagar ? 'Pagamentos' : 'Recebimentos'} realizados</span>
+                ${baixas.length ? `
+                <div class="fis-tabela-rolagem">
+                    <table class="fis-tabela">
+                        <thead><tr><th>Data</th><th>Conta</th><th>Forma</th><th class="fis-num">Abate</th><th class="fis-num">Desconto</th><th class="fis-num">Juros/multa</th><th class="fis-num">Total ${pagar ? 'pago' : 'recebido'}</th><th>Por</th><th></th></tr></thead>
+                        <tbody>${baixas.map(b => `
+                            <tr class="${b.estornada ? 'fis-estornado' : ''}" title="${escFin(b.observacao || '')}">
+                                <td>${dataFin(b.data)}</td>
+                                <td>${escFin(b.conta)}</td>
+                                <td>${escFin(nomeFormaFin(b.forma))}</td>
+                                <td class="fis-num">${dinheiro(b.valor)}</td>
+                                <td class="fis-num">${Number(b.desconto) ? dinheiro(b.desconto) : ''}</td>
+                                <td class="fis-num">${Number(b.juros) + Number(b.multa) ? dinheiro(Number(b.juros) + Number(b.multa)) : ''}</td>
+                                <td class="fis-num"><b>${dinheiro(Number(b.valor) + Number(b.juros) + Number(b.multa) - Number(b.desconto))}</b></td>
+                                <td><small>${escFin(b.criado_por || '')}${b.estornada ? ` · desfeito: ${escFin(b.estorno_motivo || '')}` : ''}</small></td>
+                                <td>${b.estornada ? '' : `<button type="button" class="fis-mini" onclick="estornarBaixaFin('${escFin(b.id)}', '${id}')">Desfazer</button>`}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>` : `<div class="fis-vazio">Nenhum ${pg} registrado.</div>`}
+            </div>
+            <div class="fin-pagamentos-totais">
+                ${total(`Total já ${pagar ? 'pago' : 'recebido'} da fatura`, pago)}
+                ${total('Total de descontos e abatimentos', soma('desconto'))}
+                ${total('Total de juros, multas e acréscimos', soma('juros') + soma('multa'))}
+                ${total(`A ${pagar ? 'pagar' : 'receber'} da fatura`, t.saldo, true)}
+            </div>
+        </div>
+        <div class="fis-acoes-claras fin-pagamentos-acoes">
+            <button type="button" class="fis-mini" ${vivas.length && !cancelada ? '' : 'disabled'} onclick="cancelarPagamentosFin('${id}')">Cancelar ${pg}</button>
+            <button type="button" class="fis-botao" ${aberta ? '' : 'disabled'} title="${aberta ? '' : cancelada ? 'Fatura excluída' : 'Já está quitada'}" onclick="formularioBaixaFin('${id}')">Registrar ${pg}</button>
+        </div>`
+}
+
 // Depois de pagar/cancelar/desfazer: com o formulário dessa fatura aberto, recarrega ele (na mesma aba);
 // senão, abre a janela da fatura como antes (se pedido).
 function posAcaoFaturaFin(id, abrir = true) {
@@ -2063,6 +2090,9 @@ async function encerrarRecorrenciaFin(id, tipo) {
     }
 }
 
+// Registrar pagamento (aba Pagamentos da fatura): o completo, com pagamento parcial, desconto, juros, multa,
+// abatimento e acréscimo. "Valor do pagamento" é o que saiu/entrou de fato na conta; o que abate da fatura é
+// valor − juros − multa − acréscimo + desconto + abatimento. Abatimento grava como desconto e acréscimo como juros.
 async function formularioBaixaFin(id) {
     let op, t
     try {
@@ -2074,34 +2104,104 @@ async function formularioBaixaFin(id) {
         return popup({ mensagem: mensagemErroEst(err) })
     }
     const pagar = t.tipo === 'PAGAR'
-    const padrao = t.conta_id || contaPadraoAppFin(op.contas, t.app)?.id
+    const pg = pagar ? 'pagamento' : 'recebimento'
+    const contas = op.contas.filter(k => contaAceitaFin(k, t.app))
+    const padrao = t.conta_id || contaPadraoAppFin(contas, t.app)?.id
+    const num = (nome, rotulo, valor = 0, dica = '') => `
+        <label class="fis-campo"><span>${rotulo}${dica ? ` <small title="${dica}">ⓘ</small>` : ''}</span>
+            <input class="fis-input fis-num" type="number" step="0.01" min="0" name="${nome}" value="${valor}" oninput="previaBaixaFin(this)"></label>`
     popup({
-        titulo: `Registrar ${pagar ? 'pagamento' : 'recebimento'}`,
+        titulo: `Registrar ${pg}`,
         linhas: [{
             elemento: `
-                <div class="fis-form" data-form-baixa data-id="${escFin(t.id)}">
-                    <div class="fis-info">${escFin(t.participante_nome || '')} · parcela ${escFin(t.parcela_texto)} · saldo <b>${dinheiro(t.saldo)}</b></div>
+                <div class="fis-form" data-form-baixa data-id="${escFin(t.id)}" data-saldo="${r2Fin(t.saldo)}" data-pagar="${pagar ? 1 : ''}">
                     <div class="fis-grade">
-                        <label class="fis-campo"><span>Data</span><input class="fis-input" type="date" name="data" max="${hojeFin()}" value="${hojeFin()}"></label>
-                        <label class="fis-campo"><span>Valor ${pagar ? 'pago' : 'recebido'} (abate do saldo)</span><input class="fis-input" type="number" step="0.01" min="0.01" max="${t.saldo}" name="valor" value="${r2Fin(t.saldo)}"></label>
+                        <label class="fis-campo fis-largo"><span>Conta corrente *</span><select class="fis-input" name="conta_id">
+                            ${contas.length ? contas.map(k => `<option value="${k.id}" ${k.id === padrao ? 'selected' : ''}>${escFin(k.app !== t.app ? `${k.app} · ${k.nome}` : k.nome)}${k.padrao ? ' (padrão)' : ''}</option>`).join('') : '<option value="">Nenhuma conta desta empresa</option>'}
+                        </select></label>
+                        <label class="fis-campo"><span>Data do ${pg} *</span><input class="fis-input" type="date" name="data" max="${hojeFin()}" value="${hojeFin()}"></label>
                     </div>
                     <div class="fis-grade">
-                        <label class="fis-campo"><span>Juros</span><input class="fis-input" type="number" step="0.01" min="0" name="juros" value="0"></label>
-                        <label class="fis-campo"><span>Multa</span><input class="fis-input" type="number" step="0.01" min="0" name="multa" value="0"></label>
-                        <label class="fis-campo"><span>Desconto</span><input class="fis-input" type="number" step="0.01" min="0" name="desconto" value="0"></label>
-                    </div>
-                    <div class="fis-grade">
-                        <label class="fis-campo fis-largo"><span>Conta</span><select class="fis-input" name="conta_id">${op.contas.filter(k => contaAceitaFin(k, t.app)).map(k => `<option value="${k.id}" ${k.id === padrao ? 'selected' : ''}>${escFin(k.app !== t.app ? `${k.app} · ${k.nome}` : k.nome)}</option>`).join('')}</select></label>
+                        ${num('valor', `Valor do ${pg} *`, r2Fin(t.saldo))}
                         <label class="fis-campo"><span>Forma</span><select class="fis-input" name="forma">${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}" ${(t.forma_pagamento || '15') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
                     </div>
-                    <label class="fis-campo"><span>Observação</span><input class="fis-input" name="observacao" maxlength="500"></label>
+                    <div class="fin-baixa-situacao" data-previa-baixa></div>
+                    <div class="fis-grade">
+                        ${num('desconto', 'Desconto')}
+                        ${num('juros', 'Juros')}
+                        ${num('multa', 'Multa')}
+                    </div>
+                    <div class="fis-grade">
+                        ${num('abatimento', 'Abatimento', 0, 'Reduz o que falta sem ser desconto comercial (ex.: devolução, crédito). Grava como desconto.')}
+                        ${num('acrescimo', 'Acréscimo', 0, 'Valor a mais que não é juros nem multa (ex.: tarifa). Grava como juros.')}
+                    </div>
+                    <div class="fin-baixa-faixa">
+                        <span>Vencimento<b>${dataFin(t.vencimento)}</b></span>
+                        <span>Valor original<b>${dinheiro(t.valor)}</b></span>
+                        <span>Total já ${pagar ? 'pago' : 'recebido'}<b>${dinheiro(Number(t.pago) + Number(t.acrescimos || 0))}</b></span>
+                        <span>Falta<b>${dinheiro(t.saldo)}</b></span>
+                    </div>
+                    <label class="fis-campo"><span>Observação deste ${pg}</span><textarea class="fis-input" name="observacao" maxlength="500" rows="3"></textarea></label>
                 </div>`
         }],
-        botoes: [{ texto: 'Registrar', img: 'concluido', funcao: 'salvarBaixaFin(this)' }]
+        botoes: [{ texto: `Confirmar ${pg}`, img: 'concluido', funcao: 'salvarBaixaFin(this)' }]
     })
+    previaBaixaFin(document.querySelector('[data-form-baixa] [name="valor"]'))
 }
 
-// Dar baixa: quita o que falta da fatura escolhendo só a conta e a data real do pagamento.
+function lerBaixaFin(form) {
+    const n = nome => r2Fin(form.querySelector(`[name="${nome}"]`)?.value || 0)
+    const saldo = r2Fin(form.dataset.saldo)
+    const valor = n('valor')
+    const desconto = r2Fin(n('desconto') + n('abatimento'))
+    const juros = r2Fin(n('juros') + n('acrescimo'))
+    const multa = n('multa')
+    const abate = r2Fin(valor - juros - multa + desconto)
+    return { saldo, valor, desconto, juros, multa, abate }
+}
+
+// Diz na hora se a fatura fica quitada, quanto ainda falta, ou se passou do saldo.
+function previaBaixaFin(campo) {
+    const form = campo?.closest('[data-form-baixa]')
+    if (!form) return
+    const { saldo, valor, abate } = lerBaixaFin(form)
+    const quitada = form.dataset.pagar ? 'Esta conta a pagar será quitada' : 'Esta conta a receber será quitada'
+    const caixa = form.querySelector('[data-previa-baixa]')
+    caixa.className = 'fin-baixa-situacao'
+    if (!(valor > 0)) caixa.textContent = 'Informe o valor.'
+    else if (abate <= 0) { caixa.classList.add('erro'); caixa.textContent = 'Juros, multa e acréscimo passam do valor: nada abateria da fatura.' }
+    else if (abate > saldo + 0.004) {
+        caixa.classList.add('erro')
+        caixa.innerHTML = `Passa ${dinheiro(abate - saldo)} do que falta (${dinheiro(saldo)}). Se pagou a mais, lance a diferença em juros, multa ou acréscimo.`
+    } else if (Math.abs(abate - saldo) < 0.005) { caixa.classList.add('ok'); caixa.textContent = quitada }
+    else caixa.innerHTML = `${form.dataset.pagar ? 'Pagamento' : 'Recebimento'} parcial: ainda ficam faltando <b>${dinheiro(saldo - abate)}</b>.`
+}
+
+async function salvarBaixaFin(botao) {
+    const form = document.querySelector('[data-form-baixa]')
+    const v = n => form.querySelector(`[name="${n}"]`).value
+    const id = form.dataset.id
+    const { saldo, valor, desconto, juros, multa, abate } = lerBaixaFin(form)
+    if (!v('conta_id')) return popup({ mensagem: 'Escolha a conta corrente.' })
+    if (!v('data')) return popup({ mensagem: `Informe a data do ${termoFin('pagamento')}.` })
+    if (!(valor > 0)) return popup({ mensagem: 'Informe o valor.' })
+    if (abate <= 0) return popup({ mensagem: 'Juros, multa e acréscimo passam do valor: nada abateria da fatura.' })
+    if (abate > saldo + 0.004) return popup({ mensagem: `Passa ${dinheiro(abate - saldo)} do que falta na fatura (${dinheiro(saldo)}). Lance a diferença em juros, multa ou acréscimo.` })
+    try {
+        overlayAguarde()
+        await apiFin('baixar', { titulo_id: id, data: v('data'), valor: abate, juros, multa, desconto, conta_id: v('conta_id'), forma: v('forma'), observacao: v('observacao') })
+        removerOverlay()
+        removerPopup(botao?.closest('.popup')?.id)
+        posAcaoFaturaFin(id)
+        if (controles.faturasFin) { paginacao('faturasFin'); totaisFaturasFin() }
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// Pagar agora: o rápido. Quita o que falta da fatura escolhendo só a conta e a data real do pagamento.
+// Parcial, desconto, juros etc. ficam no "Registrar pagamento" da aba Pagamentos.
 async function formularioBaixaRapidaFin(id) {
     let op, t
     try {
@@ -2116,7 +2216,7 @@ async function formularioBaixaRapidaFin(id) {
     const contas = op.contas.filter(k => contaAceitaFin(k, t.app))
     const padrao = t.conta_id || contaPadraoAppFin(contas, t.app)?.id
     popup({
-        titulo: `Dar baixa: ${pagar ? 'pago' : 'recebido'}`,
+        titulo: `${pagar ? 'Pagar' : 'Receber'} agora`,
         linhas: [{
             elemento: `
                 <div class="fis-form" data-form-baixa-rapida data-id="${escFin(t.id)}" data-valor="${r2Fin(t.saldo)}" data-forma="${escFin(t.forma_pagamento || '')}">
@@ -2130,26 +2230,12 @@ async function formularioBaixaRapidaFin(id) {
                             ${contas.length ? contas.map(k => `<option value="${k.id}" ${k.id === padrao ? 'selected' : ''}>${escFin(k.nome)}${k.padrao ? ' (padrão)' : ''}</option>`).join('') : '<option value="">Nenhuma conta desta empresa</option>'}
                         </select></label>
                         <label class="fis-campo"><span>Data real ${pagar ? 'do pagamento' : 'do recebimento'} *</span><input class="fis-input" type="date" name="data" max="${hojeFin()}" value="${hojeFin()}"></label>
-                        <label class="fis-campo"><span>Total ${pagar ? 'pago' : 'recebido'} *</span><input class="fis-input fis-num" type="number" step="0.01" min="0.01" name="total" value="${r2Fin(t.saldo)}" oninput="diferencaBaixaFin(this)"></label>
                     </div>
-                    <small class="fis-dica" data-diferenca-baixa>A fatura fica quitada. Se o total for diferente, a diferença vira juros (a mais) ou desconto (a menos), sem mudar o valor da fatura.</small>
+                    <small class="fis-dica">Quita o que falta da fatura. Parcial, desconto, juros ou multa: aba ${pagar ? 'Pagamentos' : 'Recebimentos'} da fatura → Registrar ${pagar ? 'pagamento' : 'recebimento'}.</small>
                 </div>`
         }],
         botoes: [{ texto: pagar ? 'Marcar como pago' : 'Marcar como recebido', img: 'concluido', funcao: 'salvarBaixaRapidaFin(this)' }]
     })
-}
-
-// Total realmente pago/recebido × saldo da fatura: quita o saldo e a diferença vai em juros (a mais) ou desconto (a menos).
-function diferencaBaixaFin(campo) {
-    const form = campo.closest('[data-form-baixa-rapida]')
-    const saldo = r2Fin(form.dataset.valor)
-    const total = r2Fin(campo.value || 0)
-    const dif = r2Fin(total - saldo)
-    const dica = form.querySelector('[data-diferenca-baixa]')
-    dica.classList.toggle('fin-dica-diferenca', Math.abs(dif) >= 0.01 && total > 0)
-    dica.innerHTML = !(total > 0) ? 'Informe o total.'
-        : Math.abs(dif) < 0.01 ? 'A fatura fica quitada. Se o total for diferente, a diferença vira juros (a mais) ou desconto (a menos), sem mudar o valor da fatura.'
-            : `A fatura (${dinheiro(saldo)}) fica quitada e <b>${dinheiro(Math.abs(dif))}</b> entram como <b>${dif > 0 ? 'juros / acréscimo' : 'desconto'}</b>. O valor da fatura não muda.`
 }
 
 async function salvarBaixaRapidaFin(botao) {
@@ -2157,38 +2243,15 @@ async function salvarBaixaRapidaFin(botao) {
     const conta = form.querySelector('[name="conta_id"]').value
     const data = form.querySelector('[name="data"]').value
     const saldo = r2Fin(form.dataset.valor)
-    const total = r2Fin(form.querySelector('[name="total"]').value || 0)
     if (!conta) return popup({ mensagem: 'Escolha a conta corrente.' })
     if (!data) return popup({ mensagem: `Informe a data real do ${termoFin('pagamento')}.` })
-    if (!(total > 0)) return popup({ mensagem: `Informe o total ${termoFin('pago')}.` })
-    const dif = r2Fin(total - saldo)
     const id = form.dataset.id
     try {
         overlayAguarde()
-        await apiFin('baixar', {
-            titulo_id: id, data, valor: saldo, conta_id: conta, forma: form.dataset.forma || undefined,
-            juros: dif > 0 ? dif : 0, desconto: dif < 0 ? -dif : 0
-        })
+        await apiFin('baixar', { titulo_id: id, data, valor: saldo, conta_id: conta, forma: form.dataset.forma || undefined })
         removerOverlay()
         removerPopup(botao?.closest('.popup')?.id)
         posAcaoFaturaFin(id, Boolean(document.querySelector(`[data-fatura-fin="${CSS.escape(String(id))}"]`)))
-        if (controles.faturasFin) { paginacao('faturasFin'); totaisFaturasFin() }
-    } catch (err) {
-        removerOverlay()
-        popup({ mensagem: mensagemErroEst(err) })
-    }
-}
-
-async function salvarBaixaFin(botao) {
-    const form = document.querySelector('[data-form-baixa]')
-    const v = n => form.querySelector(`[name="${n}"]`).value
-    const id = form.dataset.id
-    try {
-        overlayAguarde()
-        await apiFin('baixar', { titulo_id: id, data: v('data'), valor: v('valor'), juros: v('juros'), multa: v('multa'), desconto: v('desconto'), conta_id: v('conta_id'), forma: v('forma'), observacao: v('observacao') })
-        removerOverlay()
-        removerPopup(botao?.closest('.popup')?.id)
-        posAcaoFaturaFin(id)
         if (controles.faturasFin) { paginacao('faturasFin'); totaisFaturasFin() }
     } catch (err) {
         removerOverlay()
