@@ -420,6 +420,15 @@ function desenharConciliarConc() {
     const falta = Number(d.falta_explicar || 0)
     const meses = [...new Set([d.mes, ...d.meses, hojeFin().slice(0, 7)])].sort().reverse()
     const sugestaoFechar = d.ultima_linha && d.ultima_linha < hojeFin() ? d.ultima_linha : ontemConc()
+    // Quanto do mês já está resolvido: casadas + fora do Financeiro sobre tudo da lista (extrato + só no GCS).
+    // Uma baixa "só no GCS" que casa some da lista, então o total encolhe junto e o 100% fecha.
+    const resolvidas = conta('CASADA') + conta('IGNORADA')
+    const pct = todas.length ? Math.floor(resolvidas / todas.length * 100) : 0
+    const progresso = todas.length ? `
+        <div class="cc-progresso ${pct === 100 ? 'cc-progresso-ok' : ''}" title="${resolvidas} de ${todas.length} resolvidas (casadas ou fora do Financeiro)">
+            <div class="cc-progresso-topo"><b>${pct}%</b><small>conciliado em ${mesNomeConc(d.mes)}<br>${resolvidas} de ${todas.length} linhas</small></div>
+            <div class="cc-progresso-barra"><span style="width:${pct}%"></span></div>
+        </div>` : ''
     const painel = `
         ${cabecaPainelCartaoFin((c.contas.find(k => String(k.id) === String(c.conta_principal_id)) || c.contas[0] || {}).app || '?', `${c.nome} · ${mesNomeConc(d.mes)}`,
             `<small>${c.conferida_ate ? `conferida até ${dataFin(c.conferida_ate)}` : `ainda não fechada · corte ${dataFin(c.corte)}`}</small>`)}
@@ -428,6 +437,7 @@ function desenharConciliarConc() {
                 ${meses.map(m => `<option value="${m}" ${m === d.mes ? 'selected' : ''}>${mesNomeConc(m)}</option>`).join('')}
             </select>
         </label>
+        ${progresso}
         <div class="cc-filtros" role="group" aria-label="Filtrar as linhas">
             ${[['TODAS', 'Todas'], ['SUGESTAO', 'Sugestões'], ['SEM_PAR', 'Sem par'], ['SO_GCS', 'Só no GCS'], ['CASADA', 'Casadas'], ['IGNORADA', 'Fora do Financeiro']]
                 .map(([k, t]) => `<button type="button" class="fin-acao cc-filtro ${estadoConc.filtro === k ? 'ativo' : ''}" aria-pressed="${estadoConc.filtro === k}" title="${t} (${conta(k)})"
@@ -676,11 +686,12 @@ function desenharDetalheConc() {
             const um = s.itens.length === 1 ? s.itens[0] : null
             return itemConc({
                 nome: um ? (um.participante_nome || um.descricao) : `${s.itens.length} baixas ${s.tipo === 'grupo' ? 'do mesmo dia' : ''}`,
-                detalhe: um ? escFin([um.tipo === 'RECEBER' ? 'Receber' : 'Pagar', um.descricao, um.categoria, um.conta].filter(Boolean).join(' · '))
+                detalhe: um ? escFin([um.tipo === 'RECEBER' ? 'Receber' : 'Pagar', um.parcela_texto && `parcela ${um.parcela_texto}`, um.descricao, um.categoria, um.conta].filter(Boolean).join(' · '))
                     : escFin(s.itens.slice(0, 5).map(b => b.participante_nome || b.descricao || '').join(', ') + (s.itens.length > 5 ? '…' : '')),
                 tags: [tagConc('valor exato', 'azul'), s.doc ? tagConc('mesmo CPF/CNPJ', 'ok') : '',
-                    tagConc(s.dias ? `${s.dias} dia${s.dias === 1 ? '' : 's'} de diferença` : 'mesma data', s.dias ? '' : 'ok'),
-                    um ? tagConc(escFin(um.app)) : ''].join(''),
+                    tagConc(`baixa em ${dataFin(s.itens[0].data)}${s.dias ? ` · ${s.dias} dia${s.dias === 1 ? '' : 's'} de diferença` : ''}`, s.dias ? '' : 'ok'),
+                    um?.vencimento ? tagConc(`vence ${dataFin(um.vencimento)}`) : '',
+                    um ? tagConc(escFin(um.app)) : '', um?.criado_por ? tagConc(`por ${escFin(um.criado_por)}`) : ''].join(''),
                 valor: s.itens.reduce((a, b) => a + b.mov, 0), classe: 'cc-item-sugestao',
                 depois: `<button type="button" class="fis-botao" onclick="casarConc(${l.id}, [${s.baixas.join(',')}])">Confirmar</button>`
             })
@@ -692,7 +703,7 @@ function desenharDetalheConc() {
             <div class="cc-lista" data-marcar-baixas>${baixas.map(b => itemConc({
                 nome: b.participante_nome || b.descricao, marcar: true, valor: b.mov, data: b.data,
                 antes: `<input type="checkbox" value="${b.id}" data-valor="${b.mov}" onchange="somarMarcadasConc()">`,
-                detalhe: escFin([b.descricao, b.categoria, b.conta].filter(Boolean).join(' · ')),
+                detalhe: escFin([b.parcela_texto && `parcela ${b.parcela_texto}`, b.descricao, b.categoria, b.conta].filter(Boolean).join(' · ')),
                 tags: [Math.abs(Math.abs(b.mov) - abs) < 0.005 ? tagConc('valor exato', 'azul') : '', b.data === l.data ? tagConc('mesmo dia', 'ok') : tagConc(`baixa em ${dataFin(b.data)}`),
                     tagConc(escFin(b.app)), b.criado_por ? tagConc(`por ${escFin(b.criado_por)}`) : ''].join('')
             })).join('') || vazioConc('check', 'Nenhuma baixa sem par por perto.')}</div>`
@@ -706,10 +717,12 @@ function desenharDetalheConc() {
         const b = detalheConc.buscaFat || (detalheConc.buscaFat = { busca: '', de: '', ate: '' })
         const buscando = Boolean(b.busca.trim() || b.de || b.ate)
         if (!detalheConc.marcadasFat) {
-            const ini = combinacao || (faturas.length && Math.abs(faturas[0].saldo - abs) < 0.005 ? [faturas[0].id] : [])
+            // Com baixa sugerida, o pagamento já está lançado: não pré-marca fatura (baixaria outra parcela em dobro).
+            const ini = sugestoes.length ? [] : combinacao || (faturas.length && Math.abs(faturas[0].saldo - abs) < 0.005 ? [faturas[0].id] : [])
             detalheConc.marcadasFat = new Map(ini.map(id => [String(id), faturas.find(f => f.id === id).saldo.toFixed(2)]))
         }
         corpo = `
+            ${sugestoes.length ? `<p class="cc-explica"><b>Atenção:</b> já existe baixa lançada que bate com esta linha (aba Sugestões). Baixar uma fatura aqui cria outro pagamento.</p>` : ''}
             <p class="cc-explica">${buscando ? `Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto encontradas pela busca (as marcadas ficam no topo).`
                 : `Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto com valor parecido ou do mesmo favorecido.${combinacao ? ' <b>Já marcadas as que somam exatamente o valor.</b>' : ''} Não achou? Busque abaixo.`} A baixa sai com a data da linha (${dataFin(l.data)}).</p>
             <div class="cc-busca-faturas">
