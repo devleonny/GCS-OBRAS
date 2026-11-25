@@ -1843,7 +1843,6 @@ async function duplicarPagamento(id) {
         return popup({ mensagem: 'Migre este pagamento antigo para param_estavel no servidor antes de duplicar.' })
     }
     const param_estavel = { ...pagamento.param_estavel }
-    param_estavel.observacao = (param_estavel.observacao || '').replace(`Solicitante: ${pagamento.criado}`, '')
     localStorage.setItem('ultimoPagamento', JSON.stringify({ app: pagamento.app, param_estavel }))
 
     await formularioPagamento()
