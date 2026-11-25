@@ -631,11 +631,22 @@ function botaoChamadoPagamento(departamento) {
         onkeydown="event.stopPropagation()">Ver chamado</button>`
 }
 
+// Orçamento vinculado (ex.: ORC_6205 aberto dentro do chamado ORC_5921) não tem chamado
+// próprio: mostra o chamado master, de contratos_vinculados.
 async function buscarChamadoPagamento(id, recarregar = false) {
     if (!recarregar && chamadosPagamentoCache.has(id)) return chamadosPagamentoCache.get(id)
-    const busca = recuperarDado('vw_dados_ocorrencias', id)
+    const lerChamado = cod => recuperarDado('vw_dados_ocorrencias', cod)
         .then(chamado => chamado?.id ? chamado : null)
         .catch(() => null)
+    const busca = (async () => {
+        const proprio = await lerChamado(id)
+        if (proprio) return proprio
+        const vinculo = await recuperarDado('contratos_vinculados', id).catch(() => null)
+        const master = String(vinculo?.excluido ? '' : vinculo?.master || '').trim()
+        if (!master || master === id) return null
+        const chamadoMaster = await lerChamado(master)
+        return chamadoMaster ? { ...chamadoMaster, vinculadoDe: id } : null
+    })()
     chamadosPagamentoCache.set(id, busca)
     const chamado = await busca
     if (!chamado) chamadosPagamentoCache.delete(id) // pode ser criado depois
@@ -648,7 +659,14 @@ async function mostrarBotoesChamadoPagamento(container) {
     const ids = [...new Set(botoes.map(b => b.dataset.chamadoPag))]
     await Promise.all(ids.map(async id => {
         const chamado = await buscarChamadoPagamento(id, true)
-        if (chamado) botoes.filter(b => b.dataset.chamadoPag === id).forEach(b => b.hidden = false)
+        if (!chamado) return
+        botoes.filter(b => b.dataset.chamadoPag === id).forEach(b => {
+            if (chamado.vinculadoDe) {
+                b.textContent = `Ver chamado ${chamado.id}`
+                b.title = `${id} é vinculado ao chamado ${chamado.id}: ver o chamado master sem sair do pagamento`
+            }
+            b.hidden = false
+        })
     }))
 }
 
@@ -750,6 +768,7 @@ async function abrirChamadoPagamento(id) {
 
     const elemento = `
         <div class="pag-chamado" id="pag-chamado-${chave}">
+            ${chamado.vinculadoDe ? `<div class="balao"><span><b>${texto(chamado.vinculadoDe)}</b> é um orçamento vinculado: estes são os dados do chamado master <b>${texto(chamado.id)}</b>.</span></div>` : ''}
             ${dados}
             <div class="pag-chamado-correcoes">
                 <b>Correções</b>
@@ -762,7 +781,9 @@ async function abrirChamadoPagamento(id) {
     removerOverlay()
     popup({
         elemento,
-        titulo: `Chamado ${texto(chamado.id)}`,
+        titulo: chamado.vinculadoDe
+            ? `Chamado ${texto(chamado.id)} (master de ${texto(chamado.vinculadoDe)})`
+            : `Chamado ${texto(chamado.id)}`,
         botoes: [{ texto: 'OS em PDF', img: 'pdf', funcao: `baixarPdfOS('${texto(chamado.id)}')` }]
     })
 }
