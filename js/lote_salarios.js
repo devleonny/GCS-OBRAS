@@ -5,13 +5,22 @@
 // (origem LOTE). Lote lançado abre igual e continua editável: as mudanças ficam pendentes até "Aplicar"
 // (atualiza as faturas sem pagamento, cria as novas e cancela as tiradas) ou "Descartar".
 // Rotas: financeiro/salarios/* (acesso financeiro.lote_salarios). Salário é sigiloso: nada vai para localStorage.
+// 24/11/2026: a mesma tela serve aos lotes de Alimentação e de Transporte (estadoLoteSal.tipo, "tipo" nas rotas,
+// acessos financeiro.lote_alimentacao / financeiro.lote_transporte, categorias 2.03.12 / 2.03.11; sem o salário do RH).
 
 const estadoLoteSal = {
-    id: null, versao: null, situacao: 'RASCUNHO', emEdicao: false, titulo: '', competencia: '', cabecalho: {}, itens: [],
+    tipo: 'SALARIOS', id: null, versao: null, situacao: 'RASCUNHO', emEdicao: false, titulo: '', competencia: '', cabecalho: {}, itens: [],
     faturas: {}, base: new Map(), op: null, categoriaSalario: null, filtro: '',
     timer: null, salvando: null, pendente: false, erro: null, salvoEm: null, observador: null
 }
 const SITUACAO_LOTE_SAL = { RASCUNHO: 'Rascunho', LANCADO: 'Lançado' }
+const TIPOS_LOTE_FIN = {
+    SALARIOS: { titulo: 'Lote de Salários', nome: 'Salários', rh: true, explica: 'Lance a folha de uma vez.' },
+    ALIMENTACAO: { titulo: 'Lote de Alimentação', nome: 'Alimentação', rh: false, explica: 'Lance o vale-refeição/alimentação de todos de uma vez.' },
+    TRANSPORTE: { titulo: 'Lote de Transporte', nome: 'Transporte', rh: false, explica: 'Lance o vale-transporte de todos de uma vez.' }
+}
+const tipoSal = () => TIPOS_LOTE_FIN[estadoLoteSal.tipo] || TIPOS_LOTE_FIN.SALARIOS
+const tituloPadraoSal = ym => `${tipoSal().nome} ${mesSal(ym)}`
 
 const novaChaveSal = () => crypto.randomUUID()
 const mesSal = ym => ym ? `${ym.slice(5, 7)}/${ym.slice(0, 4)}` : ''
@@ -39,16 +48,23 @@ const modaSal = lista => {
 
 // ---------------- lista dos lotes
 
-async function telaLotesSalarios() {
+function telaLotesAlimentacao() { return telaLotesSalarios('ALIMENTACAO') }
+function telaLotesTransporte() { return telaLotesSalarios('TRANSPORTE') }
+
+async function telaLotesSalarios(tipo = 'SALARIOS') {
     if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
     overlayAguarde()
     try {
-        const { lotes } = await apiFin('salarios/lotes')
+        // Vindo de um lote aberto (outro menu): grava o dele antes de trocar o tipo.
+        await guardarAntesDeSairLoteSal()
+        estadoLoteSal.tipo = TIPOS_LOTE_FIN[tipo] ? tipo : 'SALARIOS'
+        const t = tipoSal()
+        const { lotes } = await apiFin('salarios/lotes', { tipo: estadoLoteSal.tipo })
         removerOverlay()
         tela.innerHTML = `
             <div class="fis-pagina fin-pagina cx-pagina" data-tela-lotes>
                 <header class="cx-topo">
-                    <div><h2>Lote de Salários</h2><small>Lance a folha de uma vez. O rascunho fica guardado até você decidir lançar, e o lote lançado abre igual para editar.</small></div>
+                    <div><h2>${t.titulo}</h2><small>${t.explica} O rascunho fica guardado até você decidir lançar, e o lote lançado abre igual para editar.</small></div>
                     <div class="cx-acoes">
                         <button type="button" class="fis-botao" onclick="abrirLoteSalarios()">+ Novo lote</button>
                         ${pode('financeiro.fluxo_caixa') ? '<button type="button" class="fis-mini" onclick="telaFluxoCaixa()">Fluxo de caixa</button>' : ''}
@@ -74,7 +90,7 @@ async function telaLotesSalarios() {
                                 </tr>`).join('')}
                             </tbody>
                         </table>
-                    </div>` : '<div class="fis-vazio">Nenhum lote ainda. Clique em "+ Novo lote": a lista já vem com as pessoas e o último salário de cada uma.</div>'}
+                    </div>` : '<div class="fis-vazio">Nenhum lote ainda. Clique em "+ Novo lote": a lista já vem com as pessoas e o último valor pago a cada uma.</div>'}
                 </div>
             </div>`
     } catch (err) {
@@ -100,9 +116,10 @@ async function abrirLoteSalarios(id = null, copiarDe = null) {
     try {
         // Vindo de outro lote aberto (Novo lote / Copiar): grava o dele antes de trocar o estado.
         await guardarAntesDeSairLoteSal()
-        const [op, base, atual] = await Promise.all([
-            carregarOpcoesFin(), apiFin('salarios/base'), id || copiarDe ? apiFin('salarios/lote', { id: id || copiarDe }) : null
-        ])
+        // O lote diz o tipo (aberto pelo link da fatura não se sabe antes).
+        const atual = id || copiarDe ? await apiFin('salarios/lote', { id: id || copiarDe }) : null
+        if (atual?.lote?.tipo) estadoLoteSal.tipo = atual.lote.tipo
+        const [op, base] = await Promise.all([carregarOpcoesFin(), apiFin('salarios/base', { tipo: estadoLoteSal.tipo })])
         removerOverlay()
         Object.assign(estadoLoteSal, {
             op, base: new Map(base.pessoas.map(p => [String(p.cliente_id), p])), categoriaSalario: base.categoria_salario_id,
@@ -134,7 +151,7 @@ async function abrirLoteSalarios(id = null, copiarDe = null) {
             }
             Object.assign(estadoLoteSal, {
                 id: null, versao: null, situacao: 'RASCUNHO', emEdicao: false, competencia,
-                titulo: `Salários ${mesSal(competencia)}`, cabecalho: cab, itens
+                titulo: tituloPadraoSal(competencia), cabecalho: cab, itens
             })
         }
         if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
@@ -143,7 +160,7 @@ async function abrirLoteSalarios(id = null, copiarDe = null) {
         tela.innerHTML = `
             <div class="fis-pagina fin-tela cx-lote-tela">
                 <section class="fin-janela">
-                    <header class="fin-janela-topo"><h2>Lote de salários</h2></header>
+                    <header class="fin-janela-topo"><h2>${tipoSal().titulo}</h2></header>
                     <div class="fin-corpo" data-corpo-lote>
                         <div class="cx-lote" data-lote-sal></div>
                         <div class="fin-lateral">
@@ -204,8 +221,8 @@ function desenharLoteSal() {
             <input type="search" class="fis-input" placeholder="Filtrar por nome ou CPF…" value="${escFin(e.filtro)}" oninput="estadoLoteSal.filtro = this.value; filtrarLoteSal()">
             <button type="button" class="fis-mini" onclick="marcarTodasLoteSal(true)">Marcar todas</button>
             <button type="button" class="fis-mini" onclick="marcarTodasLoteSal(false)">Desmarcar todas</button>
-            <button type="button" class="fis-mini" title="Nas linhas marcadas, valor = salário cadastrado no RH" onclick="valoresLoteSal('rh')">Valor = salário do RH</button>
-            <button type="button" class="fis-mini" title="Nas linhas marcadas, valor = último salário lançado para a pessoa" onclick="valoresLoteSal('ultimo')">Valor = último pago</button>
+            ${tipoSal().rh ? `<button type="button" class="fis-mini" title="Nas linhas marcadas, valor = salário cadastrado no RH" onclick="valoresLoteSal('rh')">Valor = salário do RH</button>` : ''}
+            <button type="button" class="fis-mini" title="Nas linhas marcadas, valor = último valor lançado para a pessoa" onclick="valoresLoteSal('ultimo')">Valor = último pago</button>
             <div class="fin-escolha cx-lote-busca">
                 <input class="fis-input" placeholder="+ Adicionar pessoa (nome ou CPF)…" autocomplete="off" oninput="buscarPessoaLoteSal(this)" onblur="setTimeout(() => { const l = this.nextElementSibling; if (l) l.hidden = true }, 200)">
                 <div class="fin-escolha-lista" hidden></div>
@@ -215,7 +232,7 @@ function desenharLoteSal() {
         <div class="fis-tabela-rolagem cx-lote-rolagem">
             <table class="fis-tabela cx-lote-tabela">
                 <thead><tr>
-                    <th></th><th>Pessoa</th><th class="fis-num">Salário RH</th><th class="fis-num">Último pago</th><th class="fis-num">Valor</th>
+                    <th></th><th>Pessoa</th>${tipoSal().rh ? '<th class="fis-num">Salário RH</th>' : ''}<th class="fis-num">Último pago</th><th class="fis-num">Valor</th>
                     <th>Empresa</th><th>Categoria</th><th>Departamento</th><th>Vencimento</th><th>Fatura</th><th></th>
                 </tr></thead>
                 <tbody data-linhas-lote>${e.itens.map(linhaLoteSal).join('')}</tbody>
@@ -242,7 +259,7 @@ function linhaLoteSal(i) {
         <tr data-chave="${escFin(i.chave)}" class="${i.incluir ? '' : 'cx-lote-fora'}" data-busca="${escFin(normalFin(`${i.nome} ${cpf} ${p.cargo || ''}`))}">
             <td><input type="checkbox" name="incluir" aria-label="Lançar ${escFin(i.nome)}" ${i.incluir ? 'checked' : ''} ${trava} onchange="editarLinhaLoteSal(this)"></td>
             <td class="cx-lote-pessoa"><b>${escFin(i.nome || '—')}</b><small>${escFin([p.cargo, cpf ? `CPF ${cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}` : ''].filter(Boolean).join(' · '))}</small></td>
-            <td class="fis-num">${p.salario_rh != null ? dinheiro(p.salario_rh) : '—'}</td>
+            ${tipoSal().rh ? `<td class="fis-num">${p.salario_rh != null ? dinheiro(p.salario_rh) : '—'}</td>` : ''}
             <td class="fis-num">${p.ultimo_valor != null ? `${dinheiro(p.ultimo_valor)}<small>${escFin(dataFin(p.ultimo_vencimento))}</small>` : '—'}</td>
             <td class="fis-num"><input class="fis-input fis-num" type="number" min="0" step="0.01" name="valor" value="${Number(i.valor) || ''}" ${trava} oninput="editarLinhaLoteSal(this)"></td>
             <td><select class="fis-input" name="app" ${trava} onchange="editarLinhaLoteSal(this)">${(e.op.empresas || []).filter(x => x.tipo !== 'SOCIO').map(x => `<option value="${escFin(x.app)}" ${x.app === i.app ? 'selected' : ''}>${escFin(x.app)}</option>`).join('')}</select></td>
@@ -293,7 +310,7 @@ async function voltarLotesSal() {
     overlayAguarde()
     await guardarAntesDeSairLoteSal()
     removerOverlay()
-    telaLotesSalarios()
+    telaLotesSalarios(estadoLoteSal.tipo)
 }
 
 function alternarPainelLoteSal() {
@@ -349,8 +366,8 @@ function editarCabLoteSal(input) {
             const venc = document.querySelector('[data-lote-sal] [name="vencimento"]')
             if (venc) venc.value = e.cabecalho.vencimento
         }
-        if (/^Salários \d{2}\/\d{4}$/.test(e.titulo)) {
-            e.titulo = `Salários ${mesSal(v)}`
+        if (e.titulo === tituloPadraoSal(antes)) {
+            e.titulo = tituloPadraoSal(v)
             const t = document.querySelector('[data-lote-sal] [name="titulo"]')
             if (t) t.value = e.titulo
         }
@@ -406,7 +423,7 @@ function valoresLoteSal(fonte) {
     }
     desenharLoteSal()
     agendarSalvarLoteSal()
-    if (sem) popup({ mensagem: `${sem} linha(s) marcada(s) sem ${fonte === 'rh' ? 'salário no RH' : 'salário lançado antes'}: ficaram com o valor que já tinham.` })
+    if (sem) popup({ mensagem: `${sem} linha(s) marcada(s) sem ${fonte === 'rh' ? 'salário no RH' : 'valor lançado antes'}: ficaram com o valor que já tinham.` })
 }
 
 function duplicarLinhaLoteSal(chave) {
@@ -477,7 +494,7 @@ async function salvarLoteSal() {
     if (e.salvando) { await e.salvando.catch(() => { }); if (!e.pendente) return }
     e.pendente = false
     const corpo = {
-        id: e.id, versao: e.versao, titulo: e.titulo, competencia: e.competencia,
+        tipo: e.tipo, id: e.id, versao: e.versao, titulo: e.titulo, competencia: e.competencia,
         cabecalho: e.cabecalho, itens: e.itens
     }
     e.salvando = apiFin('salarios/salvar', corpo)
@@ -600,7 +617,7 @@ async function excluirLoteSal() {
         if (estadoLoteSal.salvando) await estadoLoteSal.salvando.catch(() => { })
         await apiFin('salarios/excluir', { id: estadoLoteSal.id })
         removerOverlay()
-        telaLotesSalarios()
+        telaLotesSalarios(estadoLoteSal.tipo)
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })

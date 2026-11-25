@@ -76,14 +76,19 @@ function conversorDt(dt, formato = 'br') {
 
 }
 
-const pdfDanfe = ({ id, n_nota, categoria, total = null, d_emi_inicial }) => {
+// origem 'GCS' (lista de orçamentos, 24/11/2026): nota emitida pelo Fiscal do GCS — o PDF vem de /fiscal/arquivo.
+const pdfDanfe = ({ id, n_nota, categoria, total = null, d_emi_inicial, origem }) => {
 
-    const labelTotal = total 
+    const labelTotal = total
         ? `<label>${dinheiro(total)}</label>`
         : ''
 
+    const abrir = origem === 'GCS'
+        ? `baixarArquivoFiscal('${id}', 'danfe')`
+        : `abrirDANFE('${id}')`
+
     return `
-        <div class="balao-nf" onclick="abrirDANFE('${id}')">
+        <div class="balao-nf" onclick="${abrir}">
             <div class="balao1">
                 <label>${n_nota}</label>
                 <label><b>${categoria}</b></label>

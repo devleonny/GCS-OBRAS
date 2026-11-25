@@ -60,9 +60,9 @@ async function acaoConc(rota, corpo, depois = null, mensagemOk = null) {
 }
 
 // Mesma janela das Faturas do cartão: título em cima, painel de ações à direita (recolhe pela seta).
-function janelaConc(titulo, principal, painel) {
+function janelaConc(titulo, principal, painel, classe = '') {
     return `
-        <div class="fis-pagina fin-tela cc-tela">
+        <div class="fis-pagina fin-tela cc-tela ${classe}">
             <section class="fin-janela">
                 <header class="fin-janela-topo"><h2>${titulo}</h2></header>
                 <div class="fin-corpo${estadoConc.painel ? '' : ' recolhido'}" data-corpo-conc>
@@ -466,27 +466,17 @@ function desenharConciliarConc() {
                 </div>
                 <section class="cc-detalhe" data-detalhe-conc><p class="cc-explica cc-escolha">Escolha uma linha à esquerda para ver as opções.</p></section>
             </div>
-        </div>`, painel)
+        </div>`, painel, 'cc-tela-conciliar')
     desenharTabelaConc()
     ajustarAlturaConc()
 }
 
-// Lista e detalhe lado a lado, até o rodapé da tela (cada um rola sozinho).
+// Lista, detalhe e painel ocupam a altura visível só pelo CSS (.cc-tela-conciliar): a área do sistema (.tela)
+// não rola; cada um rola sozinho. Só volta a rolagem da .tela para o topo (vinha de outra tela).
 function ajustarAlturaConc() {
-    const area = document.querySelector('[data-area-conc]')
-    if (!area) return
     const caixa = document.querySelector('.tela')
-    const fundo = caixa ? caixa.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(caixa).paddingBottom) || 0) : window.innerHeight
-    const fimTela = Math.min(fundo, window.innerHeight) - 4
-    area.style.height = `${Math.max(fimTela - area.getBoundingClientRect().top, 300)}px`
-    // O painel de ações (direita) não pode passar do rodapé: senão a página inteira rola e a lista some embaixo.
-    const painel = document.querySelector('[data-corpo-conc] .fin-painel')
-    if (painel) {
-        painel.style.height = `${Math.max(fimTela - painel.getBoundingClientRect().top, 300)}px`
-        painel.style.overflowY = 'auto'
-    }
+    if (caixa) caixa.scrollTop = 0
 }
-window.addEventListener('resize', () => ajustarAlturaConc())
 
 function desenharTabelaConc() {
     const caixa = document.querySelector('[data-tabela-conc]')

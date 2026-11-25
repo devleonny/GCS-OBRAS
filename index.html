@@ -40,7 +40,7 @@
     <link rel="stylesheet" href="css/velocimetro.css?v=2cfa4cff">
     <link rel="stylesheet" href="css/agenda.css?v=f5a251d9">
     <link rel="stylesheet" href="css/tabelas-parceiro.css?v=22c15cc9">
-    <link rel="stylesheet" href="css/estilo.css?v=fe1e4cbf">
+    <link rel="stylesheet" href="css/estilo.css?v=40d3a01f">
     <link rel="stylesheet" href="css/ocorrencias.css?v=12c1c4be">
     <link rel="stylesheet" href="css/dashboard_chamados.css?v=928a2e8b">
     <link rel="stylesheet" href="css/assinatura.css?v=0c1634b9">
@@ -58,7 +58,7 @@
     <link rel="stylesheet" href="css/financeiro.css?v=49b888dc">
     <link rel="stylesheet" href="css/fluxo_caixa.css?v=00acc154">
     <link rel="stylesheet" href="css/cartao_faturas.css?v=700bdccb">
-    <link rel="stylesheet" href="css/conciliacao.css?v=094b1f50">
+    <link rel="stylesheet" href="css/conciliacao.css?v=2cfa61c2">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -81,7 +81,10 @@
             <img src="imagens/menu.png" style="margin-left: 1rem;" onclick="mostrarMenus('toggle')">
             <span name="titulo">GCS</span>
             <button type="button" class="aniversario-aviso" hidden onclick="abrirAniversariosHoje()"></button>
-            <div class="tecnicos-livres" hidden></div>
+            <div class="tecnicos-letreiros">
+                <div class="tecnicos-livres" hidden></div>
+                <div class="tecnicos-indisponiveis" hidden></div>
+            </div>
         </div>
         <div class="cabecalho-usuario"></div>
     </div>
@@ -113,13 +116,13 @@
 
     <script src="js/jogo.js?v=f94ffe1c"></script>
     <script src="js/dropdown.js?v=39ffb4e9"></script>
-    <script src="js/esquema_botoes.js?v=4769fbe2"></script>
+    <script src="js/esquema_botoes.js?v=3c98d993"></script>
     <script src="js/festas.js?v=4b4c0060"></script>
     <script src="js/tabelas.js?v=abb49487"></script>
     <script src="js/tabelas-cabecalho.js?v=582aea5a"></script>
     <script src="js/relogio.js?v=a745b52b"></script>
-    <script src="js/versoes_css.js?v=dfb032e6"></script>
-    <script src="js/ferramentas.js?v=3b7d6327"></script>
+    <script src="js/versoes_css.js?v=b4249c70"></script>
+    <script src="js/ferramentas.js?v=f7224daa"></script>
     <script src="js/acessos.js?v=1af82388"></script>
     <script src="js/validade_orcamento.js?v=24d3fe40"></script>
     <script src="js/central_gcs.js?v=9e16eb1f"></script>
@@ -129,7 +132,7 @@
     <script src="js/popup.js?v=8f0ee08a"></script>
     <script src="js/janelas.js?v=af7f3e78"></script>
     <script src="js/comunicados.js?v=d3800ec8"></script>
-    <script src="js/websocket.js?v=b5c6a8ca"></script>
+    <script src="js/websocket.js?v=ab45b7c7"></script>
     <script src="js/mapa.js?v=506f1188"></script>
     <script src="js/mapa_br.js?v=194cc65f"></script>
     <script src="js/dashboard_chamados.js?v=cf02a273"></script>
@@ -144,7 +147,7 @@
     <script src="js/status.js?v=59bcb963"></script>
     <script src="js/promessas_pedido.js?v=f7a1d992"></script>
     <script src="js/painel_pendencias.js?v=ff176725"></script>
-    <script src="js/orcamentos.js?v=c0693e58"></script>
+    <script src="js/orcamentos.js?v=45d57f95"></script>
     <script src="js/upload_imagens.js?v=5644feea"></script>
     <script src="js/criar_orcamento.js?v=02da04a3"></script>    <script src="js/criar_locacao.js?v=da164f1a"></script>    <script src="js/locacao.js?v=ae04297a"></script>
     <script src="js/composicoes.js?v=1eac4ef4"></script>
@@ -174,7 +177,7 @@
     <script src="js/colaboradores.js?v=f54aa213"></script>
     <script src="js/daily.js?v=981c4988"></script>
     <script src="js/planos_diarios.js?v=71339dd2"></script>
-    <script src="js/tecnicos.js?v=4abcbd1e"></script>
+    <script src="js/tecnicos.js?v=db1ac283"></script>
     <script src="js/contratos.js?v=98474793"></script>
     <script src="js/aniversarios.js?v=056f5e8c"></script>
     <script src="js/notificacoes.js?v=fcd2a7ea"></script>
@@ -184,12 +187,12 @@
     <script src="js/estoque.js?v=12f63518"></script>
     <script src="js/fiscal.js?v=8f689be6"></script>
     <script src="js/remessas_retorno.js?v=74df34e3"></script>
-    <script src="js/financeiro.js?v=64c73a6e"></script>
+    <script src="js/financeiro.js?v=0c5d57ec"></script>
     <script src="js/financeiro_leitor.js?v=45374dcf"></script>
     <script src="js/fluxo_caixa.js?v=7f40dffc"></script>
-    <script src="js/lote_salarios.js?v=41374a39"></script>
+    <script src="js/lote_salarios.js?v=580739e8"></script>
     <script src="js/cartao_faturas.js?v=746ada01"></script>
-    <script src="js/conciliacao.js?v=9ca50e48"></script>
+    <script src="js/conciliacao.js?v=435fea14"></script>
 
     <script>
         if ('serviceWorker' in navigator && location.protocol !== 'file:') {
@@ -209,9 +212,9 @@
     <script>
 
         // Carimbado por scripts/versionar.js no commit; comparado com versao.json publicado.
-        const versaoAtual = 'c601e2d0'
+        const versaoAtual = '33fdcb8b'
         // Mesma versão sem os CSS: se só ela bate com a publicada, a mudança foi só de CSS.
-        const versaoBase = 'd163653f'
+        const versaoBase = '5ee30507'
         // Versão em uso: muda quando a página troca os CSS sozinha.
         let versaoCarregada = versaoAtual
         // Fechado pelo X ou por "Lembrar mais tarde", o aviso só volta depois de 30 min

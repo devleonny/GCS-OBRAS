@@ -1559,25 +1559,94 @@ td img[src="imagens/pesquisar.svg"] {
     flex-shrink: 0;
 }
 
-.tecnicos-livres {
+/* Duas linhas empilhadas: livres hoje e, embaixo, indisponíveis nos próximos 60 dias. */
+.tecnicos-letreiros {
     display: flex;
     flex: 1 1 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    margin: 0 12px;
+}
+
+.tecnicos-letreiros:not(:has(> :not([hidden]))) {
+    display: none;
+}
+
+.tecnicos-livres,
+.tecnicos-indisponiveis {
+    display: flex;
     align-items: center;
     gap: 10px;
     min-width: 0;
-    margin: 0 12px;
     overflow: hidden;
     color: white;
     font-size: 0.8rem;
 }
 
+/* Com as duas linhas, as pílulas ficam mais baixas e da mesma largura para caber nos 6vh. */
+.tecnicos-letreiros:has(> .tecnicos-indisponiveis:not([hidden])) .tecnicos-livres-data {
+    min-width: 10.5rem;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    font-size: 0.75rem;
+}
+
 /* Sem isto o display: flex acima vence o atributo hidden e o letreiro nunca some. */
-.tecnicos-livres[hidden] {
+.tecnicos-livres[hidden],
+.tecnicos-indisponiveis[hidden] {
     display: none;
 }
 
-.tecnicos-livres[role="button"] {
+.tecnicos-livres[role="button"],
+.tecnicos-indisponiveis[role="button"] {
     cursor: pointer;
+}
+
+.tecnicos-indisponiveis:focus-visible {
+    outline: 2px solid #f87171;
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+/* Linha dos indisponíveis: pílula e nomes em vermelho, motivo em etiqueta na frente do nome. */
+.tecnicos-indisponiveis .tecnicos-indisp-data {
+    background: #7f1d1d;
+    border-color: #f87171;
+    cursor: pointer;
+}
+
+.tecnicos-indisponiveis .tecnicos-indisp-data:hover {
+    background: #991b1b;
+}
+
+.tecnicos-indisp-nome {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    color: #ff8a8a;
+}
+
+.tecnicos-indisp-nome small {
+    font-weight: 400;
+    color: #fecaca;
+}
+
+.tecnicos-indisp-motivo {
+    padding: 0 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: #b91c1c;
+    border-radius: 4px;
+}
+
+.tecnicos-livres-separador.tecnicos-indisp-separador {
+    color: #f87171;
 }
 
 .tecnicos-livres:focus-visible {
@@ -2108,11 +2177,18 @@ img[src$="loading-gcs.png"] {
     }
 
     /* Só o botão do calendário, ao lado dos ícones; os nomes rolando ficam desligados no celular. */
-    .toolbar-top .tecnicos-livres {
+    /* No celular as duas linhas viram dois ícones lado a lado (verde: livres; vermelho: indisponíveis). */
+    .toolbar-top .tecnicos-letreiros {
         grid-column: 4;
         grid-row: 1;
         flex: none;
+        flex-direction: row;
+        gap: 4px;
         margin: 0;
+    }
+
+    .toolbar-top .tecnicos-letreiros .tecnicos-livres-data {
+        min-width: 0;
     }
 
     .toolbar-top .tecnicos-livres-janela {

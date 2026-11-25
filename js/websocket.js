@@ -359,6 +359,9 @@ async function executarAtualizacaoWS() {
         // Correção salva pode ocupar/liberar técnico: o letreiro de livres acompanha na hora.
         if ((atualizarTodas || tabelas.has('dados_ocorrencias')) && typeof atualizarTecnicosLivres === 'function')
             tarefas.push(() => atualizarTecnicosLivres())
+        // Indisponibilidade marcada/removida (fica em clientes): a segunda linha do letreiro acompanha.
+        else if (tabelas.has('clientes') && typeof atualizarTecnicosIndisponiveis === 'function')
+            tarefas.push(() => atualizarTecnicosIndisponiveis())
 
         if (tabelas.has('lista_pagamentos'))
             tarefas.push(() => atualizarPainelEsquerdo(), () => verificarPagamentosReprovados())

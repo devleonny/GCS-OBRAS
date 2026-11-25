@@ -9,6 +9,12 @@ const apiFin = (rota, corpo = {}) => apiModuloFiscal(`financeiro/${rota}`, corpo
 const escFin = valor => escaparAtributo(valor ?? '')
 const r2Fin = v => Math.round((Number(v) + Number.EPSILON) * 100) / 100
 const dataFin = v => v ? String(v).slice(0, 10).split('-').reverse().join('/') : ''
+// Dia (AAAA-MM-DD, fuso local) de um timestamp como criado_em, que chega em UTC: lançada às 22h não vira o dia seguinte.
+const diaInclusaoFin = v => {
+    const t = v ? new Date(v) : null
+    if (!t || isNaN(t)) return ''
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
+}
 const hojeFin = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
 
 const SITUACOES_FIN = {
@@ -19,7 +25,7 @@ const SITUACOES_FIN = {
     PAGO: { cor: '#15803d', texto: 'Pago' },
     CANCELADO: { cor: '#64748b', texto: 'Excluída' }
 }
-const ORIGENS_FIN = { MANUAL: 'Manual', NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', REEMBOLSO: 'Reembolso', RECORRENCIA: 'Repetição', OMIE: 'Omie', NF_OMIE: 'NF do Omie', DEVOLUCAO: 'Devolução', LOTE: 'Lote de salários' }
+const ORIGENS_FIN = { MANUAL: 'Manual', NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', REEMBOLSO: 'Reembolso', RECORRENCIA: 'Repetição', OMIE: 'Omie', NF_OMIE: 'NF do Omie', DEVOLUCAO: 'Devolução', LOTE: 'Lote' }
 // Importadas do Omie (21/11/2026): a origem não existe mais, então se editam e excluem como as lançadas aqui.
 const ORIGENS_EDITAVEIS_FIN = ['MANUAL', 'RECORRENCIA', 'OMIE']
 const FREQUENCIAS_FIN = [['MENSAL', 'Mensal'], ['SEMANAL', 'Semanal'], ['QUINZENAL', 'Quinzenal (14 dias)'], ['BIMESTRAL', 'Bimestral'],
@@ -466,6 +472,7 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
                 'Situação': { chave: 'situacao', tipoPesquisa: 'select', rotulos: pagar ? {} : { PAGO: 'RECEBIDO' } },
                 'Vencimento': { chave: 'dia_vencimento', tipoPesquisa: 'data' },
                 [pagar ? 'Pago em' : 'Recebido em']: { chave: 'dia_pagamento', tipoPesquisa: 'data' },
+                'Inclusão': { chave: 'criado_em', tipoPesquisa: 'data' },
                 'Empresa': { chave: 'app', tipoPesquisa: 'select' },
                 'Nota fiscal': { chave: 'nota_fiscal' },
                 'Parcela': { chave: 'parcela_texto' },
@@ -629,6 +636,7 @@ async function baixarExcelFaturasFin() {
             { titulo: 'Situação', largura: 13, valor: d => textoSituacao(d.situacao) },
             { titulo: 'Vencimento', largura: 12, tipo: 'data', valor: d => data(d.vencimento) },
             { titulo: pagar ? 'Pago em' : 'Recebido em', largura: 12, tipo: 'data', valor: d => data(d.dia_pagamento) },
+            { titulo: 'Inclusão', largura: 12, tipo: 'data', valor: d => data(diaInclusaoFin(d.criado_em)) },
             { titulo: 'Empresa', largura: 9, centro: true, valor: d => d.app || '' },
             { titulo: 'Nota fiscal', largura: 12, centro: true, valor: d => d.nota_fiscal || '' },
             { titulo: 'Parcela', largura: 9, centro: true, valor: d => d.parcela_texto || '' },
@@ -1118,6 +1126,7 @@ function criarLinhaFaturaFin(d) {
             <td>${situacaoFin(d.situacao)}</td>
             <td class="fin-centro">${dataFin(d.vencimento)}</td>
             <td class="fin-centro">${d.dia_pagamento ? dataFin(d.dia_pagamento) : '<span class="fin-vazio">&lt;não informado&gt;</span>'}</td>
+            <td class="fin-centro">${dataFin(diaInclusaoFin(d.criado_em))}</td>
             <td>${escFin(d.app)}</td>
             <td class="fin-centro fin-doc">${escFin(d.nota_fiscal || '')}</td>
             <td class="fin-centro">${escFin(d.parcela_texto)}</td>

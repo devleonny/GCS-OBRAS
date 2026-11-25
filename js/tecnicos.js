@@ -607,6 +607,7 @@ function podeVerTecnicosLivres() {
 
 // Esconde e apaga: o logout não recarrega a página, e a lista não pode passar para o próximo usuário.
 function ocultarTecnicosLivres() {
+    ocultarTecnicosIndisponiveis()
     const area = document.querySelector('.tecnicos-livres')
     ultimosTecnicosLivres = null
     if (!area) return
@@ -628,6 +629,8 @@ async function atualizarTecnicosLivres() {
         return ocultarTecnicosLivres()
 
     const geracao = ++geracaoTecnicosLivres
+    // Segunda linha (indisponíveis nos próximos 60 dias): consulta própria, em paralelo.
+    atualizarTecnicosIndisponiveis()
 
     try {
         const { livres, hoje } = await buscarTecnicosLivres()
@@ -654,6 +657,83 @@ function agendarMeiaNoiteTecnicosLivres() {
         atualizarTecnicosLivres()
         agendarMeiaNoiteTecnicosLivres()
     }, virada - agora)
+}
+
+// ---------------------------------------------------------------------------
+// Segunda linha do letreiro: técnicos indisponíveis de hoje até 60 dias (Férias, Atestado...),
+// motivo na frente do nome, em vermelho. Dados: /tecnicos/indisponiveis (uma linha por ausência).
+// Some quando não há ninguém. Clique abre o popup de hoje, com esta lista no topo.
+// ---------------------------------------------------------------------------
+
+let geracaoTecnicosIndisponiveis = 0
+
+async function buscarTecnicosIndisponiveis() {
+    const { indisponiveis = [], hoje, dias = 60 } = await chamarApiTecnicos('/tecnicos/indisponiveis', {})
+    return { indisponiveis, hoje: hoje || hojeTecnicosLivres(), dias }
+}
+
+const diaMesTecnicos = iso => iso ? iso.split('-').slice(1).reverse().join('/') : ''
+
+function renderTecnicosIndisponiveis(indisponiveis, dias) {
+    const area = document.querySelector('.tecnicos-indisponiveis')
+    if (!area) return
+    if (!indisponiveis.length) return ocultarTecnicosIndisponiveis()
+
+    const nomes = indisponiveis.map(l => `
+        <span class="tecnicos-livres-nome tecnicos-indisp-nome"><b class="tecnicos-indisp-motivo">${escaparAtributo(l.motivo || 'Indisponível')}</b>
+            ${escaparAtributo(l.nome || l.usuario)} <small>${diaMesTecnicos(l.de)} a ${diaMesTecnicos(l.ate)}</small></span>`)
+    const conteudo = nomes.join('<span class="tecnicos-livres-separador tecnicos-indisp-separador" aria-hidden="true">•</span>')
+
+    area.innerHTML = `
+        <span class="tecnicos-livres-data tecnicos-indisp-data"><svg class="tecnicos-livres-icone" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>
+            </svg> <span class="tecnicos-livres-texto">Indisponíveis · ${dias} dias</span></span>
+        <div class="tecnicos-livres-janela" aria-label="${indisponiveis.length} indisponibilidades nos próximos ${dias} dias">
+            <div class="tecnicos-livres-faixa" style="--duracao-letreiro: ${Math.max(20, indisponiveis.length * 5)}s">
+                <div class="tecnicos-livres-grupo">${conteudo}</div>
+                <div class="tecnicos-livres-grupo" aria-hidden="true">${conteudo}</div>
+            </div>
+        </div>`
+
+    area.setAttribute('role', 'button')
+    area.tabIndex = 0
+    area.title = `Ver técnicos indisponíveis nos próximos ${dias} dias`
+    area.onclick = abrirTecnicosLivres
+    area.onkeydown = evento => {
+        if (evento.key === 'Enter' || evento.key === ' ') {
+            evento.preventDefault()
+            abrirTecnicosLivres()
+        }
+    }
+    area.hidden = false
+}
+
+function ocultarTecnicosIndisponiveis() {
+    const area = document.querySelector('.tecnicos-indisponiveis')
+    if (!area) return
+    area.hidden = true
+    area.innerHTML = ''
+    area.onclick = null
+    area.onkeydown = null
+    area.removeAttribute('role')
+    area.removeAttribute('tabindex')
+}
+
+async function atualizarTecnicosIndisponiveis() {
+    if (!document.querySelector('.tecnicos-indisponiveis') || !podeVerTecnicosLivres())
+        return ocultarTecnicosIndisponiveis()
+
+    const geracao = ++geracaoTecnicosIndisponiveis
+    try {
+        const { indisponiveis, dias } = await buscarTecnicosIndisponiveis()
+        if (geracao !== geracaoTecnicosIndisponiveis) return
+        if (!podeVerTecnicosLivres()) return ocultarTecnicosIndisponiveis()
+        renderTecnicosIndisponiveis(indisponiveis, dias)
+    } catch (erro) {
+        if (geracao !== geracaoTecnicosIndisponiveis) return
+        console.error('Técnicos indisponíveis:', erro)
+        ocultarTecnicosIndisponiveis()
+    }
 }
 
 function iniciarTecnicosLivres() {
@@ -887,12 +967,17 @@ async function abrirDiaTecnicos(iso) {
     fecharCalendarioTecnicos()
     overlayAguarde()
 
-    let resposta
+    // A lista dos próximos 60 dias é extra: se falhar, o popup do dia abre do jeito de sempre.
+    let resposta, proximos
     try {
-        resposta = await chamarApiTecnicos('/tecnicos/agenda', { de: iso, ate: iso })
+        [resposta, proximos] = await Promise.all([
+            chamarApiTecnicos('/tecnicos/agenda', { de: iso, ate: iso }),
+            buscarTecnicosIndisponiveis().catch(erro => (console.error('Técnicos indisponíveis:', erro), null))
+        ])
     } catch (erro) {
         return popup({ mensagem: erro.message })
     }
+    if (proximos) renderTecnicosIndisponiveis(proximos.indisponiveis, proximos.dias)
 
     const { dias = [], podeMarcar, tipos = [] } = resposta
     const grupo = situacao => dias.filter(l => l.situacao === situacao)
@@ -902,7 +987,7 @@ async function abrirDiaTecnicos(iso) {
 
     const linhas = (lista, classe, extra = () => '') => lista.map(l => `
         <tr class="cal-tec-linha ${classe}">
-            <td>${classe === 'indisponivel' ? '<img src="imagens/cadeado.png" alt="Indisponível">' : ''}<span data-rastreio-usuario="${escaparAtributo(l.usuario)}" data-rastreio-de="${iso}">${escaparAtributo(l.nome || l.usuario)}</span></td>
+            <td>${classe.split(' ').includes('indisponivel') ? '<img src="imagens/cadeado.png" alt="Indisponível">' : ''}<span data-rastreio-usuario="${escaparAtributo(l.usuario)}" data-rastreio-de="${iso}">${escaparAtributo(l.nome || l.usuario)}</span></td>
             <td>${local(l)}</td>
             <td>${extra(l)}</td>
         </tr>`).join('')
@@ -920,6 +1005,22 @@ async function abrirDiaTecnicos(iso) {
             <thead><tr><th>Técnico</th><th>Cidade</th><th>${cabecalho}</th></tr></thead>
             <tbody>${linhas(lista, classe, extra)}</tbody>
         </table>` : ''
+
+    // Indisponíveis de hoje até 60 dias, no topo, seja qual for o dia aberto. Quando o dia está
+    // dentro da janela, os indisponíveis dele já estão nessa lista e a seção do dia sai (não repete);
+    // os chamados em conflito do dia vêm para a linha da ausência correspondente.
+    const chamadosDoDia = new Map(grupo('indisponivel').map(l => [l.indisponibilidade_id, l.chamados]))
+    const listaProximos = (proximos?.indisponiveis || []).map(l => ({
+        usuario: l.usuario, nome: l.nome, cidade: l.cidade, estado: l.estado,
+        motivo: l.motivo, observacao: l.observacao,
+        indisponivel_de: l.de, indisponivel_ate: l.ate, indisponibilidade_id: l.id,
+        chamados: chamadosDoDia.get(l.id) || null
+    }))
+    let diaNaJanela = false
+    if (proximos) {
+        const [a, m, d] = proximos.hoje.split('-').map(Number)
+        diaNaJanela = iso >= proximos.hoje && iso <= isoDiaTecnicos(new Date(a, m - 1, d + proximos.dias - 1))
+    }
 
     // Lista de técnicos para o formulário: todos os efetivos aparecem em todo dia.
     calendarioTecnicos.formulario = {
@@ -940,8 +1041,9 @@ async function abrirDiaTecnicos(iso) {
                     <span>Para o técnico aparecer aqui, o cadastro precisa ter a tag TÉCNICO, login no sistema e algum documento no RH (desligados não aparecem).</span>
                 </div>
                 ${dias.length ? '' : '<p>Nenhum técnico efetivo encontrado.</p>'}
+                ${proximos ? secao(`Indisponíveis nos próximos ${proximos.dias} dias`, 'indisponivel cal-tec-proximos', listaProximos, motivo, 'Motivo') : ''}
                 ${secao('Livres', 'livre', grupo('livre'), () => '', '')}
-                ${secao('Indisponíveis', 'indisponivel', grupo('indisponivel'), motivo, 'Motivo')}
+                ${diaNaJanela ? '' : secao('Indisponíveis', 'indisponivel', grupo('indisponivel'), motivo, 'Motivo')}
                 ${secao('Com correção agendada', 'ocupado', grupo('ocupado'), l => etiquetasChamadosTecnicos(l.chamados), 'Chamados')}
             </div>`
     })

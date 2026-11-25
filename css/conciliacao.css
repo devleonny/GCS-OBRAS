@@ -86,7 +86,7 @@
 .cc-linha.cc-fechada td { color: #6b7a71; }
 .cc-debito { color: #9b1c12; }
 .cc-credito { color: #1f5a2e; }
-.cc-area { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(360px, 1fr); gap: 12px; min-height: 360px; }
+.cc-area { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(360px, 1fr); gap: 12px; min-height: 0; }
 .cc-coluna-lista { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
 .cc-rolagem { flex: 1 1 auto; overflow: auto; min-height: 0; border: 1px solid var(--fin-borda, #d6e0da); border-radius: 8px; background: #fff; }
 @media (max-width: 1100px) { .cc-area { grid-template-columns: 1fr; height: auto !important; } .cc-coluna-lista .cc-rolagem { max-height: 55vh; } }
@@ -148,14 +148,17 @@
 .cc-heroi-sit { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .cc-heroi-sit small { color: #6b7a71; font-size: 11px; }
 
-.cc-abas { display: flex; flex-wrap: wrap; gap: 2px 4px; padding: 10px 12px 0; background: #fff; border-bottom: 1px solid #e6ece8; }
-.cc-aba { display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; border: none; border-bottom: 3px solid transparent; background: none; color: #5f6d65; font-size: 12.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
-.cc-aba .fin-icone { width: 16px; height: 16px; }
-.cc-aba em { font-style: normal; padding: 0 7px; border-radius: 999px; background: #eef2ef; color: #4f5d55; font-size: 11px; line-height: 18px; }
-.cc-aba:hover { color: var(--fin-verde, #356443); }
-.cc-aba.ativo { color: var(--fin-verde, #356443); border-bottom-color: var(--fin-verde, #356443); }
-.cc-aba.ativo em { background: var(--fin-verde, #356443); color: #fff; }
-.cc-aba-ignorar { margin-left: auto; color: #8a978f; }
+/* Abas do detalhe: botões em pílula; a escolhida fica cheia de verde. */
+.cc-abas { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; background: #fff; border-bottom: 1px solid #e6ece8; }
+.cc-aba { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid #dfe7e2; border-radius: 999px; background: #f6f9f7; color: #4f5d55; font-size: 12.5px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: background 120ms, border-color 120ms, color 120ms; }
+.cc-aba .fin-icone { width: 15px; height: 15px; }
+.cc-aba em { font-style: normal; min-width: 18px; padding: 0 6px; border-radius: 999px; background: #e3eae6; color: #4f5d55; font-size: 11px; line-height: 18px; text-align: center; }
+.cc-aba:hover { border-color: #b9cdbf; background: #eef6f0; color: var(--fin-verde, #356443); }
+.cc-aba:focus-visible { outline: 2px solid #52745c; outline-offset: 2px; }
+.cc-aba.ativo { background: var(--fin-verde, #356443); border-color: var(--fin-verde, #356443); color: #fff; box-shadow: 0 1px 3px rgba(53, 100, 67, 0.35); }
+.cc-aba.ativo em { background: rgba(255, 255, 255, 0.25); color: #fff; }
+.cc-aba-ignorar { margin-left: auto; background: #fff; border-style: dashed; color: #7a877f; }
+.cc-aba-ignorar:hover { border-color: #e0a7a1; background: #fff5f4; color: #9b1c12; }
 .cc-aba-corpo { flex: 1 1 auto; display: flex; flex-direction: column; gap: 10px; padding: 12px; }
 .cc-aba-corpo > .cc-explica { padding: 0 2px; font-size: 12.5px; }
 .cc-detalhe > .cc-lista, .cc-detalhe > .cc-sub-titulo, .cc-detalhe > .cc-alerta-gcs { margin: 12px 12px 0; }
@@ -214,3 +217,18 @@ label.cc-item { cursor: pointer; }
 .cc-filtro.ativo em { background: var(--fin-verde, #356443); color: #fff; }
 .fin-corpo.recolhido .cc-so-aberto, .fin-corpo.recolhido .cc-filtro em { display: none; }
 .fin-corpo.recolhido .fin-acao .cc-sit { display: inline-flex; }
+
+/* Conciliar: tudo na altura visível da área do sistema (.tela tem height 100% e padding), sem rolar a página.
+   Cadeia de flex com min-height 0 até a lista, o detalhe e o painel, que rolam sozinhos. */
+.cc-tela-conciliar { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+.cc-tela-conciliar > .fin-janela { flex: 1 1 auto; min-height: 0; }
+.cc-tela-conciliar .fin-corpo { flex: 1 1 auto; min-height: 0; }
+.cc-tela-conciliar .fin-tabela-area { display: flex; flex-direction: column; min-height: 0; }
+.cc-tela-conciliar [data-conciliar] { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.cc-tela-conciliar .cc-area { flex: 1 1 auto; grid-template-rows: minmax(0, 1fr); }
+.cc-tela-conciliar .cc-coluna-lista, .cc-tela-conciliar .cc-detalhe { min-height: 0; }
+.cc-tela-conciliar .fin-lateral { min-height: 0; }
+.cc-tela-conciliar .fin-painel { height: 100%; overflow-y: auto; }
+@media (max-width: 1100px) {
+    .cc-tela-conciliar, .cc-tela-conciliar .fin-painel { height: auto; }
+}

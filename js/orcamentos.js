@@ -167,8 +167,8 @@ async function criarLinhaOrcamento(orcamento) {
         .join('')
 
     const notasStatus = (notas || [])
-        .map(({ id, categoria, n_nota, total, d_emi_inicial }) =>
-            pdfDanfe({ categoria, n_nota, id, total, d_emi_inicial })
+        .map(({ id, categoria, n_nota, total, d_emi_inicial, origem }) =>
+            pdfDanfe({ categoria, n_nota, id, total, d_emi_inicial, origem })
         )
         .join('')
 
