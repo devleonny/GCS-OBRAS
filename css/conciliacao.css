@@ -173,6 +173,7 @@
 .cc-busca-data input { width: 140px; }
 .cc-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #fff; border: 1px solid #dfe7e2; border-radius: 10px; box-shadow: 0 1px 2px rgba(31, 42, 36, 0.05); font-size: 13px; transition: border-color 120ms, box-shadow 120ms; }
 label.cc-item { cursor: pointer; }
+.cc-item[hidden] { display: none; }
 .cc-item:hover { border-color: #b9cdbf; box-shadow: 0 2px 6px rgba(31, 42, 36, 0.08); }
 .cc-item:has(> input[type=checkbox]:checked) { border-color: var(--fin-verde, #356443); background: #f3faf5; box-shadow: 0 0 0 1px var(--fin-verde, #356443) inset; }
 .cc-item > input[type=checkbox] { flex: none; width: 17px; height: 17px; accent-color: var(--fin-verde, #356443); }

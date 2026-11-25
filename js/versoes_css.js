@@ -11,7 +11,7 @@ const VERSOES_CSS = {
     "colaboradores": "8e29bed3",
     "composicoes": "fd6d81f2",
     "comunicados": "c9e16f77",
-    "conciliacao": "5fcc213f",
+    "conciliacao": "73c90be5",
     "criar_orcamento": "f22fe372",
     "custos": "0fbcf30d",
     "custos_pessoal": "c5dbe7fd",

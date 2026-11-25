@@ -544,8 +544,9 @@ function cabecaConc(l) {
 // Item de lista (fatura, baixa, sugestão): avatar, nome, detalhes, etiquetas e valor.
 function itemConc({ nome, detalhe = '', tags = '', valor = null, depois = '', antes = '', marcar = false, classe = '' }) {
     const tag = marcar ? 'label' : 'div'
+    const v = valor != null ? Math.abs(Number(valor)).toFixed(2) : ''
     return `
-        <${tag} class="cc-item ${classe}">
+        <${tag} class="cc-item ${classe}"${v ? ` data-busca="${v} ${v.replace('.', ',')}"` : ''}>
             ${antes}
             ${avatarConc(nome)}
             <span class="cc-item-texto">
@@ -556,6 +557,29 @@ function itemConc({ nome, detalhe = '', tags = '', valor = null, depois = '', an
             ${valor != null ? `<b class="cc-item-valor">${sinalConc(valor)}</b>` : ''}
             ${depois}
         </${tag}>`
+}
+
+// Busca local nas listas já carregadas (Baixas lançadas e baixas de uma linha já casada): favorecido,
+// descrição, categoria, conta, nº ou valor (1234,56 / 1234.56). Marcadas não somem com a busca.
+const buscaListaConc = alvo => `
+    <div class="cc-busca-faturas">
+        <input class="fis-input" type="search" placeholder="Buscar favorecido, nº, descrição, categoria ou valor…" oninput="filtrarListaConc(this, '${alvo}')">
+    </div>`
+
+function filtrarListaConc(input, alvo) {
+    const termos = normalFin(input.value).split(/s+/).filter(Boolean)
+    const lista = document.querySelector(alvo)
+    if (!lista) return
+    let visiveis = 0
+    lista.querySelectorAll('.cc-item').forEach(it => {
+        const texto = `${normalFin(it.textContent)} ${it.dataset.busca || ''}`
+        const mostra = Boolean(it.querySelector('input[type=checkbox]:checked')) || termos.every(t => texto.includes(t))
+        it.hidden = !mostra
+        if (mostra) visiveis++
+    })
+    const vazio = lista.querySelector('[data-vazio-busca]')
+    if (!visiveis && termos.length) { if (!vazio) lista.insertAdjacentHTML('beforeend', `<div data-vazio-busca>${vazioConc('baixa', 'Nada com essa busca.')}</div>`) }
+    else vazio?.remove()
 }
 
 const vazioConc = (icone, texto) => `<div class="cc-vazio-detalhe">${iconeFin(icone)}<span>${texto}</span></div>`
@@ -594,7 +618,8 @@ async function escolherLinhaConc(chave, redesenhar = true) {
             ${l.sit === 'IGNORADA'
                 ? `<div class="cc-alerta-gcs cc-alerta-neutro">${iconeFin('cancelar')}<span>Fora do Financeiro, por ${escFin(l.resolvido_por || '')}: <b>${escFin(l.observacao || '')}</b></span></div>`
                 : `<b class="cc-sub-titulo">${iconeFin('check')} Casada com ${l.casadas.length === 1 ? 'esta baixa' : `estas ${l.casadas.length} baixas`}</b>
-            <div class="cc-lista">${l.casadas.map(b => itemConc({
+            ${l.casadas.length > 1 ? buscaListaConc('[data-lista-casadas]') : ''}
+            <div class="cc-lista" data-lista-casadas>${l.casadas.map(b => itemConc({
                 nome: b.participante || b.descricao, valor: b.mov,
                 detalhe: escFin([b.tipo === 'RECEBER' ? 'Receber' : 'Pagar', b.descricao, b.numero && `nº ${b.numero}`, b.conta].filter(Boolean).join(' · ')),
                 tags: [b.automatico ? tagConc('casou sozinha', 'ok') : '', b.criou ? tagConc('baixa feita aqui', 'azul') : '', tagConc(escFin(b.app))].join(''),
@@ -655,6 +680,7 @@ function desenharDetalheConc() {
     } else if (aba === 'baixas') {
         corpo = `
             <p class="cc-explica">Baixas de ${tipo === 'RECEBER' ? 'recebimento' : 'pagamento'} destas contas, até 10 dias antes ou depois, que ainda não casaram. Marque as que formam esta linha (ex.: as pessoas do lote de salários).</p>
+            ${baixas.length > 1 ? buscaListaConc('[data-marcar-baixas]') : ''}
             <div class="cc-lista" data-marcar-baixas>${baixas.map(b => itemConc({
                 nome: b.participante_nome || b.descricao, marcar: true, valor: b.mov,
                 antes: `<input type="checkbox" value="${b.id}" data-valor="${b.mov}" onchange="somarMarcadasConc()">`,
