@@ -446,37 +446,50 @@ function desenharConciliarConc() {
             </div>
             ${(d.faltam_dias || []).length ? `<div class="cf-faixa cf-falta">Falta extrato de ${d.faltam_dias.slice(0, 4).map(f => f.de === f.ate ? dataFin(f.de) : `${dataFin(f.de)} a ${dataFin(f.ate)}`).join(', ')}${d.faltam_dias.length > 4 ? '…' : ''}: importe esses dias para poder fechar.</div>` : ''}
             ${d.linhas.length || d.so_gcs.length ? '' : `<div class="cf-faixa">Nenhuma linha de extrato em ${mesNomeConc(d.mes)}. <span class="fis-link" onclick="importarOfxConc()">Importar OFX</span></div>`}
-            <div class="fis-tabela-rolagem cc-rolagem" data-tabela-conc></div>
-            <section class="cc-detalhe" data-detalhe-conc></section>
+            <div class="cc-area" data-area-conc>
+                <div class="cc-rolagem" data-tabela-conc></div>
+                <section class="cc-detalhe" data-detalhe-conc><p class="cc-explica cc-escolha">Escolha uma linha à esquerda para ver as opções.</p></section>
+            </div>
         </div>`, painel)
     desenharTabelaConc()
+    ajustarAlturaConc()
 }
+
+// Lista e detalhe lado a lado, até o rodapé da tela (cada um rola sozinho).
+function ajustarAlturaConc() {
+    const area = document.querySelector('[data-area-conc]')
+    if (!area) return
+    area.style.height = `${Math.max(window.innerHeight - area.getBoundingClientRect().top - 16, 360)}px`
+}
+window.addEventListener('resize', () => ajustarAlturaConc())
 
 function desenharTabelaConc() {
     const caixa = document.querySelector('[data-tabela-conc]')
     if (!caixa) return
     const linhas = filtrarLinhasConc(linhasConc())
     const total = linhas.reduce((a, l) => a + Number(l.valor), 0)
+    const texto = h => String(h).replace(/<[^>]+>/g, '')
     caixa.innerHTML = `
         <table class="fis-tabela fin-extrato cc-tabela">
-            <thead><tr><th style="width: 74px">Data</th><th>Descrição no banco</th><th style="width: 130px">CPF/CNPJ</th><th class="fis-num" style="width: 130px">Valor</th><th style="width: 140px">Situação</th><th>No GCS</th></tr></thead>
+            <thead><tr><th class="cc-col-data">Dia</th><th>Descrição no banco</th><th class="fis-num cc-col-valor">Valor</th><th class="cc-col-sit">Situação</th></tr></thead>
             <tbody>${linhas.map(l => {
                 const noGcs = l.gcs ? `Baixa sem linha no extrato · ${escFin(l.baixa.conta)}`
-                    : l.sit === 'CASADA' ? l.casadas.map(b => escFin([b.participante || b.descricao, b.numero && `nº ${b.numero}`].filter(Boolean).join(' · '))).join(' + ') + (l.casadas.some(b => b.automatico) ? ' <small class="cc-cinza">(sozinha)</small>' : '')
-                    : l.sit === 'IGNORADA' ? `<small class="cc-cinza">${escFin(l.observacao || '')}</small>`
-                    : l.sit === 'SUGESTAO' ? escFin(l.sugestoes[0].itens.length > 1 ? `${l.sugestoes[0].itens.length} baixas somam o valor` : [l.sugestoes[0].itens[0]?.participante_nome, l.sugestoes[0].itens[0]?.descricao].filter(Boolean).join(' · ')) + (l.sugestoes.length > 1 ? ` <small class="cc-cinza">(+${l.sugestoes.length - 1})</small>` : '')
-                    : l.antes_corte ? '<small class="cc-cinza">antes do corte</small>' : '—'
+                    : l.sit === 'CASADA' ? '→ ' + l.casadas.map(b => escFin([b.participante || b.descricao, b.numero && `nº ${b.numero}`].filter(Boolean).join(' · '))).join(' + ') + (l.casadas.some(b => b.automatico) ? ' (sozinha)' : '')
+                    : l.sit === 'IGNORADA' ? escFin(l.observacao || '')
+                    : l.sit === 'SUGESTAO' ? '→ ' + escFin(l.sugestoes[0].itens.length > 1 ? `${l.sugestoes[0].itens.length} baixas somam o valor` : [l.sugestoes[0].itens[0]?.participante_nome, l.sugestoes[0].itens[0]?.descricao].filter(Boolean).join(' · ')) + (l.sugestoes.length > 1 ? ` (+${l.sugestoes.length - 1})` : '')
+                    : l.antes_corte ? 'antes do corte' : ''
                 return `
-                <tr class="cc-linha ${estadoConc.sel === l.chave ? 'cc-ativa' : ''} ${l.fechada ? 'cc-fechada' : ''}" onclick="escolherLinhaConc('${l.chave}')">
-                    <td>${dataFin(l.data)}</td>
-                    <td class="cc-desc" title="${escFin(l.descricao || '')}">${escFin(l.descricao || '—')}</td>
-                    <td>${escFin(l.documento || '')}</td>
-                    <td class="fis-num"><b>${sinalConc(l.valor)}</b></td>
-                    <td>${chipConc(l.sit)}${l.fechada ? ' <span title="Período fechado">🔒</span>' : ''}</td>
-                    <td class="cc-desc">${noGcs}</td>
+                <tr class="cc-linha ${estadoConc.sel === l.chave ? 'cc-ativa' : ''} ${l.fechada ? 'cc-fechada' : ''}" data-chave="${l.chave}" onclick="escolherLinhaConc('${l.chave}')">
+                    <td class="cc-col-data">${dataFin(l.data).slice(0, 5)}</td>
+                    <td class="cc-desc">
+                        <span class="cc-desc-banco" title="${escFin(l.descricao || '')}">${escFin(l.descricao || '—')}</span>
+                        ${noGcs ? `<small class="cc-desc-gcs" title="${escFin(texto(noGcs))}">${noGcs}</small>` : ''}
+                    </td>
+                    <td class="fis-num cc-col-valor"><b>${sinalConc(l.valor)}</b></td>
+                    <td class="cc-col-sit">${chipConc(l.sit)}${l.fechada ? ' <span title="Período fechado">🔒</span>' : ''}</td>
                 </tr>`
-            }).join('') || '<tr><td colspan="6" class="fis-vazio">Nada neste filtro.</td></tr>'}</tbody>
-            ${linhas.length ? `<tfoot><tr><td colspan="3">${linhas.length} linha${linhas.length === 1 ? '' : 's'}</td><td class="fis-num"><b>${sinalConc(total)}</b></td><td colspan="2"></td></tr></tfoot>` : ''}
+            }).join('') || '<tr><td colspan="4" class="fis-vazio">Nada neste filtro.</td></tr>'}</tbody>
+            ${linhas.length ? `<tfoot><tr><td colspan="2">${linhas.length} linha${linhas.length === 1 ? '' : 's'}</td><td class="fis-num"><b>${sinalConc(total)}</b></td><td></td></tr></tfoot>` : ''}
         </table>`
 }
 
@@ -484,7 +497,7 @@ function desenharTabelaConc() {
 
 async function escolherLinhaConc(chave, redesenhar = true) {
     estadoConc.sel = chave
-    if (redesenhar) desenharTabelaConc()
+    if (redesenhar) document.querySelectorAll('[data-tabela-conc] .cc-linha').forEach(tr => tr.classList.toggle('cc-ativa', tr.dataset.chave === chave))
     const l = linhasConc().find(x => x.chave === chave)
     const caixa = document.querySelector('[data-detalhe-conc]')
     if (!l || !caixa) return
