@@ -2161,6 +2161,42 @@ img[src$="loading-gcs.png"] {
     max-height: 5rem;
 }
 
+/* Celular/tablet (também deitado, acima de 760px): as pílulas dos técnicos viram só um círculo
+   com o boneco (verde: livres; vermelho: indisponíveis), lado a lado, sem os nomes rolando.
+   O texto continua para leitores de tela. Seletores com :has para vencer o min-width de 10.5rem. */
+@media (max-width: 1024px), (pointer: coarse) {
+    .tecnicos-letreiros {
+        flex: none;
+        flex-direction: row;
+        gap: 4px;
+        margin: 0 6px;
+    }
+
+    .tecnicos-letreiros .tecnicos-livres-janela {
+        display: none;
+    }
+
+    .tecnicos-letreiros .tecnicos-livres-data,
+    .tecnicos-letreiros:has(> .tecnicos-indisponiveis:not([hidden])) .tecnicos-livres-data {
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        min-width: 0;
+        padding: 0;
+        box-sizing: border-box;
+        border-radius: 50%;
+    }
+
+    .tecnicos-letreiros .tecnicos-livres-texto {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+}
+
 /* Toolbar no celular: os ícones da direita saíam da tela e o círculo de usuários cobria o
    título. Aqui vira grade: menu, título, botão de técnicos livres (só o ícone, sem os nomes
    rolando), o bolo do aniversário (quando há) e ícones numa linha.
@@ -2221,27 +2257,6 @@ img[src$="loading-gcs.png"] {
         margin: 0;
     }
 
-    .toolbar-top .tecnicos-letreiros .tecnicos-livres-data {
-        min-width: 0;
-    }
-
-    .toolbar-top .tecnicos-livres-janela {
-        display: none;
-    }
-
-    /* Botão do calendário vira só o ícone no contorno verde; o texto continua para leitores de tela. */
-    .toolbar-top .tecnicos-livres-data {
-        padding: 4px 8px;
-    }
-
-    .toolbar-top .tecnicos-livres-texto {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
-    }
 
     /* Aniversário: só o bolo, redondo, ao lado do botão de técnicos livres (o texto não cabia e
        o aviso ficava espremido). O texto continua para leitores de tela; o toque abre a lista. */

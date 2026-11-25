@@ -16,7 +16,7 @@ const VERSOES_CSS = {
     "custos": "0fbcf30d",
     "custos_pessoal": "c5dbe7fd",
     "dashboard_chamados": "928a2e8b",
-    "estilo": "08ca0316",
+    "estilo": "d29aa8ab",
     "estoque": "ff848a67",
     "festas": "81ec7e62",
     "financeiro": "294e76c3",
