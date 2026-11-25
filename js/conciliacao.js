@@ -98,38 +98,66 @@ function desenharContasConc(todas) {
     const diaUtil = ![0, 6].includes(new Date(`${hojeFin()}T12:00:00`).getDay())
     const semHoje = diaUtil ? contas.filter(c => !c.importou_hoje) : []
     const pendentes = contas.reduce((a, c) => a + c.pendentes + c.so_gcs, 0)
+    // Conta com dígito: 961211 → 96121-1.
+    const contaDv = v => String(v || '').length > 1 ? `${String(v).slice(0, -1)}-${String(v).slice(-1)}` : String(v || '')
     const cartao = c => {
         const conferida = Boolean(c.conferida_ate)
         const total = c.casadas + c.pendentes + c.ignoradas
         const pct = n => total ? Math.round(n * 100 / total) : 0
         const dif = Number(c.diferenca || 0)
-        return `
-            <section class="cc-cartao">
+        const principal = (c.contas.find(k => String(k.id) === String(c.conta_principal_id)) || c.contas[0] || {}).app || '?'
+        const ult = c.ultima_importacao
+        const topo = `
                 <div class="cc-cartao-topo">
-                    <span class="fin-avatar">${escFin((c.contas.find(k => String(k.id) === String(c.conta_principal_id)) || c.contas[0] || {}).app || '?')}</span>
-                    <div>
-                        <b>${escFin(c.nome)}${semHoje.includes(c) ? ' <span class="cc-chip cc-chip-sempar cc-hoje" title="O extrato de hoje ainda não foi importado">sem extrato hoje</span>' : ''}</b>
-                        <small>Banco ${escFin(c.banco)} · ag. ${escFin(c.agencia || '—')} · conta ${escFin(c.conta)} · ${escFin(c.contas.map(k => k.app).join(', '))}</small>
-                        <small>${c.ultima_importacao ? `Último extrato ${new Date(c.ultima_importacao.criado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} por ${escFin(c.ultima_importacao.criado_por || '')}` : 'Nenhum extrato importado'}</small>
+                    <span class="fin-avatar">${escFin(principal)}</span>
+                    <div class="cc-cartao-nome">
+                        <b>${escFin(c.nome)}</b>
+                        <small>Banco ${escFin(c.banco)} · ag. ${escFin(c.agencia || '—')} · c/c ${escFin(contaDv(c.conta))}</small>
+                        <div class="cc-empresas" title="Empresas que pagam e recebem por esta conta">${c.contas.map(k => `<span class="${k.app === principal ? 'cc-principal-tag' : ''}">${escFin(k.app)}</span>`).join('')}</div>
                     </div>
                     <button type="button" class="fis-mini cc-editar" title="Dados e contas correntes ligadas" onclick="formularioContaBancoConc(${c.id})">${iconeFin('editar')}</button>
+                </div>`
+        const rodape = `
+                <div class="cc-cartao-rodape">
+                    <small>${conferida ? `Conferida até <b>${dataFin(c.conferida_ate)}</b>` : 'Ainda não fechada'} · desde ${dataFin(c.corte)}</small>
+                    <button type="button" class="fis-botao" onclick="abrirConciliarConc(${c.id})">Conciliar</button>
+                </div>`
+        // Sem extrato: no lugar de saldos e contadores vazios, o passo seguinte.
+        if (!ult) return `
+            <section class="cc-cartao">
+                ${topo}
+                <div class="cc-vazio-cartao">
+                    <span>${iconeFin('baixar')}</span>
+                    <div><b>Nenhum extrato importado</b><small>Importe o OFX desta conta para começar a conciliar.</small></div>
+                    <button type="button" class="fis-mini" onclick="importarOfxConc()">Importar OFX</button>
+                </div>
+                ${rodape}
+            </section>`
+        const ok = Math.abs(dif) < 0.005
+        return `
+            <section class="cc-cartao">
+                ${topo}
+                <div class="cc-ultimo ${semHoje.includes(c) ? 'cc-ultimo-atrasado' : ''}">
+                    ${iconeFin('relogio')} Último extrato ${new Date(ult.criado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}${ult.criado_por ? ` por ${escFin(ult.criado_por)}` : ''}
+                    ${semHoje.includes(c) ? '<b>· falta o de hoje</b>' : ''}
                 </div>
                 <div class="cc-saldos">
-                    <div><small>Saldo no banco${c.saldo_dia ? ` (${dataFin(c.saldo_dia)})` : ''}</small><b>${c.saldo_banco != null ? dinheiro(c.saldo_banco) : '—'}</b></div>
-                    <div><small>Saldo no GCS${c.saldo_dia ? ` (${dataFin(c.saldo_dia)})` : ''}</small><b>${conferida ? dinheiro(c.saldo_gcs) : '<span class="cc-cinza" title="O saldo do GCS só vale depois do primeiro fechamento">a conferir</span>'}</b></div>
-                    <div><small>Falta explicar</small>${!c.ultima_importacao ? '<b class="cc-cinza">—</b>' : `<b class="${Math.abs(dif) < 0.005 ? 'cc-ok' : 'cc-falta'}">${Math.abs(dif) < 0.005 ? '✔ R$ 0,00' : dinheiro(dif)}</b>`}</div>
+                    <div><small>Banco</small><b>${c.saldo_banco != null ? dinheiro(c.saldo_banco) : '—'}</b></div>
+                    <div><small>GCS</small><b>${conferida ? dinheiro(c.saldo_gcs) : '<span class="cc-cinza" title="O saldo do GCS só vale depois do primeiro fechamento">a conferir</span>'}</b></div>
+                    <div class="${ok ? 'cc-saldo-ok' : 'cc-saldo-falta'}"><small>Falta explicar</small><b>${ok ? '✔ R$ 0,00' : dinheiro(dif)}</b></div>
                 </div>
-                <div class="cc-barra" title="Casadas / fora do Financeiro / pendentes"><span style="width:${pct(c.casadas)}%"></span><span class="cc-barra-ign" style="width:${pct(c.ignoradas)}%"></span></div>
+                <small class="cc-saldos-dia">Saldos no fim de ${dataFin(c.saldo_dia)}</small>
+                <div class="cc-progresso">
+                    <div class="cc-barra" title="Casadas / fora do Financeiro / pendentes"><span style="width:${pct(c.casadas)}%"></span><span class="cc-barra-ign" style="width:${pct(c.ignoradas)}%"></span></div>
+                    <small>${pct(c.casadas + c.ignoradas)}% resolvido</small>
+                </div>
                 <div class="cc-chips">
                     <span class="cc-chip cc-chip-casada">Casadas ${c.casadas}</span>
                     <span class="cc-chip cc-chip-sempar">Pendentes ${c.pendentes}</span>
                     <span class="cc-chip cc-chip-gcs">Só no GCS ${c.so_gcs}</span>
                     ${c.ignoradas ? `<span class="cc-chip cc-chip-ignorada">Fora do Financeiro ${c.ignoradas}</span>` : ''}
                 </div>
-                <div class="cc-cartao-rodape">
-                    <small>${conferida ? `Conferida até <b>${dataFin(c.conferida_ate)}</b>` : 'Ainda não fechada'} · corte em ${dataFin(c.corte)}</small>
-                    <button type="button" class="fis-botao" onclick="abrirConciliarConc(${c.id})">Conciliar</button>
-                </div>
+                ${rodape}
             </section>`
     }
     const painel = `

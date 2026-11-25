@@ -7,7 +7,6 @@
 .cc-aviso-contas { display: flex; flex-wrap: wrap; gap: 6px; }
 .cc-aviso-contas span { padding: 2px 10px; border-radius: 999px; background: #fff; border: 1px solid #f1c4bf; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .cc-aviso .fis-botao { flex: none; }
-.cc-hoje { margin-left: 6px; vertical-align: middle; font-size: 10.5px; }
 @media (max-width: 700px) { .cc-aviso { flex-wrap: wrap; } }
 .cc-cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; margin-bottom: 14px; }
 .cc-cartao { display: flex; flex-direction: column; gap: 12px; padding: 16px; background: #fff; border: 1px solid var(--fin-borda, #d6e0da); border-radius: 8px; }
@@ -17,10 +16,30 @@
 .cc-cartao-topo small { color: #5f6d65; font-size: 12px; }
 .cc-editar { flex: none; }
 .cc-editar .fin-icone { width: 16px; height: 16px; }
+.cc-cartao-nome { display: flex; flex-direction: column; gap: 3px; }
+.cc-empresas { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.cc-empresas span { padding: 1px 7px; border-radius: 4px; background: #eef2ef; color: #4f5d55; font-size: 11px; font-weight: 600; }
+.cc-empresas .cc-principal-tag { background: var(--fin-verde-claro, #e4f2dc); color: var(--fin-verde, #356443); }
+.cc-ultimo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; color: #5f6d65; font-size: 12px; }
+.cc-ultimo .fin-icone { width: 14px; height: 14px; }
+.cc-ultimo-atrasado b { color: #b42318; }
 .cc-saldos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.cc-saldos > div { display: flex; flex-direction: column; gap: 2px; }
+.cc-saldos > div { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 6px; background: #f6f9f7; }
 .cc-saldos small { color: #5f6d65; font-size: 11px; }
-.cc-saldos b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.cc-saldos b { font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cc-saldos .cc-saldo-ok { background: #f0faf3; }
+.cc-saldos .cc-saldo-ok b { color: #1f7a3d; }
+.cc-saldos .cc-saldo-falta { background: #fff5f4; }
+.cc-saldos .cc-saldo-falta b { color: #b42318; }
+.cc-saldos-dia { margin-top: -6px; color: #7a877f; font-size: 11px; }
+.cc-progresso { display: flex; align-items: center; gap: 10px; }
+.cc-progresso .cc-barra { flex: 1 1 auto; }
+.cc-progresso small { flex: none; color: #5f6d65; font-size: 11.5px; }
+.cc-vazio-cartao { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px dashed #c9d6ce; border-radius: 8px; background: #fafcfb; }
+.cc-vazio-cartao > span { display: flex; color: var(--fin-verde, #356443); }
+.cc-vazio-cartao > span .fin-icone { width: 24px; height: 24px; }
+.cc-vazio-cartao > div { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.cc-vazio-cartao small { color: #5f6d65; font-size: 12px; }
 .cc-ok { color: #1f7a3d; }
 .cc-falta { color: #b42318; }
 .cc-cinza { color: #7a877f; font-weight: 400; }
