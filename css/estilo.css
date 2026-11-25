@@ -2234,7 +2234,8 @@ img[src$="loading-gcs.png"] {
 
     /* Com o bolo do aniversário na barra o título não cabe (sobrava só "G…"): some, e a coluna
        dele continua ocupando o espaço entre o menu e os ícones. */
-    .toolbar-top:has(.aniversario-aviso:not([hidden])) .toolbar-interno > [name="titulo"] {
+    .toolbar-top:has(.aniversario-aviso:not([hidden])) .toolbar-interno > [name="titulo"],
+    .toolbar-top:has(.tecnicos-letreiros > :not([hidden])) .toolbar-interno > [name="titulo"] {
         visibility: hidden;
     }
 
