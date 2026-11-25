@@ -442,7 +442,7 @@ async function abrirDetalhesPagamentos(id) {
             </div>
         `
         const { permissao, usuario } = acesso
-        const { pagamento, orcamentos: vinculados, lpu_parceiro: idLpuParceiro } = await carregarDetalhesPagamento(id)
+        const { pagamento, orcamentos: vinculados, lpu_parceiro: idLpuParceiro, comprovantes = [] } = await carregarDetalhesPagamento(id)
 
         const valoresPorCategoria = (pagamento?.snapshots?.categorias || [])
             .map(({ categoria, valor }) =>
@@ -453,6 +453,14 @@ async function abrirDetalhesPagamentos(id) {
         const anexos = Object.entries(pagamento?.anexos || {})
             .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexoPagamento('${id}', '${idAnexo}')`))
             .join('')
+
+        // Comprovante do banco que o Financeiro prendeu no pagamento da fatura (só para ver e baixar).
+        const blocoComprovantes = comprovantes.length ? `
+            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0;">
+                ${comprovantes.map(c => `
+                    <small>Pago em ${escaparAtributo(String(c.data || '').split('-').reverse().join('/'))} · ${dinheiro(c.valor)}</small>
+                    <div class="detalhes-anexos">${criarAnexoVisual(c.nome || c.link, c.link)}</div>`).join('')}
+            </div>` : ''
 
         const historico = Object.entries(pagamento?.historico || {})
             .map(([, justificativa]) => `
@@ -590,6 +598,7 @@ async function abrirDetalhesPagamentos(id) {
                             </div>
                         </div>
                         `)}
+                    ${blocoComprovantes ? modelo('Comprovante do pagamento', blocoComprovantes) : ''}
                     `)}
 
                 <label><b>Histórico</b></label>
