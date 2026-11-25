@@ -669,18 +669,22 @@ function desenharDetalheConc() {
                 <button type="button" class="fis-botao" data-casar-marcadas disabled onclick="casarMarcadasConc(${l.id})">Casar</button>
             </div>`
     } else if (aba === 'faturas') {
-        const marcadas = new Set(combinacao || (faturas.length && Math.abs(faturas[0].saldo - abs) < 0.005 ? [faturas[0].id] : []))
+        const b = detalheConc.buscaFat || (detalheConc.buscaFat = { busca: '', de: '', ate: '' })
+        const buscando = Boolean(b.busca.trim() || b.de || b.ate)
+        if (!detalheConc.marcadasFat) {
+            const ini = combinacao || (faturas.length && Math.abs(faturas[0].saldo - abs) < 0.005 ? [faturas[0].id] : [])
+            detalheConc.marcadasFat = new Map(ini.map(id => [String(id), faturas.find(f => f.id === id).saldo.toFixed(2)]))
+        }
         corpo = `
-            <p class="cc-explica">Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto com valor parecido ou do mesmo favorecido.${combinacao ? ' <b>Já marcadas as que somam exatamente o valor.</b>' : ''} A baixa sai com a data da linha (${dataFin(l.data)}).</p>
-            <div class="cc-lista" data-marcar-faturas>${faturas.map(f => itemConc({
-                nome: f.participante_nome, marcar: true,
-                antes: `<input type="checkbox" value="${f.id}" ${marcadas.has(f.id) ? 'checked' : ''} onchange="somarFaturasConc()">`,
-                detalhe: escFin([f.numero_documento && `nº ${f.numero_documento}`, f.parcela_texto, f.categoria].filter(Boolean).join(' · ')),
-                tags: [Math.abs(f.saldo - abs) < 0.005 ? tagConc('valor exato', 'azul') : '', f.mesmo_documento ? tagConc('mesmo CPF/CNPJ', 'ok') : f.mesmo_nome ? tagConc('nome parecido', 'ok') : '',
-                    tagConc(`vence ${dataFin(f.vencimento)}`, f.situacao === 'ATRASADO' ? 'alerta' : ''), tagConc(escFin(f.app))].join(''),
-                depois: `<span class="cc-item-campo"><input class="fis-input fis-num cc-valor" type="number" step="0.01" min="0.01" value="${f.saldo.toFixed(2)}" data-saldo="${f.saldo}" oninput="somarFaturasConc()" title="Valor a baixar (saldo ${escFin(dinheiro(f.saldo))})">
-                    <button type="button" class="fis-mini" onclick="event.preventDefault(); abrirFaturaFin(${f.id})">Ver</button></span>`
-            })).join('') || vazioConc('baixa', 'Nenhuma fatura em aberto parecida. Use "Lançar" se não existir fatura.')}</div>`
+            <p class="cc-explica">${buscando ? `Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto encontradas pela busca (as marcadas ficam no topo).`
+                : `Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto com valor parecido ou do mesmo favorecido.${combinacao ? ' <b>Já marcadas as que somam exatamente o valor.</b>' : ''} Não achou? Busque abaixo.`} A baixa sai com a data da linha (${dataFin(l.data)}).</p>
+            <div class="cc-busca-faturas">
+                <input class="fis-input" type="search" data-busca-fat placeholder="Buscar favorecido, CPF/CNPJ, nº, descrição ou valor…" value="${escFin(b.busca)}" oninput="filtrarFaturasConc()">
+                <label class="cc-busca-data" title="Vencimento a partir de"><span>Vence de</span><input class="fis-input" type="date" data-de-fat value="${escFin(b.de)}" onchange="filtrarFaturasConc(true)"></label>
+                <label class="cc-busca-data" title="Vencimento até"><span>até</span><input class="fis-input" type="date" data-ate-fat value="${escFin(b.ate)}" onchange="filtrarFaturasConc(true)"></label>
+                <button type="button" class="fis-mini" data-limpar-fat ${buscando ? '' : 'hidden'} onclick="limparBuscaFaturasConc()">Limpar</button>
+            </div>
+            <div class="cc-lista" data-marcar-faturas>${listaFaturasConc()}</div>`
         rodape = `<div class="cc-rodape-detalhe cc-rodape-faturas" data-ajuste-faturas></div>`
     } else if (aba === 'lancar') {
         const cats = opcoesFinCache?.categorias || []
@@ -716,13 +720,99 @@ function desenharDetalheConc() {
     }
     caixa.innerHTML = `${cabeca}
         <div class="cc-abas" role="tablist">${abas.filter(a => a[4]).map(([k, ic, t, n]) => `
-            <button type="button" role="tab" aria-selected="${aba === k}" class="cc-aba ${aba === k ? 'ativo' : ''}" onclick="estadoConc.aba = '${k}'; desenharDetalheConc()">
+            <button type="button" role="tab" aria-selected="${aba === k}" class="cc-aba ${aba === k ? 'ativo' : ''}" onclick="if (estadoConc.aba === 'faturas') guardarMarcadasFatConc(); estadoConc.aba = '${k}'; desenharDetalheConc()">
                 ${iconeFin(ic)}<span>${t}</span>${n != null ? `<em>${n}</em>` : ''}</button>`).join('')}
             <button type="button" class="cc-aba cc-aba-ignorar" onclick="ignorarLinhaConc(${l.id})" title="Marcar como fora do Financeiro">${iconeFin('cancelar')}<span>Fora</span></button>
         </div>
         <div class="cc-aba-corpo">${corpo}</div>
         ${rodape}`
     if (aba === 'faturas') somarFaturasConc()
+}
+
+// Itens da aba Faturas: sem busca, as candidatas do servidor; com busca, o resultado dela. As marcadas
+// (detalheConc.marcadasFat: id → valor a baixar) ficam sempre no topo, mesmo que a busca não as traga.
+function listaFaturasConc() {
+    const { linha: l, faturas } = detalheConc
+    const abs = Math.abs(l.valor)
+    const porId = detalheConc.fatPorId || (detalheConc.fatPorId = new Map())
+    faturas.forEach(f => porId.set(String(f.id), f))
+    const res = detalheConc.faturasBusca
+    ;(res || []).forEach(f => porId.set(String(f.id), f))
+    const marcadas = detalheConc.marcadasFat
+    const base = res || faturas
+    const lista = [...[...marcadas.keys()].filter(id => !base.some(f => String(f.id) === id)).map(id => porId.get(id)).filter(Boolean), ...base]
+    return lista.map(f => {
+        const marcada = marcadas.has(String(f.id))
+        return itemConc({
+            nome: f.participante_nome, marcar: true,
+            antes: `<input type="checkbox" value="${f.id}" ${marcada ? 'checked' : ''} onchange="somarFaturasConc()">`,
+            detalhe: escFin([f.numero_documento && `nº ${f.numero_documento}`, f.parcela_texto, f.descricao && f.descricao !== f.participante_nome ? f.descricao : '', f.categoria].filter(Boolean).join(' · ')),
+            tags: [Math.abs(f.saldo - abs) < 0.005 ? tagConc('valor exato', 'azul') : '', f.mesmo_documento ? tagConc('mesmo CPF/CNPJ', 'ok') : f.mesmo_nome ? tagConc('nome parecido', 'ok') : '',
+                tagConc(`vence ${dataFin(f.vencimento)}`, f.situacao === 'ATRASADO' ? 'alerta' : ''), tagConc(escFin(f.app))].join(''),
+            depois: `<span class="cc-item-campo"><input class="fis-input fis-num cc-valor" type="number" step="0.01" min="0.01" value="${marcada ? marcadas.get(String(f.id)) : f.saldo.toFixed(2)}" data-saldo="${f.saldo}" oninput="somarFaturasConc()" title="Valor a baixar (saldo ${escFin(dinheiro(f.saldo))})">
+                <button type="button" class="fis-mini" onclick="event.preventDefault(); abrirFaturaFin(${f.id})">Ver</button></span>`
+        })
+    }).join('') || (res ? vazioConc('baixa', 'Nenhuma fatura em aberto com essa busca.')
+        : vazioConc('baixa', 'Nenhuma fatura em aberto parecida. Busque acima ou use "Lançar" se não existir fatura.'))
+}
+
+// Guarda as marcadas (e o valor digitado) antes de redesenhar a lista.
+function guardarMarcadasFatConc() {
+    const m = new Map()
+    document.querySelectorAll('[data-marcar-faturas] .cc-item').forEach(it => {
+        const cb = it.querySelector('input[type=checkbox]')
+        if (cb?.checked) m.set(cb.value, it.querySelector('.cc-valor').value)
+    })
+    detalheConc.marcadasFat = m
+}
+
+function redesenharListaFatConc() {
+    const caixa = document.querySelector('[data-marcar-faturas]')
+    if (!caixa) return
+    caixa.innerHTML = listaFaturasConc()
+    const b = detalheConc.buscaFat
+    const limpar = document.querySelector('[data-limpar-fat]')
+    if (limpar) limpar.hidden = !(b.busca.trim() || b.de || b.ate)
+    somarFaturasConc()
+}
+
+let timerBuscaFatConc = null
+function filtrarFaturasConc(agora = false) {
+    clearTimeout(timerBuscaFatConc)
+    timerBuscaFatConc = setTimeout(buscarFaturasConc, agora ? 0 : 350)
+}
+
+async function buscarFaturasConc() {
+    const det = detalheConc
+    if (!det || !document.querySelector('[data-marcar-faturas]')) return
+    guardarMarcadasFatConc()
+    det.buscaFat = {
+        busca: document.querySelector('[data-busca-fat]')?.value || '',
+        de: document.querySelector('[data-de-fat]')?.value || '',
+        ate: document.querySelector('[data-ate-fat]')?.value || ''
+    }
+    const b = det.buscaFat
+    if (!b.busca.trim() && !b.de && !b.ate) { det.faturasBusca = null; redesenharListaFatConc(); return }
+    const pedido = (det.pedidoFat || 0) + 1
+    det.pedidoFat = pedido
+    document.querySelector('[data-marcar-faturas]').classList.add('cc-carregando')
+    try {
+        const r = await apiFin('conciliacao/faturas', { id: det.linha.id, busca: b.busca, de: b.de, ate: b.ate })
+        if (detalheConc !== det || det.pedidoFat !== pedido) return
+        det.faturasBusca = r.faturas || []
+    } catch (err) {
+        if (detalheConc !== det || det.pedidoFat !== pedido) return
+        det.faturasBusca = []
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+    document.querySelector('[data-marcar-faturas]')?.classList.remove('cc-carregando')
+    guardarMarcadasFatConc()
+    redesenharListaFatConc()
+}
+
+function limparBuscaFaturasConc() {
+    ['[data-busca-fat]', '[data-de-fat]', '[data-ate-fat]'].forEach(s => { const i = document.querySelector(s); if (i) i.value = '' })
+    filtrarFaturasConc(true)
 }
 
 const situacaoTextoConc = s => (SITUACOES_FIN[s] || {}).texto || s || ''
