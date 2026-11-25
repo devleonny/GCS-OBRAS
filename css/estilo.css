@@ -2161,55 +2161,6 @@ img[src$="loading-gcs.png"] {
     max-height: 5rem;
 }
 
-/* Celular: o menu lateral vira uma gaveta que sobe de baixo (mesmo botão, mesmos itens), com
-   o resto da tela escurecido. Tocar fora ou escolher uma tela fecha (gavetaMenuCelular em
-   ferramentas.js). visibility: fechada não recebe foco nem toque; espera a animação para sumir. */
-@media (max-width: 760px) {
-    .side-menu {
-        position: fixed;
-        top: auto;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        width: 100%;
-        height: auto;
-        max-height: 85dvh;
-        flex-basis: auto;
-        padding-bottom: env(safe-area-inset-bottom);
-        border-radius: 16px 16px 0 0;
-        transform: translateY(100%);
-        visibility: hidden;
-        transition: transform 0.3s ease, visibility 0s linear 0.3s;
-    }
-
-    .side-menu.active {
-        width: 100%;
-        transform: translateY(0);
-        visibility: visible;
-        transition: transform 0.3s ease, visibility 0s;
-        box-shadow: 0 0 0 100vmax #0000008c, 0 -4px 16px #00000040;
-    }
-
-    /* Alça da gaveta */
-    .side-menu::before {
-        content: '';
-        flex: none;
-        width: 40px;
-        height: 4px;
-        margin: 8px auto 0;
-        border-radius: 2px;
-        background: #ffffff59;
-    }
-
-    .side-menu .menu-marca {
-        padding: 8px 20px 10px;
-    }
-
-    .side-menu .menu-marca img {
-        width: 110px;
-    }
-}
-
 /* Celular/tablet (também deitado, acima de 760px): as pílulas dos técnicos viram só um círculo
    com o boneco (verde: livres; vermelho: indisponíveis), lado a lado, sem os nomes rolando.
    O texto continua para leitores de tela. Seletores com :has para vencer o min-width de 10.5rem. */

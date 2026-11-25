@@ -527,6 +527,22 @@ function alternarPainelFin(abrir = null) {
     if (!corpo.querySelector('[data-form-fatura]')) painelFinAberto = aberto
 }
 
+// Celular: o painel de ações das telas financeiras é uma gaveta que sobe de baixo (css/financeiro.css).
+// Tocar fora dela, dentro da tela, fecha pela própria seta (cada tela tem a sua função de alternar);
+// o toque não chega ao que está embaixo do escurecido. Pop-ups e a barra do topo ficam de fora.
+document.addEventListener('click', evento => {
+    if (!matchMedia('(max-width: 800px)').matches) return
+    if (!evento.target.closest('.tela')) return
+    const lateral = [...document.querySelectorAll('.fin-lateral')].find(l =>
+        l.querySelector(':scope > .fin-recolher') &&
+        !l.parentElement.classList.contains('recolhido') &&
+        !l.parentElement.querySelector('[data-form-fatura]'))
+    if (!lateral || lateral.contains(evento.target)) return
+    evento.preventDefault()
+    evento.stopPropagation()
+    lateral.querySelector(':scope > .fin-recolher').click()
+}, true)
+
 // ---------------------------------------------------------------- totais embaixo das colunas de valor
 // Com faturas marcadas, somam só as marcadas (de qualquer página). Sem nenhuma marcada, somam TODO o filtro
 // da tabela (todas as páginas), não só a página aberta; a soma do filtro só recalcula quando o filtro muda.

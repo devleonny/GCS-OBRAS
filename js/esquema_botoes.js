@@ -134,7 +134,6 @@ async function acaoMenu(id, funcao, temFilhos) {
     }
 
     if (funcao && typeof window[funcao] === 'function') {
-        if (!temFilhos && gavetaMenuCelular()) fecharGavetaMenu()
         await window[funcao]()
     }
 
