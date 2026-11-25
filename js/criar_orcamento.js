@@ -1146,7 +1146,13 @@ async function enviarDadosOrcamento() {
 
         const { origem, ...orcamentoFinal } = orcamentoBase // Origem não precisa continuar no objeto;
 
-        const { success } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoFinal) || {}
+        // O chamado nasce no servidor, no mesmo salvamento (SCRIPTS/orcamento_chamado.js): direto pelo
+        // orçamento → chamado próprio; pelo chamado → o chamado G passa a ser o ORC, ou o orçamento nasce
+        // vinculado ao chamado que já tem orçamento. origem_chamado não é gravado no orçamento.
+        if (origem?.idOcorrencia)
+            orcamentoFinal.origem_chamado = { id: origem.idOcorrencia }
+
+        const { success, chamado: chamadoLigado } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoFinal) || {}
 
         if (success) {
 
@@ -1163,46 +1169,12 @@ async function enviarDadosOrcamento() {
             // Já com o contrato definitivo: deixa o PDF pronto no cache, em segundo plano (sem await).
             preaquecerPdfOrcamento(orcamentoBase.id)
 
-            // Caso seja um orçamento vinculado ou troca de Ocorrência para ORC;
+            // Aviso flutuante: o fluxo segue e troca de tela, um popup seria fechado.
+            if (chamadoLigado?.aviso)
+                balaoNotificacao({ imagem: 'imagens/alerta.png', texto: chamadoLigado.aviso, tempo: 15 })
+
+            // Criado pelo chamado: volta para os chamados.
             if (orcamentoBase.origem) {
-
-                let { idOrcamento, idOcorrencia } = orcamentoBase.origem || {}
-
-                // Se existir idOrcamento, então é vinculado;
-                if (idOrcamento) {
-                    const vinculo = await enviarVinculo({ slave: contrato, master: idOcorrencia })
-                    // Aviso flutuante: o fluxo segue e troca de tela, um popup seria fechado.
-                    if (!vinculo?.success)
-                        balaoNotificacao({ imagem: 'imagens/alerta.png', texto: `Orçamento salvo, mas não vinculado: ${vinculo?.mensagem}`, tempo: 15 })
-                }
-
-                // Correção principal da criação do orçamento, vem com o ID do orçamento;
-                const dataRegistro = dataServidor()
-                const correcoes = {
-                    [orcamentoBase.id]: {
-                        data: dataRegistro.toLocaleString(),
-                        datas: {},
-                        descricao: `Orçamento criado ${contrato || ''}`,
-                        dtCorrecao: dataServidor().toISOString().slice(0, 10),
-                        tipoCorrecao: 'WiGZl',
-                        usuario: acesso.usuario
-                    }
-                }
-
-                // Salvamento da ocorrência, observar bifurcação (ORC ou G);
-                // Se ORC, então este orçamento é vinculado;
-
-                if (!idOcorrencia.includes('ORC')) {
-                    // Se G ou qualquer outro, então é substitutivo para ORC;
-                    // Sem a troca, as correções iriam para um chamado que não existe.
-                    if (!await desvincularOcorrencia(idOcorrencia, contrato))
-                        return
-                    idOcorrencia = contrato
-                }
-
-                // Salvar uma correção obrigatoriamente;
-                for (const [idCorrecao, correcao] of Object.entries(correcoes))
-                    await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, correcao)
 
                 // Orçamento salvo: o rascunho sai da lista "Em edição" (antes ficava para sempre).
                 baseOrcamento(undefined, 'salvo')
@@ -1232,38 +1204,6 @@ async function enviarDadosOrcamento() {
         popup({ mensagem: 'Não foi possível concluir o salvamento. O orçamento em edição foi mantido. Confira sua sessão e tente novamente.' })
     } finally {
         removerOverlay()
-    }
-}
-
-// Retorna true quando o chamado passou a usar o número do orçamento.
-async function desvincularOcorrencia(id, contrato) {
-    try {
-        const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
-        const resposta = await fetch(`${api}/desvincular-ocorrencia`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                id,
-                contrato,
-                usuario: acesso.usuario
-            })
-        })
-
-        const dados = await resposta.json().catch(() => ({}))
-
-        if (!resposta.ok || !dados.success) {
-            popup({ mensagem: `Orçamento ${contrato} salvo, mas o chamado não foi atualizado: ${dados.mensagem || 'Erro na requisição'}` })
-            return false
-        }
-
-        return true
-
-    } catch (err) {
-        popup({ mensagem: err.message || 'Erro de conexão com o servidor' })
-        return false
     }
 }
 

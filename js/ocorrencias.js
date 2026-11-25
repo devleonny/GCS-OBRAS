@@ -1263,6 +1263,15 @@ function criarLinhaOcorrencia(ocorrencia) {
         ? `<button onclick="criarOrcamentoVinculado('${id}')">Criar orçamento</button>`
         : ''
 
+    // Chamado próprio de um orçamento, sem interações (só o ORÇAMENTO CRIADO) e sem orçamentos vinculados:
+    // pode ir para outro chamado. O servidor confere de novo (SCRIPTS/orcamento_chamado.js).
+    const interacoesChamado = Object.values(ocorrencia?.correcoes || {}).filter(c => c?.tipoCorrecao !== 'WiGZl').length
+    const vinculaveis = contratos_vinculados || []
+    const vincularChamado = apenasAutorizados && /^ORC_\d+$/.test(id) && !interacoesChamado &&
+        vinculaveis.length === 1 && vinculaveis[0]?.id_orcamento
+        ? `<button onclick="vincularChamadoOutro('${id}')" title="O orçamento ${id} passa a usar o outro chamado; este sai como vinculado">Vincular a outro chamado</button>`
+        : ''
+
     const spanNumOrcs = (contratos_vinculados || {})
         .map(c => {
 
@@ -1344,6 +1353,7 @@ function criarLinhaOcorrencia(ocorrencia) {
                 <div class="linha-orcamentos">
                     ${spanNumOrcs}
                     ${criarOrcamento}
+                    ${vincularChamado}
                 </div>
 
                 <div class="bloco-principal">${blocoPrincipal}</div>
@@ -1825,6 +1835,63 @@ async function criarOrcamentoVinculado(idOcorrencia, idCorrecao) {
 
     removerOverlay()
 
+}
+
+// Chamado próprio de um orçamento → outro chamado: o orçamento vira vinculado (slave) do escolhido e este
+// chamado sai como excluído "Vinculado ao chamado ...". Só sem interações (o servidor recusa e explica).
+function vincularChamadoOutro(idChamado) {
+
+    const aberto = document.querySelector('[name="chamadoMaster"][data-slave]')
+    if (aberto) {
+        trazerJanelaParaFrente(aberto)
+        if (aberto.dataset.slave !== idChamado)
+            popup({ mensagem: `Já existe um <b>Vincular a outro chamado</b> aberto para o ${escaparAtributo(aberto.dataset.slave)}.<br>Conclua ou feche esse antes de abrir outro.` })
+        return
+    }
+
+    controlesCxOpcoes.chamadoMaster = {
+        base: 'vw_dados_ocorrencias',
+        retornar: ['id'],
+        ordenar: { path: 'timestamp', direcao: 'DESC' },
+        colunas: {
+            'Chamado': { chave: 'id' },
+            'Unidade': { chave: 'cliente.nome' },
+            'Cidade': { chave: 'cliente.cidade' },
+            'Descrição': { chave: 'descricao' }
+        }
+    }
+
+    const linhas = [
+        {
+            texto: `Escolha o chamado que o orçamento <b>${idChamado}</b> vai usar`,
+            elemento: `<span class="opcoes" data-slave="${idChamado}" name="chamadoMaster" onclick="cxOpcoes('chamadoMaster')">Selecione</span>`
+        },
+        { texto: `O chamado ${idChamado} sai como excluído, com o motivo "Vinculado ao chamado ...". Desvincular o orçamento depois traz ele de volta.` }
+    ]
+
+    const botoes = [{ texto: 'Vincular', img: 'concluido', funcao: `confirmarVinculoChamado('${idChamado}')` }]
+
+    popup({ linhas, botoes, titulo: `Vincular a outro chamado · ${idChamado}` })
+}
+
+async function confirmarVinculoChamado(slave) {
+
+    const master = document.querySelector(`[name="chamadoMaster"][data-slave="${CSS.escape(slave)}"]`)?.textContent?.trim()
+
+    if (!master || master == 'Selecione')
+        return popup({ mensagem: 'Escolha um chamado' })
+
+    if (master == slave)
+        return popup({ mensagem: 'Os chamados são iguais!' })
+
+    overlayAguarde()
+
+    const { success, mensagem = 'Falha ao vincular: Fale com o suporte.' } = await enviarVinculo({ master, slave })
+
+    if (success)
+        removerTodosPopups()
+
+    popup({ mensagem })
 }
 
 async function voltarOcorrencias() {
