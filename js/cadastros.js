@@ -8,7 +8,12 @@ const basesCadastro = {
     prioridades: { titulo: 'Prioridades', singular: 'Prioridade' },
     correcoes: {
         titulo: 'Correções', singular: 'Correção',
-        campos: [{ chave: 'fora_garantia', texto: 'Permitido fora da garantia', tipo: 'simNao' }]
+        campos: [
+            { chave: 'fora_garantia', texto: 'Permitido fora da garantia', tipo: 'simNao' },
+            // Status automático do sistema (FATURADO da nota, logística...) entra no histórico do chamado,
+            // mas não troca este status da aba: só uma correção lançada por pessoa (SCRIPTS/snapshots.js).
+            { chave: 'nao_sobrepor', texto: 'Não sobreposto por status automático', tipo: 'simNao' }
+        ]
     }
     // Transportadoras saiu daqui (16/11/2026): a tabela não era usada; as transportadoras da NF-e e da
     // separação são os clientes com a tag TRANSPORTADORA.
