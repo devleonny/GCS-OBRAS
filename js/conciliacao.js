@@ -542,11 +542,11 @@ function cabecaConc(l) {
 }
 
 // Item de lista (fatura, baixa, sugestão): avatar, nome, detalhes, etiquetas e valor.
-function itemConc({ nome, detalhe = '', tags = '', valor = null, depois = '', antes = '', marcar = false, classe = '' }) {
+function itemConc({ nome, detalhe = '', tags = '', valor = null, depois = '', antes = '', marcar = false, classe = '', data = '' }) {
     const tag = marcar ? 'label' : 'div'
     const v = valor != null ? Math.abs(Number(valor)).toFixed(2) : ''
     return `
-        <${tag} class="cc-item ${classe}"${v ? ` data-busca="${v} ${v.replace('.', ',')}"` : ''}>
+        <${tag} class="cc-item ${classe}"${v ? ` data-busca="${v} ${v.replace('.', ',')}"` : ''}${data ? ` data-data="${escFin(String(data).slice(0, 10))}"` : ''}>
             ${antes}
             ${avatarConc(nome)}
             <span class="cc-item-texto">
@@ -560,25 +560,33 @@ function itemConc({ nome, detalhe = '', tags = '', valor = null, depois = '', an
 }
 
 // Busca local nas listas já carregadas (Baixas lançadas e baixas de uma linha já casada): favorecido,
-// descrição, categoria, conta, nº ou valor (1234,56 / 1234.56). Marcadas não somem com a busca.
+// descrição, categoria, conta, nº ou valor (1234,56 / 1234.56) e data da baixa (de/até). Marcadas não somem.
 const buscaListaConc = alvo => `
     <div class="cc-busca-faturas">
-        <input class="fis-input" type="search" placeholder="Buscar favorecido, nº, descrição, categoria ou valor…" oninput="filtrarListaConc(this, '${alvo}')">
+        <input class="fis-input" type="search" data-busca-lista placeholder="Buscar favorecido, nº, descrição, categoria ou valor…" oninput="filtrarListaConc(this, '${alvo}')">
+        <label class="cc-busca-data" title="Baixa a partir de"><span>Baixa de</span><input class="fis-input" type="date" data-de-lista onchange="filtrarListaConc(this, '${alvo}')"></label>
+        <label class="cc-busca-data" title="Baixa até"><span>até</span><input class="fis-input" type="date" data-ate-lista onchange="filtrarListaConc(this, '${alvo}')"></label>
+        <button type="button" class="fis-mini" data-limpar-lista hidden onclick="this.parentElement.querySelectorAll('input').forEach(i => { i.value = '' }); filtrarListaConc(this, '${alvo}')">Limpar</button>
     </div>`
 
-function filtrarListaConc(input, alvo) {
-    const termos = normalFin(input.value).split(/s+/).filter(Boolean)
+function filtrarListaConc(el, alvo) {
+    const caixa = el.closest('.cc-busca-faturas')
+    const termos = normalFin(caixa.querySelector('[data-busca-lista]').value).split(/s+/).filter(Boolean)
+    const de = caixa.querySelector('[data-de-lista]').value, ate = caixa.querySelector('[data-ate-lista]').value
+    caixa.querySelector('[data-limpar-lista]').hidden = !(termos.length || de || ate)
     const lista = document.querySelector(alvo)
     if (!lista) return
     let visiveis = 0
     lista.querySelectorAll('.cc-item').forEach(it => {
         const texto = `${normalFin(it.textContent)} ${it.dataset.busca || ''}`
-        const mostra = Boolean(it.querySelector('input[type=checkbox]:checked')) || termos.every(t => texto.includes(t))
+        const d = it.dataset.data || ''
+        const mostra = Boolean(it.querySelector('input[type=checkbox]:checked'))
+            || (termos.every(t => texto.includes(t)) && (!de || (d && d >= de)) && (!ate || (d && d <= ate)))
         it.hidden = !mostra
         if (mostra) visiveis++
     })
     const vazio = lista.querySelector('[data-vazio-busca]')
-    if (!visiveis && termos.length) { if (!vazio) lista.insertAdjacentHTML('beforeend', `<div data-vazio-busca>${vazioConc('baixa', 'Nada com essa busca.')}</div>`) }
+    if (!visiveis && (termos.length || de || ate)) { if (!vazio) lista.insertAdjacentHTML('beforeend', `<div data-vazio-busca>${vazioConc('baixa', 'Nada com essa busca.')}</div>`) }
     else vazio?.remove()
 }
 
@@ -620,9 +628,9 @@ async function escolherLinhaConc(chave, redesenhar = true) {
                 : `<b class="cc-sub-titulo">${iconeFin('check')} Casada com ${l.casadas.length === 1 ? 'esta baixa' : `estas ${l.casadas.length} baixas`}</b>
             ${l.casadas.length > 1 ? buscaListaConc('[data-lista-casadas]') : ''}
             <div class="cc-lista" data-lista-casadas>${l.casadas.map(b => itemConc({
-                nome: b.participante || b.descricao, valor: b.mov,
+                nome: b.participante || b.descricao, valor: b.mov, data: b.data,
                 detalhe: escFin([b.tipo === 'RECEBER' ? 'Receber' : 'Pagar', b.descricao, b.numero && `nº ${b.numero}`, b.conta].filter(Boolean).join(' · ')),
-                tags: [b.automatico ? tagConc('casou sozinha', 'ok') : '', b.criou ? tagConc('baixa feita aqui', 'azul') : '', tagConc(escFin(b.app))].join(''),
+                tags: [b.automatico ? tagConc('casou sozinha', 'ok') : '', b.criou ? tagConc('baixa feita aqui', 'azul') : '', b.data ? tagConc(`baixa em ${dataFin(String(b.data).slice(0, 10))}`) : '', tagConc(escFin(b.app))].join(''),
                 depois: `<button type="button" class="fis-mini" onclick="abrirFaturaFin(${b.titulo_id})">Fatura</button>`
             })).join('')}</div>`}
             <div class="cc-rodape-detalhe">
@@ -682,7 +690,7 @@ function desenharDetalheConc() {
             <p class="cc-explica">Baixas de ${tipo === 'RECEBER' ? 'recebimento' : 'pagamento'} destas contas, até 10 dias antes ou depois, que ainda não casaram. Marque as que formam esta linha (ex.: as pessoas do lote de salários).</p>
             ${baixas.length > 1 ? buscaListaConc('[data-marcar-baixas]') : ''}
             <div class="cc-lista" data-marcar-baixas>${baixas.map(b => itemConc({
-                nome: b.participante_nome || b.descricao, marcar: true, valor: b.mov,
+                nome: b.participante_nome || b.descricao, marcar: true, valor: b.mov, data: b.data,
                 antes: `<input type="checkbox" value="${b.id}" data-valor="${b.mov}" onchange="somarMarcadasConc()">`,
                 detalhe: escFin([b.descricao, b.categoria, b.conta].filter(Boolean).join(' · ')),
                 tags: [Math.abs(Math.abs(b.mov) - abs) < 0.005 ? tagConc('valor exato', 'azul') : '', b.data === l.data ? tagConc('mesmo dia', 'ok') : tagConc(`baixa em ${dataFin(b.data)}`),
