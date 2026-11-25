@@ -2650,10 +2650,10 @@ function formularioCategoriaFin(id = null, grupo = false) {
                     <div class="fis-grade">
                         <label class="fis-campo"><span>Tipo</span><select class="fis-input" name="tipo" onchange="filtrarGruposCategoriaFin(this)">
                             ${[['DESPESA', 'Despesa'], ['RECEITA', 'Receita'], ['TRANSFERENCIA', 'Transferência']].map(([v, n]) => `<option value="${v}" ${tipo === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-                        <label class="fis-campo"><span>Código</span><input class="fis-input" name="codigo" maxlength="20" value="${escFin(c?.codigo || '')}" placeholder="${ehGrupo ? 'ex.: 2.11' : 'ex.: 2.01.99'}"></label>
+                        <div class="fis-campo" title="Dado pela hierarquia: o primeiro número livre do ${ehGrupo ? 'tipo' : 'grupo'}"><span>Código</span><b class="fin-cat-codigo-form" data-codigo-categoria>${escFin(c?.codigo || '')}</b></div>
                         <label class="fis-campo fis-largo"><span>Nome</span><input class="fis-input" name="nome" maxlength="80" value="${escFin(c?.nome || '')}"></label>
                     </div>
-                    ${ehGrupo ? '' : `<label class="fis-campo"><span>Grupo</span><select class="fis-input" name="pai_id">${grupos.map(g => `<option value="${g.id}" data-tipo="${g.tipo}" ${g.id === c?.pai_id ? 'selected' : ''}>${escFin(g.codigo)} · ${escFin(g.nome)}</option>`).join('')}</select></label>`}
+                    ${ehGrupo ? '' : `<label class="fis-campo"><span>Grupo</span><select class="fis-input" name="pai_id" onchange="previaCodigoCategoriaFin(this)">${grupos.map(g => `<option value="${g.id}" data-tipo="${g.tipo}" ${g.id === c?.pai_id ? 'selected' : ''}>${escFin(g.codigo)} · ${escFin(g.nome)}</option>`).join('')}</select></label>`}
                     ${estadoCategoriasFin.podeExcluidas ? `<label class="fis-check"><input type="checkbox" name="excluida" ${c?.excluida ? 'checked' : ''}> Excluída (fora de uso; só fin, diretoria e adm veem)</label>` : ''}
                 </div>`
         }],
@@ -2663,11 +2663,33 @@ function formularioCategoriaFin(id = null, grupo = false) {
     if (sel) filtrarGruposCategoriaFin(sel)
 }
 
+// Prévia do código que o servidor vai dar: prefixo do tipo (0/1/2) ou código do grupo + primeiro número livre.
+// Editando sem mudar tipo/grupo, fica o código atual.
+function previaCodigoCategoriaFin(campo) {
+    const form = campo.closest('[data-form-categoria]')
+    const lista = estadoCategoriasFin.lista
+    const atual = lista.find(x => String(x.id) === form.dataset.id)
+    const grupo = Boolean(form.dataset.grupo)
+    const tipo = form.querySelector('[name="tipo"]').value
+    const paiId = form.querySelector('[name="pai_id"]')?.value || ''
+    const codigo = form.querySelector('[data-codigo-categoria]')
+    if (atual && atual.tipo === tipo && atual.grupo === grupo && String(atual.pai_id || '') === String(grupo ? '' : paiId)) return (codigo.textContent = atual.codigo)
+    const prefixo = grupo ? { TRANSFERENCIA: '0', RECEITA: '1', DESPESA: '2' }[tipo] : lista.find(x => String(x.id) === paiId)?.codigo
+    if (!prefixo) return (codigo.textContent = '')
+    const usados = new Set(lista.map(x => String(x.codigo || ''))
+        .filter(k => k.startsWith(prefixo + '.') && /^\d{1,3}$/.test(k.slice(prefixo.length + 1)))
+        .map(k => Number(k.slice(prefixo.length + 1))))
+    let n = 1
+    while (n <= 99 && usados.has(n)) n++
+    codigo.textContent = n > 99 ? 'sem código livre' : `${prefixo}.${String(n).padStart(2, '0')}`
+}
+
 function filtrarGruposCategoriaFin(select) {
     const pai = select.closest('[data-form-categoria]').querySelector('[name="pai_id"]')
-    if (!pai) return
+    if (!pai) return previaCodigoCategoriaFin(select)
     ;[...pai.options].forEach(o => { o.hidden = o.dataset.tipo !== select.value })
     if (pai.selectedOptions[0]?.hidden) pai.value = [...pai.options].find(o => !o.hidden)?.value || ''
+    previaCodigoCategoriaFin(select)
 }
 
 async function salvarCategoriaFin(botao) {
@@ -2676,7 +2698,9 @@ async function salvarCategoriaFin(botao) {
     try {
         overlayAguarde()
         await apiFin('categoria/salvar', {
-            id: form.dataset.id || undefined, grupo: Boolean(form.dataset.grupo), tipo: v('tipo').value, codigo: v('codigo').value,
+            id: form.dataset.id || undefined, grupo: Boolean(form.dataset.grupo), tipo: v('tipo').value,
+            // O servidor dá o código sozinho; vai junto só para o servidor antigo, que ainda o exige.
+            codigo: (form.querySelector('[data-codigo-categoria]')?.textContent.trim().match(/^[0-9.]+$/) || [])[0],
             nome: v('nome').value, pai_id: v('pai_id')?.value || null, excluida: v('excluida')?.checked || false
         })
         removerOverlay()

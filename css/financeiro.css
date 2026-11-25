@@ -154,6 +154,7 @@
 .fin-grupo .fin-categoria:first-child { border-top: none; }
 .fin-grupo > .fin-categoria { padding-left: 24px; }
 .fin-cat-codigo { color: #5b6b61; font-variant-numeric: tabular-nums; }
+.fin-cat-codigo-form { display: block; padding: 9px 0; font-size: 15px; color: #26332b; font-variant-numeric: tabular-nums; }
 .fin-categoria.excluida { color: #8a968f; }
 .fin-categoria.excluida small { color: #b45309; }
 
