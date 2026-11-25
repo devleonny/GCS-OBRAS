@@ -429,17 +429,17 @@ function desenharConciliarConc() {
             ${infoPainelCartaoFin('Falta explicar no mês', Math.abs(falta) < 0.005 ? '✔ R$ 0,00' : dinheiro(falta), Math.abs(falta) < 0.005 ? 'cf-ok' : 'cf-falta')}
         </div>
         <hr>
-        ${acaoPainelCartaoFin('check', unicas ? `Confirmar as ${unicas} sugestões` : 'Confirmar sugestões', 'confirmarSugestoesConc()', { ativo: unicas > 0, motivo: 'nenhuma sugestão única neste mês' })}
+        ${acaoPainelCartaoFin('check', unicas ? `Confirmar ${unicas} sugestões` : 'Confirmar sugestões', 'confirmarSugestoesConc()', { ativo: unicas > 0, motivo: 'nenhuma sugestão única neste mês' })}
         ${acaoPainelCartaoFin('baixar', 'Importar OFX', 'importarOfxConc()')}
-        ${acaoPainelCartaoFin('editar', 'Dados da conta do banco', `formularioContaBancoConc(${c.id})`)}
         <hr>
-        <div class="cc-fechar">
+        <div class="cc-fechar" title="Fechado: as baixas até a data travam e a conta entra conferida no Fluxo de Caixa">
             <small>Fechar o período até</small>
-            <input class="fis-input" type="date" data-fechar-ate value="${escFin(sugestaoFechar)}" max="${escFin(ontemConc())}" min="${escFin(c.inicio)}">
+            <div class="cc-fechar-linha">
+                <input class="fis-input" type="date" data-fechar-ate value="${escFin(sugestaoFechar)}" max="${escFin(ontemConc())}" min="${escFin(c.inicio)}">
+                <button type="button" class="fis-mini" onclick="fecharPeriodoConc()">Fechar</button>
+            </div>
         </div>
-        ${acaoPainelCartaoFin('vencimento', 'Fechar até a data', 'fecharPeriodoConc()')}
-        ${c.conferida_ate ? acaoPainelCartaoFin('voltar', `Reabrir (fechada até ${dataFin(c.conferida_ate)})`, 'reabrirPeriodoConc()') : ''}
-        <small class="cc-nota">Fechado: as baixas até a data travam e a conta entra conferida no Fluxo de Caixa.</small>
+        ${c.conferida_ate ? acaoPainelCartaoFin('voltar', `Reabrir (até ${dataFin(c.conferida_ate)})`, 'reabrirPeriodoConc()') : ''}
         <hr>
         ${acaoPainelCartaoFin('voltar', 'Todas as contas', 'telaContasConc()')}`
     tela.innerHTML = janelaConc(`Conciliar · ${escFin(c.nome)}`, `
@@ -454,13 +454,15 @@ function desenharConciliarConc() {
                     ${[['TODAS', 'Todas'], ['SUGESTAO', 'Sugestões'], ['SEM_PAR', 'Sem par'], ['SO_GCS', 'Só no GCS'], ['CASADA', 'Casadas'], ['IGNORADA', 'Fora do Financeiro']]
                         .map(([k, t]) => `<button type="button" class="cc-filtro ${estadoConc.filtro === k ? 'ativo' : ''}" onclick="estadoConc.filtro = '${k}'; desenharConciliarConc(); if (estadoConc.sel) escolherLinhaConc(estadoConc.sel, false)">${t} <b>${conta(k)}</b></button>`).join('')}
                 </div>
-                <input class="fis-input cc-busca" type="search" placeholder="Buscar descrição, CPF/CNPJ ou valor…" value="${escFin(estadoConc.busca)}"
-                    oninput="estadoConc.busca = this.value; desenharTabelaConc()">
             </div>
             ${(d.faltam_dias || []).length ? `<div class="cf-faixa cf-falta">Falta extrato de ${d.faltam_dias.slice(0, 4).map(f => f.de === f.ate ? dataFin(f.de) : `${dataFin(f.de)} a ${dataFin(f.ate)}`).join(', ')}${d.faltam_dias.length > 4 ? '…' : ''}: importe esses dias para poder fechar.</div>` : ''}
             ${d.linhas.length || d.so_gcs.length ? '' : `<div class="cf-faixa">Nenhuma linha de extrato em ${mesNomeConc(d.mes)}. <span class="fis-link" onclick="importarOfxConc()">Importar OFX</span></div>`}
             <div class="cc-area" data-area-conc>
-                <div class="cc-rolagem" data-tabela-conc></div>
+                <div class="cc-coluna-lista">
+                    <input class="fis-input cc-busca" type="search" placeholder="Buscar descrição, CPF/CNPJ ou valor…" value="${escFin(estadoConc.busca)}"
+                        oninput="estadoConc.busca = this.value; desenharTabelaConc()">
+                    <div class="cc-rolagem" data-tabela-conc></div>
+                </div>
                 <section class="cc-detalhe" data-detalhe-conc><p class="cc-explica cc-escolha">Escolha uma linha à esquerda para ver as opções.</p></section>
             </div>
         </div>`, painel)
@@ -472,11 +474,14 @@ function desenharConciliarConc() {
 function ajustarAlturaConc() {
     const area = document.querySelector('[data-area-conc]')
     if (!area) return
-    area.style.height = `${Math.max(window.innerHeight - area.getBoundingClientRect().top - 16, 360)}px`
+    const caixa = document.querySelector('.tela')
+    const fundo = caixa ? caixa.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(caixa).paddingBottom) || 0) : window.innerHeight
+    const fimTela = Math.min(fundo, window.innerHeight) - 4
+    area.style.height = `${Math.max(fimTela - area.getBoundingClientRect().top, 300)}px`
     // O painel de ações (direita) não pode passar do rodapé: senão a página inteira rola e a lista some embaixo.
     const painel = document.querySelector('[data-corpo-conc] .fin-painel')
     if (painel) {
-        painel.style.maxHeight = `${Math.max(window.innerHeight - painel.getBoundingClientRect().top - 16, 360)}px`
+        painel.style.maxHeight = `${Math.max(fimTela - painel.getBoundingClientRect().top, 300)}px`
         painel.style.overflowY = 'auto'
     }
 }

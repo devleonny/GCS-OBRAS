@@ -87,8 +87,9 @@
 .cc-debito { color: #9b1c12; }
 .cc-credito { color: #1f5a2e; }
 .cc-area { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(360px, 1fr); gap: 12px; min-height: 360px; }
-.cc-rolagem { overflow: auto; min-height: 0; border: 1px solid var(--fin-borda, #d6e0da); border-radius: 8px; background: #fff; }
-@media (max-width: 1100px) { .cc-area { grid-template-columns: 1fr; height: auto !important; } .cc-rolagem { max-height: 55vh; } }
+.cc-coluna-lista { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.cc-rolagem { flex: 1 1 auto; overflow: auto; min-height: 0; border: 1px solid var(--fin-borda, #d6e0da); border-radius: 8px; background: #fff; }
+@media (max-width: 1100px) { .cc-area { grid-template-columns: 1fr; height: auto !important; } .cc-coluna-lista .cc-rolagem { max-height: 55vh; } }
 
 .cc-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px; }
 .cc-mes { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #4f5d55; }
@@ -96,7 +97,7 @@
 .cc-filtros { display: flex; flex-wrap: wrap; gap: 6px; }
 .cc-filtro { padding: 5px 11px; border-radius: 999px; border: 1px solid #c9d6ce; background: #fff; color: #1f2a24; font-size: 12.5px; cursor: pointer; }
 .cc-filtro.ativo { background: var(--fin-verde, #356443); border-color: var(--fin-verde, #356443); color: #fff; }
-.cc-busca { flex: 1 1 200px; min-width: 180px; max-width: 320px; margin-left: auto; }
+.cc-busca { width: 100%; box-sizing: border-box; }
 
 .cc-detalhe { overflow-y: auto; min-height: 0; padding: 0; background: #f7faf8; border: 1px solid var(--fin-borda, #d6e0da); border-radius: 10px; display: flex; flex-direction: column; }
 .cc-escolha { margin: auto; text-align: center; color: #7a877f; }
@@ -105,6 +106,9 @@
 .cc-botoes .fis-input { width: auto; max-width: 420px; }
 .cc-fechar { display: flex; flex-direction: column; gap: 4px; padding: 0 6px 4px; }
 .cc-fechar small { color: #5f6d65; font-size: 11px; }
+.cc-fechar-linha { display: flex; gap: 6px; }
+.cc-fechar-linha .fis-input { flex: 1 1 auto; min-width: 0; }
+.cc-tela .fin-painel hr { margin: 6px 0; }
 
 .cc-form { display: flex; flex-direction: column; gap: 10px; padding: 12px; width: min(760px, 88vw); }
 .cc-form small { color: #5f6d65; }
