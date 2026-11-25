@@ -95,8 +95,8 @@ function desenharComprovantesFin() {
 function descreverCandidatoFin(o) {
     const nome = o.nome || '(sem nome)'
     return o.acao === 'ANEXAR'
-        ? `Anexar ao pagamento de ${dataFin(o.data)} · ${nome} · ${dinheiro(o.total)} · ${o.app}`
-        : `Pagar · ${nome} · vence ${dataFin(o.vencimento)} · ${dinheiro(o.saldo)} · ${o.app}${o.parcela_texto && o.parcela_texto !== '1/1' ? ` · ${o.parcela_texto}` : ''}`
+        ? `Anexar ao pagamento de ${dataFin(o.data)} · ${nome} · ${dinheiroTexto(o.total)} · ${o.app}`
+        : `Pagar · ${nome} · vence ${dataFin(o.vencimento)} · ${dinheiroTexto(o.saldo)} · ${o.app}${o.parcela_texto && o.parcela_texto !== '1/1' ? ` · ${o.parcela_texto}` : ''}`
 }
 
 function linhaComprovanteFin(p, i) {
