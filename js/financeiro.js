@@ -486,7 +486,7 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
                 'Juros e multas': { chave: 'juros_multa', tipoOrdenacao: 'numero' },
                 'Valor pago': { chave: 'valor_pago', tipoOrdenacao: 'numero' },
                 // Só a pagar: o comprovante do banco no pagamento (js/financeiro_comprovantes.js).
-                ...(pagar ? { 'Comprovante': { chave: 'comprovante', tipoPesquisa: 'select', rotulos: { 'NÃO': 'FALTA' } } } : {}),
+                ...(pagar ? { 'Comprovante': { chave: 'comprovante', tipoPesquisa: 'select', rotulos: { SIM: '✓', 'NÃO': '✗' } } } : {}),
                 'Observação': { chave: 'observacao' },
                 'Departamento': { chave: 'departamentos' },
                 'Categorias': { chave: 'categorias_texto' },
@@ -651,7 +651,7 @@ async function baixarExcelFaturasFin() {
             { titulo: 'Desconto', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.desconto) || 0 },
             { titulo: 'Juros e multas', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.juros_multa) || 0 },
             { titulo: 'Valor pago', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor_pago) || 0 },
-            ...(pagar ? [{ titulo: 'Comprovante', largura: 13, centro: true, valor: d => d.comprovante === 'NÃO' ? 'Falta' : d.comprovante === 'SIM' ? 'Sim' : '' }] : []),
+            ...(pagar ? [{ titulo: 'Comprovante', largura: 13, centro: true, valor: d => d.comprovante === 'NÃO' ? '✗' : d.comprovante === 'SIM' ? '✓' : '' }] : []),
             { titulo: 'Observação', largura: 40, quebra: true, valor: d => d.observacao || '' },
             { titulo: 'Categoria', largura: 34, quebra: true, valor: categorias },
             { titulo: 'Departamento', largura: 22, quebra: true, valor: departamentos },

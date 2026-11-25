@@ -1296,8 +1296,8 @@
 .fin-comp-opcao { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; border: 1px solid var(--fin-borda); border-radius: 6px; background: #fff; text-align: left; cursor: pointer; }
 .fin-comp-opcao:hover { background: #eef6f0; border-color: #8cb69a; }
 .fin-comp-opcao small { color: #64748b; }
-.fin-comp-tem { color: var(--fin-verde); font-weight: 600; white-space: nowrap; }
-.fin-comp-falta { color: #b45309; white-space: nowrap; }
+.fin-comp-tem { color: var(--fin-verde); font-weight: 700; font-size: 1.15em; }
+.fin-comp-falta { color: #b91c1c; font-weight: 700; font-size: 1.15em; }
 .fin-comp-celula { display: inline-flex; gap: 4px; }
 .fin-comp-anexar { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
 .fin-comp-anexar .fin-icone, .fin-comp-celula .fin-icone { width: 14px; height: 14px; }

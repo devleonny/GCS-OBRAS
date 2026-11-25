@@ -330,7 +330,7 @@ function celulaComprovanteBaixaFin(b, tituloId) {
 
 // Coluna "Comprovante" da lista de faturas.
 function colunaComprovanteFin(d) {
-    if (d.comprovante === 'SIM') return '<span class="fin-comp-tem" title="Todos os pagamentos têm comprovante">✓ Sim</span>'
-    if (d.comprovante === 'NÃO') return '<span class="fin-comp-falta" title="Pagamento sem comprovante">Falta</span>'
+    if (d.comprovante === 'SIM') return '<span class="fin-comp-tem" title="Todos os pagamentos têm comprovante" aria-label="Com comprovante">✓</span>'
+    if (d.comprovante === 'NÃO') return '<span class="fin-comp-falta" title="Pagamento sem comprovante" aria-label="Sem comprovante">✗</span>'
     return ''
 }
