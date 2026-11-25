@@ -979,7 +979,7 @@ async function abrirDiaTecnicos(iso) {
     }
     if (proximos) renderTecnicosIndisponiveis(proximos.indisponiveis, proximos.dias)
 
-    const { dias = [], podeMarcar, tipos = [] } = resposta
+    const { dias = [], podeMarcar, tipos = [], pessoas = [] } = resposta
     const grupo = situacao => dias.filter(l => l.situacao === situacao)
     const [ano, mes, dia] = iso.split('-').map(Number)
     const semana = new Date(ano, mes - 1, dia).toLocaleDateString('pt-BR', { weekday: 'long' })
@@ -1002,7 +1002,7 @@ async function abrirDiaTecnicos(iso) {
     const secao = (titulo, classe, lista, extra, cabecalho) => lista.length ? `
         <h4 class="cal-tec-titulo ${classe}">${titulo} <span>${lista.length}</span></h4>
         <table class="relatorio-cc-tab cal-tec-tabela">
-            <thead><tr><th>Técnico</th><th>Cidade</th><th>${cabecalho}</th></tr></thead>
+            <thead><tr><th>Nome</th><th>Cidade</th><th>${cabecalho}</th></tr></thead>
             <tbody>${linhas(lista, classe, extra)}</tbody>
         </table>` : ''
 
@@ -1022,10 +1022,11 @@ async function abrirDiaTecnicos(iso) {
         diaNaJanela = iso >= proximos.hoje && iso <= isoDiaTecnicos(new Date(a, m - 1, d + proximos.dias - 1))
     }
 
-    // Lista de técnicos para o formulário: todos os efetivos aparecem em todo dia.
+    // Lista do formulário: técnicos efetivos + funcionários (só aqui), vinda do servidor.
     calendarioTecnicos.formulario = {
         iso, tipos,
-        tecnicos: dias.map(l => [l.usuario, l.nome || l.usuario]).sort((a, b) => String(a[1]).localeCompare(String(b[1]), 'pt-BR'))
+        pessoas: pessoas.map(p => ({ usuario: p.usuario, nome: p.nome || p.usuario, tecnico: !!p.tecnico }))
+            .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'))
     }
 
     popup({
@@ -1034,7 +1035,7 @@ async function abrirDiaTecnicos(iso) {
             <div class="tecnicos-livres-lista cal-tec-popup">
                 <div class="cal-tec-popup-topo">
                     <span class="cal-tec-semana-dia">${semana}</span>
-                    ${podeMarcar ? `<button type="button" onclick="formularioIndisponibilidade()"><img src="imagens/bloqueio.png" alt=""> Sinalizar técnico indisponível</button>` : ''}
+                    ${podeMarcar ? `<button type="button" onclick="formularioIndisponibilidade()"><img src="imagens/bloqueio.png" alt=""> Sinalizar indisponível</button>` : ''}
                 </div>
                 <div class="tecnicos-livres-aviso" role="note">
                     <img src="imagens/alerta.png" alt="">
@@ -1050,14 +1051,24 @@ async function abrirDiaTecnicos(iso) {
 }
 
 function formularioIndisponibilidade() {
-    const { iso, tipos, tecnicos } = calendarioTecnicos.formulario || {}
+    const { iso, tipos } = calendarioTecnicos.formulario || {}
     if (!iso) return
-    const opcoes = tecnicos.map(([usuario, nome]) => `<option value="${escaparAtributo(usuario)}">${escaparAtributo(nome)}</option>`).join('')
 
+    // Campo de busca com lista fechada (.fin-escolha, css/financeiro.css): só vale o que for
+    // clicado na lista; texto solto volta para a escolha anterior ao sair do campo.
     popup({
-        titulo: 'Sinalizar técnico indisponível',
+        titulo: 'Sinalizar indisponível',
         linhas: [
-            { texto: 'Técnico', elemento: `<select name="indTecnico"><option value=""></option>${opcoes}</select>` },
+            {
+                texto: 'Técnico ou funcionário',
+                elemento: `
+                    <div class="fin-escolha ind-pessoa" data-valor="">
+                        <input type="text" autocomplete="off" placeholder="Pesquisar pelo nome"
+                            onfocus="buscarPessoaIndisponibilidade(this)" oninput="buscarPessoaIndisponibilidade(this)"
+                            onblur="fecharPessoaIndisponibilidade(this)" onkeydown="teclaPessoaIndisponibilidade(event, this)">
+                        <div class="fin-escolha-lista" hidden></div>
+                    </div>`
+            },
             { texto: 'Motivo', elemento: `<select name="indTipo">${tipos.map(t => `<option>${escaparAtributo(t)}</option>`).join('')}</select>` },
             { texto: 'De', elemento: `<input type="date" name="indInicio" value="${iso}">` },
             { texto: 'Até', elemento: `<input type="date" name="indFim" value="${iso}">` },
@@ -1065,6 +1076,62 @@ function formularioIndisponibilidade() {
         ],
         botoes: [{ texto: 'Salvar', img: 'concluido', funcao: 'salvarIndisponibilidade()' }]
     })
+}
+
+function pessoaIndisponibilidade(usuario) {
+    return (calendarioTecnicos.formulario?.pessoas || []).find(p => p.usuario === usuario)
+}
+
+function buscarPessoaIndisponibilidade(input) {
+    const caixa = input.closest('.ind-pessoa')
+    const lista = caixa.querySelector('.fin-escolha-lista')
+    const pessoas = calendarioTecnicos.formulario?.pessoas || []
+    const termo = normalizarBuscaDropdown(input.value)
+    // O nome já escolhido não filtra (ao focar de novo, mostra a lista toda).
+    const filtro = termo && termo !== normalizarBuscaDropdown(pessoaIndisponibilidade(caixa.dataset.valor)?.nome) ? termo : ''
+    const achados = pessoas.filter(p => !filtro || normalizarBuscaDropdown(`${p.nome} ${p.usuario}`).includes(filtro))
+
+    const grupo = (titulo, itens) => itens.length ? `
+        <div class="fin-escolha-grupo">${titulo}</div>
+        ${itens.map(p => `
+            <button type="button" class="fin-escolha-item" data-usuario="${escaparAtributo(p.usuario)}"
+                onmousedown="event.preventDefault(); escolherPessoaIndisponibilidade(this)">
+                <b>${escaparAtributo(p.nome)}</b> <span>${escaparAtributo(p.usuario)}</span>
+            </button>`).join('')}` : ''
+
+    lista.innerHTML = (grupo('Técnicos', achados.filter(p => p.tecnico)) + grupo('Funcionários', achados.filter(p => !p.tecnico)))
+        || '<div class="fin-escolha-vazio">Ninguém encontrado: só técnicos e funcionários da lista.</div>'
+    lista.hidden = false
+}
+
+function escolherPessoaIndisponibilidade(botao) {
+    const caixa = botao.closest('.ind-pessoa')
+    const pessoa = pessoaIndisponibilidade(botao.dataset.usuario)
+    if (!pessoa) return
+    caixa.dataset.valor = pessoa.usuario
+    caixa.querySelector('input').value = pessoa.nome
+    caixa.querySelector('.fin-escolha-lista').hidden = true
+}
+
+// Saiu do campo sem clicar num nome: volta para a escolha anterior (texto solto não fica).
+function fecharPessoaIndisponibilidade(input) {
+    const caixa = input.closest('.ind-pessoa')
+    if (!caixa) return
+    caixa.querySelector('.fin-escolha-lista').hidden = true
+    input.value = pessoaIndisponibilidade(caixa.dataset.valor)?.nome || ''
+}
+
+// Enter escolhe o primeiro da lista filtrada; Esc fecha a lista.
+function teclaPessoaIndisponibilidade(evento, input) {
+    const lista = input.closest('.ind-pessoa')?.querySelector('.fin-escolha-lista')
+    if (evento.key === 'Enter') {
+        evento.preventDefault()
+        const primeiro = lista?.hidden ? null : lista?.querySelector('.fin-escolha-item')
+        if (primeiro) escolherPessoaIndisponibilidade(primeiro)
+    } else if (evento.key === 'Escape' && lista && !lista.hidden) {
+        evento.stopPropagation()
+        fecharPessoaIndisponibilidade(input)
+    }
 }
 
 // Depois de salvar/remover: reabre o popup do dia (atualizado) e atualiza o letreiro.
@@ -1077,9 +1144,10 @@ async function reabrirDiaTecnicos(iso) {
 async function salvarIndisponibilidade() {
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
     const valor = nome => painel?.querySelector(`[name="${nome}"]`)?.value?.trim() || ''
-    const dados = { usuario: valor('indTecnico'), tipo: valor('indTipo'), inicio: valor('indInicio'), fim: valor('indFim'), obs: valor('indObs') }
+    const usuario = painel?.querySelector('.ind-pessoa')?.dataset.valor || ''
+    const dados = { usuario, tipo: valor('indTipo'), inicio: valor('indInicio'), fim: valor('indFim'), obs: valor('indObs') }
 
-    if (!dados.usuario) return popup({ mensagem: 'Escolha o técnico.' })
+    if (!pessoaIndisponibilidade(dados.usuario)) return popup({ mensagem: 'Escolha o técnico ou funcionário na lista.' })
     if (!dados.inicio || !dados.fim || dados.fim < dados.inicio)
         return popup({ mensagem: 'Informe o período: o fim não pode ser antes do início.' })
 
