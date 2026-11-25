@@ -537,6 +537,7 @@ async function buscarNotasSefaz() {
 const POR_PAGINA_CTE_FIS = 50
 let filtroExtraCteFis = null
 let somaFiltroCteFis = null, assinaturaSomaCteFis = null
+const selecaoCteFis = new Map()   // id -> valor_total (a seleção atravessa páginas, como nas notas)
 
 const SITUACAO_CTE_FIS = {
     AUTORIZADO: { cor: '#15803d', texto: 'Autorizado' },
@@ -556,6 +557,7 @@ const TIPO_CTE_FIS = { 0: 'Normal', 1: 'Complemento de valores', 2: 'Anulação'
 const MODAL_CTE_FIS = { '01': 'Rodoviário', '02': 'Aéreo', '03': 'Aquaviário', '04': 'Ferroviário', '05': 'Dutoviário', '06': 'Multimodal' }
 
 async function telaCtesRecebidosFis() {
+    selecaoCteFis.clear()
     tela.innerHTML = `
         <div class="fis-pagina fin-tela fis-emitidas fis-recebidas">
             <section class="fin-janela">
@@ -564,7 +566,8 @@ async function telaCtesRecebidosFis() {
                     ${seletorModoRecFis()}
                     <div class="fin-barra">
                         <button type="button" onclick="buscarNotasSefaz()" title="Busca na SEFAZ (pela Focus NFe) as NF-e e os CT-e emitidos contra os CNPJs do grupo">${iconeFin('repetir')} Buscar na SEFAZ</button>
-                        <button type="button" onclick="baixarExcelCtesFis()" title="Todos os CT-e dos filtros aplicados">${iconeFin('excel')} Excel</button>
+                        <button type="button" onclick="baixarLoteDocsFis('ctes')" title="Baixa num ZIP o PDF (DACTE) e o XML dos CT-e marcados">${iconeFin('baixar')} PDF/XML</button>
+                        <button type="button" onclick="baixarExcelCtesFis()" title="Com CT-e marcados, baixa só os marcados; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
                         <span data-limpar-cte-fis></span>
                     </div>
                 </header>
@@ -596,6 +599,7 @@ async function abrirTabelaCtesFis(filtroExtra = null) {
             filtrosFixos: filtroExtra || null,
             ordenar: [{ path: 'emissao', direcao: 'desc' }],
             colunas: {
+                '': {},
                 'Emissão': { chave: 'dia', tipoPesquisa: 'data' },
                 'Empresa': { chave: 'app', tipoPesquisa: 'select' },
                 'Nº': { chave: 'numero' },
@@ -610,6 +614,7 @@ async function abrirTabelaCtesFis(filtroExtra = null) {
             }
         })
         area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-cte-fis></div>')
+        area.querySelector('.modtab')?.insertAdjacentHTML('afterbegin', '<div class="fin-aviso-selecao" data-aviso-cte-fis hidden></div>')
         await paginacao('ctesRecebidos')
     } catch (err) {
         console.error(err)
@@ -628,6 +633,10 @@ function criarLinhaCteFis(d) {
         ? ` <small title="Abra o CT-e para ver as notas (as vendas emitidas pelo Omie aparecem lá)">${noGcs ? '+' : ''}${outras} NF-e</small>` : ''}`
     return `
         <tr class="fin-linha" ondblclick="${abrir}" title="Duplo clique abre o CT-e">
+            <td class="fin-col-marcar">
+                <input type="checkbox" class="fin-marcar" data-marcar-cte value="${id}" data-valor="${Number(d.valor_total) || 0}" ${selecaoCteFis.has(String(d.id)) ? 'checked' : ''}
+                    onclick="event.stopPropagation(); marcarCteFis(this)" ondblclick="event.stopPropagation()" aria-label="Marcar CT-e">
+            </td>
             <td class="fin-centro">${dataFis(d.emissao)}</td>
             <td class="fin-centro">${escFis(d.app)}</td>
             <td class="fin-centro fin-doc"><span class="fis-link" onclick="event.stopPropagation(); ${abrir}" title="Abrir o CT-e">${escFis(d.numero || 'abrir')}</span></td>
@@ -645,6 +654,11 @@ function criarLinhaCteFis(d) {
 async function aposCarregarCtesFis() {
     const tabela = document.getElementById('bodyCtesRecebidos')?.closest('table')
     if (!tabela) return
+    const th = tabela.querySelector('thead tr:first-child th:first-child')
+    if (th && !th.querySelector('[data-marcar-todos-cte]'))
+        th.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todos-cte title="Marcar todos desta página" onclick="event.stopPropagation(); marcarTodosCteFis(this)">'
+    const filtro = tabela.querySelector('thead tr:nth-child(2) th:first-child')
+    if (filtro?.querySelector('img')) filtro.innerHTML = ''
     if (!tabela.tFoot) {
         const chaves = Object.values(controles.ctesRecebidos?.colunas || {}).map(c => c.chave || '')
         const linha = tabela.createTFoot().insertRow()
@@ -660,6 +674,7 @@ async function aposCarregarCtesFis() {
     }
     if (typeof cabecalhoAvancadoTabela === 'function')
         await cabecalhoAvancadoTabela('ctesRecebidos', { prefKey: 'ctes_recebidos' })
+    desenharSelecaoCteFis()
     desenharRodapeCteFis()
     await somarFiltroCteFis()
 }
@@ -676,14 +691,93 @@ async function somarFiltroCteFis() {
         if (assinatura !== assinaturaSomaCteFis) return
         somaFiltroCteFis = soma
     }
+    escreverTotalCteFis()
+}
+
+function escreverTotalCteFis() {
+    // Indicador do painel: sempre o total do filtro; o pé mostra a soma dos marcados quando houver.
     const texto = somaFiltroCteFis == null ? '—' : dinheiro(somaFiltroCteFis)
     const ind = document.querySelector('[data-ind-valor-ctes]')
     if (ind) ind.innerHTML = texto
     const td = document.querySelector('[data-total-cte]')
-    if (td) {
+    if (!td) return
+    const n = selecaoCteFis.size
+    if (n) {
+        const soma = [...selecaoCteFis.values()].reduce((s, v) => s + (Number(v) || 0), 0)
+        td.title = `Soma dos ${n} CT-e marcado(s). Desmarque todos para ver o total do filtro.`
+        td.innerHTML = `<small class="fin-total-rotulo">${n} marcado${n === 1 ? '' : 's'}</small> <span class="fin-sigma">Σ</span> ${dinheiro(Math.round(soma * 100) / 100)}`
+        td.classList.add('fin-total-selecao')
+    } else {
         td.title = 'Total de todos os CT-e do filtro'
         td.innerHTML = `<span class="fin-sigma">Σ</span> ${texto}`
+        td.classList.remove('fin-total-selecao')
     }
+}
+
+function marcarCteFis(caixa) {
+    if (caixa.checked) selecaoCteFis.set(caixa.value, Number(caixa.dataset.valor) || 0)
+    else selecaoCteFis.delete(caixa.value)
+    desenharSelecaoCteFis()
+}
+
+function marcarTodosCteFis(caixa) {
+    document.querySelectorAll('#bodyCtesRecebidos [data-marcar-cte]').forEach(c => {
+        c.checked = caixa.checked
+        if (caixa.checked) selecaoCteFis.set(c.value, Number(c.dataset.valor) || 0)
+        else selecaoCteFis.delete(c.value)
+    })
+    desenharSelecaoCteFis()
+}
+
+function limparSelecaoCteFis() {
+    selecaoCteFis.clear()
+    document.querySelectorAll('#bodyCtesRecebidos [data-marcar-cte]').forEach(c => { c.checked = false })
+    desenharSelecaoCteFis()
+}
+
+async function selecionarTodosFiltroCteFis() {
+    const ctrl = controles.ctesRecebidos
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_fiscal_ctes', filtros, pagina, limite: 2000 })
+            ;(r?.resultados || []).forEach(d => selecaoCteFis.set(String(d.id), Number(d.valor_total) || 0))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        document.querySelectorAll('#bodyCtesRecebidos [data-marcar-cte]').forEach(c => { c.checked = selecaoCteFis.has(c.value) })
+        desenharSelecaoCteFis()
+    } catch (err) {
+        popup({ mensagem: `Falha ao marcar os CT-e do filtro: ${escFis(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
+}
+
+function desenharSelecaoCteFis() {
+    const pagina = [...document.querySelectorAll('#bodyCtesRecebidos [data-marcar-cte]')]
+    const marcados = pagina.filter(c => c.checked).length
+    const paginaToda = pagina.length > 0 && marcados === pagina.length
+    const todos = document.querySelector('[data-marcar-todos-cte]')
+    if (todos) {
+        todos.checked = paginaToda
+        todos.indeterminate = marcados > 0 && marcados < pagina.length
+    }
+    const aviso = document.querySelector('[data-aviso-cte-fis]')
+    if (aviso) {
+        const n = selecaoCteFis.size
+        const total = Number(document.getElementById('resultados_ctesRecebidos')?.textContent) || 0
+        const plural = q => `${q.toLocaleString('pt-BR')} CT-e`
+        const limpar = '<a href="#" onclick="event.preventDefault(); limparSelecaoCteFis()">limpar a seleção</a>'
+        aviso.hidden = !(n && paginaToda)
+        aviso.innerHTML = aviso.hidden ? '' : n < total
+            ? `Você selecionou ${plural(n)}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodosFiltroCteFis()">selecionar todos os ${plural(total)} deste filtro</a>`
+            : `Você selecionou ${n === total ? 'todos os ' : ''}${plural(n)}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
+    }
+    escreverTotalCteFis()
 }
 
 function desenharRodapeCteFis() {
@@ -837,7 +931,10 @@ async function baixarExcelCtesFis() {
     if (!ctrl) return
     overlayAguarde()
     try {
-        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const marcados = [...selecaoCteFis.keys()]
+        const filtros = marcados.length
+            ? { id: { modo: 'OR', regras: marcados.map(id => ({ op: '=', value: id })) } }
+            : combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
         const linhas = []
         let pagina = 1, paginas = 1
         do {
@@ -851,7 +948,7 @@ async function baixarExcelCtesFis() {
         await baixarExcelRelatorioGCS({
             titulo: 'CT-e recebidos',
             resumo: `${linhas.length} CT-e`,
-            filtrosTexto: `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todos os CT-e)') : ''}`,
+            filtrosTexto: marcados.length ? `CT-e marcados na tela: ${marcados.length}` : `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todos os CT-e)') : ''}`,
             linhas,
             colunas: [
                 { titulo: 'Emissão', largura: 12, tipo: 'data', valor: d => data(d.dia) },
@@ -2179,17 +2276,23 @@ async function baixarExcelEmitidasFis() {
 // ZIP com PDF e/ou XML das notas marcadas (rota fiscal/lote). A seleção atravessa páginas e o aviso
 // "selecionar todas deste filtro" marca o filtro inteiro. O que não veio (NFS-e do Omie, nota sem XML no
 // backup...) fica listado no LEIA-ME.txt dentro do ZIP.
+function selecaoLoteDocsFis(lista) {
+    return lista === 'recebidas' ? selecaoRecFis : lista === 'ctes' ? selecaoCteFis : selecaoEmitFis
+}
+
 function baixarLoteDocsFis(lista) {
-    const selecao = lista === 'recebidas' ? selecaoRecFis : selecaoEmitFis
-    const n = selecao.size
-    if (!n) return popup({ titulo: 'Baixar PDF/XML', mensagem: 'Marque as notas nas caixinhas da 1ª coluna.<br><small>Para pegar todas de um filtro, marque a página toda e clique em "selecionar todas deste filtro".</small>' })
+    const n = selecaoLoteDocsFis(lista).size
+    const cte = lista === 'ctes'
+    if (!n) return popup({ titulo: 'Baixar PDF/XML', mensagem: cte
+        ? 'Marque os CT-e nas caixinhas da 1ª coluna.<br><small>Para pegar todos de um filtro, marque a página toda e clique em "selecionar todos deste filtro".</small>'
+        : 'Marque as notas nas caixinhas da 1ª coluna.<br><small>Para pegar todas de um filtro, marque a página toda e clique em "selecionar todas deste filtro".</small>' })
     const chave = crypto.randomUUID()
     const opcao = (valor, texto, marcado = false) =>
         `<label class="fis-check" style="margin-top:4px"><input type="radio" name="arquivos-${chave}" value="${valor}" ${marcado ? 'checked' : ''}> ${texto}</label>`
     const idPopup = popup({
         titulo: 'Baixar PDF/XML',
         mensagem: `<div style="text-align:left; display:flex; flex-direction:column">
-            <b>${n.toLocaleString('pt-BR')} nota${n === 1 ? '' : 's'} marcada${n === 1 ? '' : 's'}</b>
+            <b>${n.toLocaleString('pt-BR')} ${cte ? `CT-e marcado${n === 1 ? '' : 's'}` : `nota${n === 1 ? '' : 's'} marcada${n === 1 ? '' : 's'}`}</b>
             ${opcao('ambos', 'PDF e XML', true)}${opcao('xml', 'Só XML (rápido)')}${opcao('pdf', 'Só PDF')}</div>`,
         botoes: [{ texto: 'Baixar ZIP', img: 'baixar', funcao: `executarLoteDocsFis('${lista}', '${chave}')` }]
     })
@@ -2200,11 +2303,11 @@ async function executarLoteDocsFis(lista, chave) {
     const arquivos = document.querySelector(`input[name="arquivos-${chave}"]:checked`)?.value || 'ambos'
     const janela = document.querySelector(`[data-lote-docs="${chave}"]`)
     if (janela) removerPopup(janela.id)
-    const ids = [...(lista === 'recebidas' ? selecaoRecFis : selecaoEmitFis).keys()]
+    const ids = [...selecaoLoteDocsFis(lista).keys()]
     try {
         overlayAguarde()
         const { token } = JSON.parse(localStorage.getItem('acesso') || '{}')
-        const r = await fetch(`${api}/fiscal/lote`, {
+        const r = await fetch(`${api}/fiscal/${lista === 'ctes' ? 'cte/lote' : 'lote'}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ ids, arquivos })
@@ -2218,7 +2321,7 @@ async function executarLoteDocsFis(lista, chave) {
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = (r.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/) || [])[1] || 'notas.zip'
+        a.download = (r.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/) || [])[1] || (lista === 'ctes' ? 'ctes.zip' : 'notas.zip')
         a.click()
         setTimeout(() => URL.revokeObjectURL(url), 60000)
     } catch (err) {
