@@ -542,6 +542,18 @@ tr.item-em-exclusao,
         color: #1f5133;
     }
 
+    /* Sem rolagem presa dentro da tabela: ela cresce com as linhas e quem rola é a tela inteira
+       (os botões do topo sobem junto). Só nas telas; tabelas dentro de pop-ups continuam limitadas.
+       !important: vence o max-height inline (scroll: false) e a altura fixa das telas do Financeiro. */
+    .tela .div-tabela {
+        max-height: none !important;
+        height: auto !important;
+    }
+
+    .tela .modtab.cartoes-celular .div-tabela {
+        overflow: visible;
+    }
+
     /* Tabela desmontada */
     .modtab.cartoes-celular .div-tabela:not(.nude) {
         background-color: #f1f5f2;
