@@ -1356,8 +1356,11 @@
 .fin-comp-dup { opacity: 0.65; }
 .fin-comp-busca { min-width: min(720px, 90vw); display: flex; flex-direction: column; gap: 8px; }
 .fin-comp-resultados { display: flex; flex-direction: column; gap: 4px; max-height: 55vh; overflow: auto; }
-.fin-comp-opcao { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; border: 1px solid var(--fin-borda); border-radius: 6px; background: #fff; text-align: left; cursor: pointer; }
-.fin-comp-opcao:hover { background: #eef6f0; border-color: #8cb69a; }
+.fin-comp-opcao { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; border: 1px solid var(--fin-borda); border-radius: 6px; background: #fff; color: #1f2937; text-align: left; cursor: pointer; width: 100%; box-sizing: border-box; overflow-wrap: anywhere; }
+.fin-comp-opcao b, .fin-comp-opcao span { color: #1f2937; }
+.fin-comp-opcao b { color: var(--fin-verde, #15803d); }
+.fin-comp-opcao:hover { background: #eef6f0; border-color: #8cb69a; color: #1f2937; }
+.fin-comp-resultados { overflow-x: hidden; }
 .fin-comp-opcao small { color: #64748b; }
 .fin-comp-tem { color: var(--fin-verde); font-weight: 700; font-size: 1.15em; }
 .fin-comp-falta { color: #b91c1c; font-weight: 700; font-size: 1.15em; }
