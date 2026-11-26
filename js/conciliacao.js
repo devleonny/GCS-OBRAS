@@ -382,7 +382,11 @@ async function telaConciliarConc(manterSel = true) {
         const linhas = linhasConc()
         if (estadoConc.sel && !linhas.some(l => l.chave === estadoConc.sel)) estadoConc.sel = null
         if (!estadoConc.sel) estadoConc.sel = (linhas.find(l => ['SUGESTAO', 'SEM_PAR'].includes(l.sit)) || {}).chave || null
+        // Recarregar (depois de casar, lançar, desfazer...) não tira a pessoa do lugar: a lista e o painel voltam
+        // na mesma rolagem.
+        const rolagem = ['[data-tabela-conc]', '.cc-tela .fin-painel'].map(s => [s, document.querySelector(s)?.scrollTop || 0])
         desenharConciliarConc()
+        if (manterSel) rolagem.forEach(([s, y]) => { const el = document.querySelector(s); if (el) el.scrollTop = y })
         if (estadoConc.sel) escolherLinhaConc(estadoConc.sel, false)
     } catch (err) {
         removerOverlay()
@@ -745,7 +749,7 @@ function desenharDetalheConc() {
                     <label class="fis-campo fis-largo"><span>Categoria</span><select class="fis-input" name="categoria_id">${opcoesCategoriasFin(cats, tipo, sugestaoCat)}</select></label>
                 </div>
                 <div class="fis-grade">
-                    <label class="fis-campo"><span>${tipo === 'RECEBER' ? 'Pagador' : 'Favorecido'}</span><input class="fis-input" name="participante_nome" maxlength="150" value="${escFin(/TAR|IOF|PACOTE/i.test(l.descricao) ? 'Banco' : '')}"></label>
+                    <div class="fis-campo cc-favorecido" data-favorecido-conc>${campoFavorecidoConc()}</div>
                     <label class="fis-campo fis-largo"><span>Descrição</span><input class="fis-input" name="descricao" maxlength="300" value="${escFin(l.descricao || '')}"></label>
                 </div>
             </div>`
@@ -922,11 +926,57 @@ function casarMarcadasConc(linhaId) {
     return casarConc(linhaId, ids)
 }
 
+// Favorecido da aba Lançar: do cadastro (seletor que só aceita quem existe, leva CPF/CNPJ e o vínculo) ou texto
+// livre (tarifa, IOF: "Banco"). O botão de pessoa alterna; a escolha vale para as próximas linhas. Tarifa/IOF
+// começa no texto livre com "Banco".
+function campoFavorecidoConc(cadastro = null) {
+    const l = detalheConc.linha
+    const tarifa = /TAR|IOF|PACOTE/i.test(l.descricao || '')
+    if (cadastro === null) cadastro = !tarifa && estadoConc.favCadastro !== false
+    return `
+        <span class="cc-favorecido-rotulo">${l.valor > 0 ? 'Pagador' : 'Favorecido'}${cadastro ? ' <small>do cadastro</small>' : ''}
+            <button type="button" class="cc-favorecido-modo ${cadastro ? 'ativo' : ''}" aria-pressed="${cadastro}" onclick="alternarFavorecidoConc()"
+                title="${cadastro ? 'Escolhendo do cadastro de clientes. Clique para digitar livre' : 'Texto livre. Clique para escolher do cadastro de clientes'}">${iconeFin('pessoa')}</button>
+        </span>
+        ${cadastro
+            ? `<span class="opcoes fin-opcoes" name="favorecido_conc" data-modo="cadastro" onclick="abrirFavorecidoConc()">Selecione</span>`
+            : `<input class="fis-input" name="participante_nome" data-modo="livre" maxlength="150" value="${escFin(tarifa ? 'Banco' : '')}">`}`
+}
+
+function alternarFavorecidoConc() {
+    const caixa = document.querySelector('[data-favorecido-conc]')
+    if (!caixa) return
+    const cadastro = !caixa.querySelector('[data-modo="cadastro"]')
+    estadoConc.favCadastro = cadastro
+    caixa.innerHTML = campoFavorecidoConc(cadastro)
+}
+
+function abrirFavorecidoConc() {
+    controlesCxOpcoes.favorecido_conc = {
+        base: 'clientes',
+        ordenar: null,
+        retornar: ['nome'],
+        btnExtras: `<button type="button" class="botao-cabecalho-tabela" onclick="formularioCliente()">+ Cadastrar</button>`,
+        colunas: {
+            'Nome': { chave: 'nome', alinhar: 'esquerda' },
+            'CNPJ/CPF': { chave: 'cnpj' },
+            'Cidade': { chave: 'cidade' },
+            'Estado': { chave: 'estado' }
+        }
+    }
+    return cxOpcoes('favorecido_conc')
+}
+
 function lancarConc(linhaId) {
     const f = document.querySelector('[data-lancar-conc]')
-    const v = n => f.querySelector(`[name="${n}"]`).value
-    return acaoConc('lancar', { linha_id: linhaId, app: v('app'), categoria_id: v('categoria_id'), participante_nome: v('participante_nome'), descricao: v('descricao') },
-        () => telaConciliarConc(), 'Lançado e casado')
+    const v = n => f.querySelector(`[name="${n}"]`)?.value
+    const corpo = { linha_id: linhaId, app: v('app'), categoria_id: v('categoria_id'), descricao: v('descricao') }
+    const sel = f.querySelector('[name="favorecido_conc"]')
+    if (sel) {
+        if (!sel.id) return popup({ mensagem: 'Escolha o favorecido no cadastro (ou troque pelo botão de pessoa para digitar livre).' })
+        corpo.cliente_id = sel.id
+    } else corpo.participante_nome = v('participante_nome')
+    return acaoConc('lancar', corpo, () => telaConciliarConc(), 'Lançado e casado')
 }
 
 function transferirConc(linhaId, destino) {

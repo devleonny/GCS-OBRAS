@@ -703,7 +703,8 @@ async function selecionar(name, cod) {
     const painel = painelDono?.querySelector(`[name='${name}']`)
         ? painelDono
         : Array.from(document.querySelectorAll('.painel-padrao')).at(-1)
-    const elemento = (painel || document).querySelector(`[name='${name}']`)
+    // O painel achado pode não ter o campo (ex.: tela sem formulário, com uma fatura aberta ao lado).
+    const elemento = painel?.querySelector(`[name='${name}']`) || document.querySelector(`[name='${name}']`)
     const termos = []
 
     let dado = {}

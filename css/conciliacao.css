@@ -246,3 +246,11 @@ label.cc-item { cursor: pointer; }
 @media (max-width: 1100px) {
     .cc-tela-conciliar, .cc-tela-conciliar .fin-painel { height: auto; }
 }
+
+/* Favorecido da aba Lançar: botão de pessoa alterna cadastro (seletor .opcoes) × texto livre */
+.cc-favorecido-rotulo { display: flex; align-items: center; gap: 6px; }
+.cc-favorecido-rotulo small { color: #2f7d47; font-size: 10px; }
+.cc-favorecido-modo { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 22px; padding: 0; border: 1px solid #cfd9d3; border-radius: 6px; background: #fff; color: #6b7a71; cursor: pointer; }
+.cc-favorecido-modo .fin-icone { width: 14px; height: 14px; }
+.cc-favorecido-modo.ativo { background: #e6f2ea; border-color: #2f7d47; color: #2f7d47; }
+.cc-favorecido .fin-opcoes { max-width: none; min-height: 32px; margin: 0; box-sizing: border-box; display: block; line-height: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
