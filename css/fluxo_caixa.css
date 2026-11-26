@@ -232,37 +232,40 @@
 .cx-filtro-rotulo { font-size: 11.5px; font-weight: 600; color: var(--cx-tinta-2); text-transform: uppercase; letter-spacing: .03em; }
 .cx-chips, .cx-linha-filtro, .cx-mes-nav, .cx-datas, .cx-atalhos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .cx-linha-filtro { gap: 10px; }
+/* empresa = botão liga/desliga com chavinha desenhada (trilho no ::before, bolinha no ::after) */
 .cx-chip {
-    position: relative; display: inline-flex; flex-direction: row; align-items: center;
-    height: 30px; padding: 0 12px 0 10px; margin: 0; border: 1px solid #c9d4cd; border-radius: 999px; background: #fff;
-    font-size: 13px; font-weight: 600; color: var(--cx-tinta-2); cursor: pointer; user-select: none; white-space: nowrap;
+    position: relative; display: inline-flex; align-items: center; box-sizing: border-box;
+    height: 30px; padding: 0 12px 0 42px; margin: 0; border: 1px solid #c9d4cd; border-radius: 999px; background: #fff;
+    font-size: 13px; font-weight: 600; line-height: 1; color: var(--cx-tinta-2); cursor: pointer; user-select: none; white-space: nowrap;
+    transition: background .15s, border-color .15s, color .15s;
 }
-/* caixinha nativa escondida (o estilo global de input a deformava); o quadrado é desenhado no span */
-.cx-chip input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; padding: 0; pointer-events: none; }
-.cx-chip span { display: inline-flex; align-items: center; gap: 7px; }
-.cx-chip span::before {
-    content: ''; display: inline-block; width: 14px; height: 14px; box-sizing: border-box;
-    border: 1.5px solid #9aaba0; border-radius: 4px; background: #fff;
-    font-size: 11px; line-height: 11px; text-align: center; color: #fff;
+.cx-chip::before {
+    content: ''; position: absolute; left: 9px; top: 50%; width: 26px; height: 14px; margin-top: -7px;
+    border-radius: 999px; background: #cfd8d2; transition: background .15s;
 }
-.cx-chip:hover { border-color: #9cc4a6; }
+.cx-chip::after {
+    content: ''; position: absolute; left: 11px; top: 50%; width: 10px; height: 10px; margin-top: -5px;
+    border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s;
+}
+.cx-chip:hover { border-color: #9cc4a6; background: #fff; color: #1f4d2c; }
 .cx-chip.ativo { background: #e4f2dc; border-color: #9cc4a6; color: #1f4d2c; }
-.cx-chip.ativo span::before { content: '✓'; border-color: #356443; background: #356443; }
-.cx-chip input:focus-visible + span::before { outline: 2px solid #356443; outline-offset: 2px; }
+.cx-chip.ativo::before { background: #356443; }
+.cx-chip.ativo::after { transform: translateX(12px); }
+.cx-chip:focus-visible { outline: 2px solid #356443; outline-offset: 2px; }
 .cx-atalho {
-    height: 30px; padding: 0 12px; border: 1px dashed #c9d4cd; border-radius: 999px; background: #fff;
+    box-sizing: border-box; height: 30px; padding: 0 12px; line-height: 1; border: 1px dashed #c9d4cd; border-radius: 999px; background: #fff;
     font-size: 12.5px; color: var(--cx-tinta-2); cursor: pointer; margin: 0;
 }
 .cx-atalho:hover { border-color: #9cc4a6; color: #1f4d2c; }
 .cx-atalho.ativo { border-style: solid; border-color: #356443; background: #356443; color: #fff; }
 .cx-segmento { display: inline-flex; border: 1px solid #c9d4cd; border-radius: 8px; overflow: hidden; }
-.cx-segmento button { height: 30px; padding: 0 14px; border: 0; background: #fff; font-size: 13px; color: var(--cx-tinta-2); cursor: pointer; margin: 0; border-radius: 0; }
+.cx-segmento button { height: 28px; padding: 0 14px; border: 0; background: #fff; font-size: 13px; color: var(--cx-tinta-2); cursor: pointer; margin: 0; border-radius: 0; }
 .cx-segmento button + button { border-left: 1px solid #c9d4cd; }
 .cx-segmento button.ativo { background: #356443; color: #fff; font-weight: 600; }
 .cx-mes-nav input[type=month], .cx-datas input[type=date] {
-    height: 30px; border: 1px solid #c4cec8; border-radius: 6px; padding: 0 8px; background: #fff; font-size: 13px; color: var(--cx-tinta);
+    box-sizing: border-box; height: 30px; margin: 0; border: 1px solid #c4cec8; border-radius: 6px; padding: 0 8px; background: #fff; font-size: 13px; color: var(--cx-tinta);
 }
-.cx-datas label { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--cx-tinta-2); }
+.cx-filtros .cx-datas label { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; font-size: 12.5px; color: var(--cx-tinta-2); }
 .cx-seta { width: 30px; height: 30px; padding: 0; border: 1px solid #c9d4cd; border-radius: 6px; background: #fff; font-size: 18px; line-height: 1; color: var(--cx-tinta-2); cursor: pointer; margin: 0; }
 .cx-seta:hover { background: #eef6f0; }
 

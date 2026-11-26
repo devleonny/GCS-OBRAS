@@ -102,10 +102,7 @@ function desenharFiltrosCx() {
             <span class="cx-filtro-rotulo">Empresas</span>
             <div class="cx-chips" role="group" aria-label="Empresas">
                 ${estadoCx.empresas.map(a => `
-                    <label class="cx-chip ${marcadas.includes(a) ? 'ativo' : ''}">
-                        <input type="checkbox" value="${escFin(a)}" ${marcadas.includes(a) ? 'checked' : ''} onchange="mudarEmpresasCx(this)">
-                        <span>${escFin(a)}</span>
-                    </label>`).join('')}
+                    <button type="button" class="cx-chip ${marcadas.includes(a) ? 'ativo' : ''}" data-app="${escFin(a)}" aria-pressed="${marcadas.includes(a)}" onclick="mudarEmpresasCx(this)">${escFin(a)}</button>`).join('')}
                 <button type="button" class="cx-atalho ${estadoCx.apps ? '' : 'ativo'}" onclick="estadoCx.apps = null; desenharFiltrosCx(); carregarFluxoCaixa()" title="Todas juntas: os empréstimos (mútuo) entre elas se anulam">Todas</button>
             </div>
         </div>
@@ -137,13 +134,16 @@ function desenharFiltrosCx() {
         </div>`
 }
 
-// Caixinhas de empresa: todas marcadas = consolidado (null). Não deixa desmarcar a última.
+// Botões de empresa (liga/desliga): todas ligadas = consolidado (null). Não deixa desligar a última.
 let esperaEmpresasCx = null
-function mudarEmpresasCx(caixinha) {
-    const marcadas = [...document.querySelectorAll('[data-cx-filtros] .cx-chip input:checked')].map(i => i.value)
-    if (!marcadas.length) { caixinha.checked = true; return }
+function mudarEmpresasCx(botao) {
+    const ligar = !botao.classList.contains('ativo')
+    const ligadas = document.querySelectorAll('[data-cx-filtros] .cx-chip.ativo').length
+    if (!ligar && ligadas <= 1) return
+    botao.classList.toggle('ativo', ligar)
+    botao.setAttribute('aria-pressed', ligar)
+    const marcadas = [...document.querySelectorAll('[data-cx-filtros] .cx-chip.ativo')].map(b => b.dataset.app)
     estadoCx.apps = marcadas.length === estadoCx.empresas.length ? null : marcadas
-    caixinha.closest('.cx-chip').classList.toggle('ativo', caixinha.checked)
     document.querySelector('[data-cx-filtros] .cx-chips > .cx-atalho')?.classList.toggle('ativo', !estadoCx.apps)
     clearTimeout(esperaEmpresasCx)
     esperaEmpresasCx = setTimeout(carregarFluxoCaixa, 450)
