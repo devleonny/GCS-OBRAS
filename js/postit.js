@@ -225,11 +225,18 @@ async function linPostIT(dados) {
             <div
                 class="postit ${estilo}"
                 draggable="true"
+                title="Clique para ver o resumo"
+                onclick="resumoPIT('${id}')"
                 ondragstart="arrastarPIT(event, '${id}')">
                 ${comentarioPostIT(comentario)}
-                <div class="local-anexos">${divAnexos || ''}</div>
+                <div class="local-anexos" onclick="event.stopPropagation()">${divAnexos || ''}</div>
                 <span class="prazo">${prazoFin ? `<b>Prazo:</b> ${prazoFin}` : 'Sem prazo'}</span>
-                <img class="postit-editar" src="imagens/pesquisar.svg" title="Editar post-it" onclick="criarPIT('${id}')">
+                <div class="postit-botoes">
+                    <button type="button" class="postit-concluir${status == 'S' ? ' marcado' : ''}"
+                        title="${status == 'S' ? 'Concluído — clique para reabrir' : 'Marcar como concluído'}"
+                        onclick="event.stopPropagation(); alternarConcluidoPIT('${id}')">✓</button>
+                    <img class="postit-editar" src="imagens/pesquisar.svg" title="Editar post-it" onclick="event.stopPropagation(); criarPIT('${id}')">
+                </div>
             </div>
         </td>
     </tr>
@@ -433,24 +440,12 @@ async function criarPIT(id) {
         dados = await recuperarDado('postit', id)
     }
 
-    const { comentario, anexos, prazo, status, usuario = acesso.usuario } = dados || {}
+    const { comentario, anexos, prazo, status } = dados || {}
 
     const divAnexos = Object
         .entries(anexos || {})
         .map(([, anexo]) => criarAnexoVisual(anexo.nome, anexo.link))
         .join('')
-
-    controlesCxOpcoes.usuario = {
-        base: 'clientes',
-        retornar: ['usuario'],
-        filtros: {
-            usuario: { op: 'NOT_EMPTY' }
-        },
-        colunas: {
-            'Usuario': { chave: 'usuario' },
-            'Permissão': { chave: 'permissao' }
-        }
-    }
 
     const linhas = [
         {
@@ -480,10 +475,6 @@ async function criarPIT(id) {
                     <div class="local-anexos">${divAnexos || 'Sem anexos'}</div>
                 </div>
             `
-        },
-        {
-            texto: 'Usuário',
-            elemento: `<span class="opcoes" name="usuario" id="${usuario}" onclick="cxOpcoes('usuario')">${usuario}</span>`
         }
     ]
 
@@ -501,7 +492,7 @@ async function criarPIT(id) {
     if (id)
         botoes.push({ img: 'cancel', texto: 'Excluir', funcao: `confirmarExcluirPIT('${id}')` })
 
-    const janela = popup({ linhas, botoes, titulo: id ? 'Editar post-it' : 'Novo post-it', autoDestruicao: ['usuario'] })
+    const janela = popup({ linhas, botoes, titulo: id ? 'Editar post-it' : 'Novo post-it' })
     // Print colado (Ctrl+V) em qualquer ponto do post-it, inclusive no texto, vira anexo.
     document.getElementById(janela)?.addEventListener('paste', colarAnexoPIT)
 }
@@ -568,9 +559,8 @@ async function mostrarPIT(dados, anterior) {
     const voltar = posicaoPIT(atual)
     const destino = document.getElementById(`body_${dados.quadro || 'Novos'}`)
 
-    // Post-it passado para outro usuário sai da tela.
     let nova = null
-    if (dados.usuario === acesso.usuario && (atual || destino)) {
+    if (atual || destino) {
         const molde = document.createElement('tbody')
         molde.innerHTML = await linPostIT(dados)
         nova = molde.firstElementChild
@@ -594,9 +584,9 @@ async function salvarPIT(id) {
     id ||= crypto.randomUUID()
 
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
-    const usuarioFin = painel.querySelector('[name="usuario"]').id
+    // Cada um é dono dos próprios post-its.
     const campos = {
-        usuario: usuarioFin,
+        usuario: acesso.usuario,
         status: painel.querySelector('[name="status"]').checked ? 'S' : 'N',
         comentario: painel.querySelector('.editor-conteudo').innerHTML || '',
         prazo: painel.querySelector('[name="prazo"]').value
@@ -623,7 +613,7 @@ async function salvarPIT(id) {
         id,
         ...campos,
         anexos: { ...anterior?.anexos, ...anexos },
-        quadro: usuarioFin !== acesso.usuario ? null : anterior?.quadro || null
+        quadro: anterior?.quadro || null
     }
 
     removerPopup()
@@ -635,7 +625,7 @@ async function salvarPIT(id) {
         const atualizado = {
             ...local,
             anexos: { ...gravado.anexos, ...local.anexos },
-            quadro: usuarioFin !== acesso.usuario ? null : gravado.quadro ?? local.quadro
+            quadro: gravado.quadro ?? local.quadro
         }
 
         const resposta = await enviar(`postit/${id}`, atualizado)
@@ -649,6 +639,87 @@ async function salvarPIT(id) {
     }
 
     verificarPostIts()
+}
+
+// Concluir/reabrir direto no cartão, sem abrir o formulário.
+async function alternarConcluidoPIT(id) {
+    const anterior = postitsPIT.get(id)
+    if (!anterior) return
+
+    const status = anterior.status == 'S' ? 'N' : 'S'
+    const local = { ...anterior, status }
+    const desfazer = await mostrarPIT(local, anterior)
+    postitsPIT.set(id, local)
+
+    // Resumo aberto deste post-it acompanha a troca.
+    const resumo = document.querySelector(`.pit-resumo[data-pit="${CSS.escape(id)}"]`)
+    if (resumo) {
+        removerPopup(resumo.closest('.popup')?.id)
+        resumoPIT(id)
+    }
+
+    try {
+        // Mescla com o que está gravado: texto, anexos ou quadro mudados em outra aba não se perdem.
+        const gravado = await recuperarDado('postit', id) || {}
+        const atualizado = { ...anterior, ...gravado, id, status }
+        const resposta = await enviar(`postit/${id}`, atualizado)
+        if (!resposta?.success) throw resposta
+        postitsPIT.set(id, atualizado)
+    } catch (erro) {
+        console.log(erro)
+        desfazer()
+        falhaPIT(status == 'S' ? 'concluir o post-it' : 'reabrir o post-it', erro)
+    }
+
+    verificarPostIts()
+}
+
+// Resumo só de leitura ao clicar no cartão.
+function resumoPIT(id) {
+    const dados = postitsPIT.get(id)
+    if (!dados) return
+
+    const { comentario, prazo, status, anexos, quadro } = dados
+    const concluido = status == 'S'
+    const atrasado = !concluido && prazo && agoraServidor() > toTimestamp(prazo)
+
+    const situacao = concluido
+        ? '<span class="pit-resumo-situacao concluido">Concluído</span>'
+        : atrasado
+            ? '<span class="pit-resumo-situacao atrasado">Atrasado</span>'
+            : '<span class="pit-resumo-situacao aberto">Em aberto</span>'
+
+    const nomeQuadro = document
+        .querySelector(`#quadros .postits-coluna[data-quadro="${CSS.escape(quadro || '')}"] .postits-titulo-quadro span`)
+        ?.textContent || 'Novos'
+
+    const divAnexos = Object
+        .entries(anexos || {})
+        .map(([, anexo]) => criarAnexoVisual(anexo.nome, anexo.link))
+        .join('')
+
+    const elemento = `
+        <div class="pit-resumo" data-pit="${escaparAtributo(id)}">
+            <div class="pit-resumo-info">
+                <div><span>Situação</span>${situacao}</div>
+                <div><span>Prazo</span><b>${prazo ? new Date(toTimestamp(prazo)).toLocaleDateString() : 'Sem prazo'}</b></div>
+                <div><span>Quadro</span><b>${escaparAtributo(nomeQuadro)}</b></div>
+            </div>
+            <div class="pit-resumo-texto">${comentarioPostIT(comentario)}</div>
+            ${divAnexos ? `<div class="pit-resumo-anexos"><span>Anexos</span><div class="local-anexos">${divAnexos}</div></div>` : ''}
+        </div>
+    `
+
+    const botoes = [
+        {
+            texto: concluido ? 'Reabrir' : 'Marcar concluído',
+            img: concluido ? 'cancel' : 'concluido',
+            funcao: `alternarConcluidoPIT('${id}')`
+        },
+        { texto: 'Editar', img: 'editar', funcao: `removerPopup(this.closest('.popup').id); criarPIT('${id}')` }
+    ]
+
+    popup({ elemento, botoes, titulo: 'Post-it' })
 }
 
 // Quadro novo entra no fim.

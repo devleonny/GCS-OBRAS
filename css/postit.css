@@ -65,13 +65,118 @@
     border-left-color: #6fa8dc;
 }
 
+.postit {
+    cursor: pointer;
+}
+
+.postit .postit-comentario {
+    padding-right: 52px;
+}
+
+.postit-botoes {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .postit-editar {
     width: 20px;
     height: 20px;
     object-fit: contain;
-    position: absolute;
-    top: 10px;
-    right: 10px;
+    cursor: pointer;
+}
+
+/* Concluir direto no cartão: na cor do próprio cartão */
+.postit { --pit-tom: #d9bc2c; }
+.postit.concluido { --pit-tom: #3fa856; }
+.postit.atrasado { --pit-tom: #d96b6b; }
+.postit.sem-prazo { --pit-tom: #5b93c9; }
+
+.postit-concluir {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--pit-tom);
+    border-radius: 50%;
+    background: transparent;
+    color: transparent;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.postit-concluir:hover {
+    color: var(--pit-tom);
+}
+
+.postit-concluir.marcado {
+    background: var(--pit-tom);
+    color: #fff;
+}
+
+/* Popup resumo */
+.pit-resumo {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(520px, 85vw);
+    padding: 12px;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.pit-resumo-info {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.pit-resumo-info > div,
+.pit-resumo-anexos {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px;
+    border: 1px solid #e3e8e5;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.pit-resumo-info span:first-child,
+.pit-resumo-anexos > span {
+    font-size: 11px;
+    color: #6b7a72;
+}
+
+.pit-resumo-situacao {
+    align-self: start;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.pit-resumo-situacao.concluido { background: #bff5c8; color: #1f6b33; }
+.pit-resumo-situacao.atrasado { background: #ffd0d0; color: #9b2525; }
+.pit-resumo-situacao.aberto { background: #fff6a8; color: #6b5a00; }
+
+.pit-resumo-texto {
+    max-height: 50vh;
+    overflow: auto;
+    padding: 10px 12px;
+    background: #fffbe0;
+    border-left: 4px solid #f0d64a;
+    border-radius: 8px;
+    font-size: 14px;
 }
 
 .postit.arrastando {

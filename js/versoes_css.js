@@ -40,7 +40,7 @@ const VERSOES_CSS = {
     "pdf": "e66db2e0",
     "planos_diarios": "c1524a7b",
     "popup": "4388b652",
-    "postit": "f5ad4a47",
+    "postit": "2fca9a53",
     "rastreio": "31231677",
     "relatorio": "9fc99329",
     "relatorio_omie": "e91d89db",
