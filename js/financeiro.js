@@ -25,7 +25,7 @@ const SITUACOES_FIN = {
     PAGO: { cor: '#15803d', texto: 'Pago' },
     CANCELADO: { cor: '#64748b', texto: 'Excluída' }
 }
-const ORIGENS_FIN = { MANUAL: 'Manual', NF_ENTRADA: 'Nota recebida', NF_SAIDA: 'Nota emitida', REEMBOLSO: 'Reembolso', RECORRENCIA: 'Repetição', OMIE: 'Omie', NF_OMIE: 'NF do Omie', DEVOLUCAO: 'Devolução', LOTE: 'Lote' }
+const ORIGENS_FIN = { MANUAL: 'Manual', NF_ENTRADA: 'Nota recebida', CTE: 'CT-e', NF_SAIDA: 'Nota emitida', REEMBOLSO: 'Reembolso', RECORRENCIA: 'Repetição', OMIE: 'Omie', NF_OMIE: 'NF do Omie', DEVOLUCAO: 'Devolução', LOTE: 'Lote' }
 // Importadas do Omie (21/11/2026): a origem não existe mais, então se editam e excluem como as lançadas aqui.
 const ORIGENS_EDITAVEIS_FIN = ['MANUAL', 'RECORRENCIA', 'OMIE']
 const FREQUENCIAS_FIN = [['MENSAL', 'Mensal'], ['SEMANAL', 'Semanal'], ['QUINZENAL', 'Quinzenal (14 dias)'], ['BIMESTRAL', 'Bimestral'],
@@ -1101,7 +1101,9 @@ async function abrirFaturaFin(id) {
             ? `<span class="fis-link" onclick="abrirDocumentoFiscal('${escFin(t.documento_id)}')">${escFin(ORIGENS_FIN[t.origem])} ${escFin(t.documento_numero || '')}</span>`
             : t.origem === 'LOTE' && /^LOTE:\d+:/.test(t.origem_id || '') && typeof abrirLoteSalarios === 'function'
                 ? `<span class="fis-link" onclick="abrirLoteSalarios(${Number(t.origem_id.split(':')[1])})">${escFin(ORIGENS_FIN.LOTE)}: ${escFin(t.descricao || 'abrir')}</span>`
-                : escFin(ORIGENS_FIN[t.origem] || t.origem)
+                : t.origem === 'CTE' && t.origem_id && typeof abrirCteFis === 'function'
+                    ? `<span class="fis-link" onclick="abrirCteFis('${escFin(t.origem_id)}')">${escFin(ORIGENS_FIN.CTE)} ${escFin(t.numero_documento || '')}</span>`
+                    : escFin(ORIGENS_FIN[t.origem] || t.origem)
         popup({
             titulo: `Fatura a ${pagar ? 'pagar' : 'receber'}`,
             elemento: `

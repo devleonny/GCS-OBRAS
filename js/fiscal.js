@@ -552,6 +552,13 @@ const PAGA_FRETE_FIS = {
     GRUPO: { cor: '#2563eb', texto: 'Empresa do grupo' },
     TERCEIRO: { cor: '#64748b', texto: 'Terceiro' }
 }
+// Fatura a pagar do frete (só quando o grupo paga): vw_fiscal_ctes.fatura.
+const FATURA_CTE_FIS = {
+    LANCADA: { cor: '#15803d', texto: 'Lançada' },
+    OMIE: { cor: '#0e7490', texto: 'Já no Financeiro' },
+    NAO: { cor: '#64748b', texto: 'Não gera' },
+    PENDENTE: { cor: '#d97706', texto: 'Falta lançar' }
+}
 const PAPEL_TOMADOR_FIS = { REMETENTE: 'Remetente', EXPEDIDOR: 'Expedidor', RECEBEDOR: 'Recebedor', DESTINATARIO: 'Destinatário', OUTROS: 'Outro' }
 const TIPO_CTE_FIS = { 0: 'Normal', 1: 'Complemento de valores', 2: 'Anulação', 3: 'Substituto' }
 const MODAL_CTE_FIS = { '01': 'Rodoviário', '02': 'Aéreo', '03': 'Aquaviário', '04': 'Ferroviário', '05': 'Dutoviário', '06': 'Multimodal' }
@@ -610,7 +617,8 @@ async function abrirTabelaCtesFis(filtroExtra = null) {
                 'NF-e': { chave: 'notas_numeros' },
                 'Valor': { chave: 'valor_total', tipoPesquisa: 'valor' },
                 'XML': { chave: 'status', tipoPesquisa: 'select', opcoes: ['COMPLETO', 'RESUMO'], rotulos: { COMPLETO: 'XML completo', RESUMO: 'Só resumo' } },
-                'Situação': { chave: 'situacao', tipoPesquisa: 'select', opcoes: ['AUTORIZADO', 'CANCELADO', 'DENEGADO'], rotulos: { AUTORIZADO: 'Autorizado', CANCELADO: 'Cancelado', DENEGADO: 'Denegado' } }
+                'Situação': { chave: 'situacao', tipoPesquisa: 'select', opcoes: ['AUTORIZADO', 'CANCELADO', 'DENEGADO'], rotulos: { AUTORIZADO: 'Autorizado', CANCELADO: 'Cancelado', DENEGADO: 'Denegado' } },
+                'Fatura': { chave: 'fatura', tipoPesquisa: 'select', opcoes: Object.keys(FATURA_CTE_FIS), rotulos: Object.fromEntries(Object.entries(FATURA_CTE_FIS).map(([k, v]) => [k, v.texto])) }
             }
         })
         area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-cte-fis></div>')
@@ -648,6 +656,7 @@ function criarLinhaCteFis(d) {
             <td class="fis-num">${d.valor_total != null ? dinheiro(d.valor_total) : ''}</td>
             <td>${etiquetaFis(XML_CTE_FIS, d.status)}</td>
             <td>${etiquetaFis(SITUACAO_CTE_FIS, d.situacao)}</td>
+            <td title="${escFis(d.fatura === 'OMIE' ? `Fatura com o mesmo número: ${d.fatura_outra || ''}` : '')}">${d.fatura ? etiquetaFis(FATURA_CTE_FIS, d.fatura) : ''}</td>
         </tr>`
 }
 
@@ -825,6 +834,7 @@ async function contadoresCtesFis() {
                 <span>${texto}</span><b>${qtd(v)}</b><small>${escFis(explica)}</small></button>`
         alvo.innerHTML = `
             ${cartao(n.pagos_grupo, 'Frete pago pelo grupo', '#2563eb', 'paga_frete', 'grupo', 'O tomador do frete é uma empresa do grupo.')}
+            ${cartao(n.fatura_pendente, 'Falta lançar a fatura', '#d97706', 'fatura', 'PENDENTE', 'O grupo paga o frete e ainda não há fatura a pagar.')}
             ${cartao(n.pagos_terceiro, 'Frete pago por terceiro', '#64748b', 'paga_frete', 'terceiro', 'Fornecedor ou cliente pagou (só informativo).')}
             ${cartao(n.resumo, 'Só com resumo', '#d97706', 'status', 'resumo', 'O XML ainda não veio; a próxima busca tenta de novo.')}
             ${cartao(n.cancelados, 'Cancelados', '#b91c1c', 'situacao', 'cancelado', 'Cancelados pela transportadora.')}
@@ -840,7 +850,9 @@ async function contadoresCtesFis() {
 async function abrirCteFis(id) {
     overlayAguarde()
     try {
-        const { cte: c, nfes } = await apiFiscal('cte', { id })
+        const { cte: c, nfes, fatura = null } = await apiFiscal('cte', { id })
+        const pedeFatura = c.tomador_app && c.situacao === 'AUTORIZADO' && !Number(c.faturas)
+        const opcoesFin = pedeFatura ? await carregarOpcoesFin().catch(() => null) : null
         removerOverlay()
         const anterior = document.querySelector(`[data-cte-fis="${CSS.escape(id)}"]`)?.closest('.popup')?.id
         if (anterior) removerPopup(anterior)
@@ -900,6 +912,8 @@ async function abrirCteFis(id) {
                     ${c.tem_xml ? botao('XML', `baixarArquivoFiscal('${escFis(c.id)}', 'xml', 'cte/arquivo')`) : ''}
                 </div>
 
+                ${htmlFaturaCteFis(c, fatura || {}, opcoesFin)}
+
                 <div class="fis-secao">
                     <div class="fis-secao-topo"><b>NF-e transportadas</b> <span class="fis-contador">${nfes.length}</span></div>
                     ${nfes.length
@@ -923,6 +937,126 @@ async function abrirCteFis(id) {
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// Fatura a pagar do frete (26/11/2026): só quando o tomador é empresa do grupo. Mesma pergunta da nota recebida
+// ("Gerar fatura a pagar?", sem padrão). O CT-e não traz vencimento: o usuário informa. Categoria sugerida
+// 2.01.02 Frete; departamento sugerido = ORC das NF-e transportadas. Fatura do Omie com o mesmo número: avisa.
+function htmlFaturaCteFis(c, { titulos = [], outras = [], rateio = [] }, opcoesFin) {
+    if (!c.tomador_app) return ''
+    const linhaTitulo = t => `
+        <tr><td>${escFis(t.parcela_texto || t.numero_documento || '')}</td><td>${dataFin(t.vencimento)}</td><td class="fis-num">${dinheiro(t.valor)}</td>
+            <td class="fis-num">${Number(t.pago) ? dinheiro(t.pago) : ''}</td>
+            <td>${etiquetaEst(SITUACOES_FIN[t.situacao]?.texto || t.situacao, SITUACOES_FIN[t.situacao]?.cor)}</td>
+            <td>${escFis(t.categoria || '')}</td>
+            <td><button type="button" class="fis-mini" onclick="abrirFaturaFin('${escFis(t.id)}')">Abrir</button></td></tr>`
+    const tabela = (lista, comOrigem = false) => `
+        <table class="fis-tabela">
+            <thead><tr><th>${comOrigem ? 'Número' : 'Parcela'}</th><th>Vencimento</th><th class="fis-num">Valor</th><th class="fis-num">Pago</th><th>Situação</th><th>Categoria</th><th></th></tr></thead>
+            <tbody>${lista.map(t => linhaTitulo(comOrigem ? { ...t, parcela_texto: `${t.numero_documento || ''} · ${ORIGENS_FIN[t.origem] || t.origem}` } : t)).join('')}</tbody>
+        </table>`
+    if (titulos.length)
+        return `
+            <div class="fis-secao fin-entrada feita">
+                <div class="fis-secao-topo">
+                    <b>Fatura a pagar do frete</b>
+                    <small>${c.fatura_em ? `lançada em ${dataHoraFis(c.fatura_em)} por ${escFis(c.fatura_por || '')}` : ''}</small>
+                    <button type="button" class="fis-mini" onclick="desfazerFaturaCteFis('${escFis(c.id)}')">Desfazer</button>
+                </div>
+                ${tabela(titulos)}
+            </div>`
+    if (c.situacao !== 'AUTORIZADO') return ''
+    const avisoOutras = outras.length ? `
+        <div class="fis-alerta">Já existe fatura a pagar com o número deste CT-e (o Omie lançava sozinho). Só lance outra se for uma cobrança diferente.</div>
+        ${tabela(outras, true)}` : ''
+    if (c.gerar_fatura === false)
+        return `
+            <div class="fis-secao fin-entrada feita">
+                <div class="fis-secao-topo">
+                    <b>Fatura a pagar do frete</b>
+                    <small>respondido "Não" em ${dataHoraFis(c.fatura_em)} por ${escFis(c.fatura_por || '')}</small>
+                    <button type="button" class="fis-mini" onclick="desfazerFaturaCteFis('${escFis(c.id)}')">Mudar resposta</button>
+                </div>
+                ${avisoOutras}
+            </div>`
+    const total = Number(c.valor_receber || c.valor_total || 0)
+    const frete = (opcoesFin?.categorias || []).find(x => x.codigo === '2.01.02' && !x.excluida)
+    const bloco = !opcoesFin
+        ? '<div class="fis-alerta">Sem acesso às categorias do Financeiro: peça a alguém do financeiro para lançar esta fatura.</div>'
+        : `
+            <div class="fis-grade">
+                <label class="fis-campo fis-largo"><span>Categoria *</span><select class="fis-input" name="categoria_id">${opcoesCategoriasFin(opcoesFin.categorias, 'PAGAR', frete?.id)}</select></label>
+                <label class="fis-campo"><span>Forma</span><select class="fis-input" name="forma_pagamento"><option value=""></option>${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select></label>
+                <label class="fis-campo"><span>Conta</span><select class="fis-input" name="conta_id">${opcoesContasFin(opcoesFin.contas, c.tomador_app)}</select></label>
+            </div>
+            <small class="fis-dica">O CT-e não traz vencimento: informe pelo boleto/fatura da transportadora.</small>
+            ${editorParcelasFin([], total)}
+            ${editorRateioFin(opcoesFin.departamentos, rateio, { total })}
+            ${rateio.length ? '<small class="fis-dica">Departamento sugerido pelas NF-e transportadas: confira.</small>' : ''}`
+    return `
+        <div class="fis-secao fin-entrada" data-fatura-cte="${escFis(c.id)}" data-outras="${outras.length}">
+            <div class="fis-secao-topo"><b>Fatura a pagar do frete</b> <small>${escFis(c.tomador_app)} paga este frete (${dinheiro(total)})</small></div>
+            ${avisoOutras}
+            ${simNaoFin('gerar_fatura', 'Gerar fatura a pagar?', 'alternarFaturaCteFis(this)')}
+            <div data-se="gerar_fatura" hidden>${bloco}</div>
+            <div class="fis-acoes-claras"><button type="button" class="fis-botao" onclick="salvarFaturaCteFis('${escFis(c.id)}')">Salvar</button></div>
+        </div>`
+}
+
+function alternarFaturaCteFis(input) {
+    const alvo = input.closest('[data-fatura-cte]').querySelector('[data-se="gerar_fatura"]')
+    alvo.hidden = input.value !== 'sim'
+    const parcelas = alvo.querySelector('[data-parcelas]')
+    if (parcelas && !alvo.hidden) somarParcelasFin(parcelas)
+}
+
+async function salvarFaturaCteFis(id) {
+    const caixa = document.querySelector(`[data-fatura-cte="${CSS.escape(id)}"]`)
+    const gerar = lerSimNaoFin(caixa, 'gerar_fatura')
+    if (gerar === null) return popup({ mensagem: 'Responda: gerar fatura a pagar?' })
+    const v = n => caixa.querySelector(`[name="${n}"]`)?.value || ''
+    const dados = { id, gerar }
+    if (gerar) {
+        if (!caixa.querySelector('[name="categoria_id"]')) return popup({ mensagem: 'Sem acesso às categorias do Financeiro.' })
+        const parcelas = lerParcelasFin(caixa)
+        const faltas = [!v('categoria_id') && 'Escolha a categoria.', parcelas.some(p => !p.vencimento) && 'Informe o vencimento de cada parcela.'].filter(Boolean)
+        if (faltas.length) return popup({ mensagem: faltas.join('<br>') })
+        if (Number(caixa.dataset.outras) > 0) {
+            const ok = await confirmarPopup({ titulo: 'Fatura com o mesmo número', mensagem: 'Já existe fatura a pagar com o número deste CT-e. Lançar outra mesmo assim (cobrança diferente)?', textoConfirmar: 'Lançar outra' })
+            if (!ok) return
+            dados.mesmo_com_outra = true
+        }
+        Object.assign(dados, { categoria_id: v('categoria_id'), forma_pagamento: v('forma_pagamento'), conta_id: v('conta_id') || null, parcelas, rateio: lerRateioFin(caixa) })
+    }
+    try {
+        overlayAguarde()
+        const r = await apiFiscal('cte/fatura', dados)
+        removerOverlay()
+        popup({ mensagem: gerar ? `${r.faturas} fatura(s) a pagar lançada(s).` : 'Gravado: este CT-e não gera fatura.', imagem: 'imagens/concluido.png', tempo: 4 })
+        abrirCteFis(id)
+        contadoresCtesFis()
+        if (controles.ctesRecebidos) paginacao('ctesRecebidos')
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+async function desfazerFaturaCteFis(id) {
+    const motivo = await pedirTextoPopup({ titulo: 'Fatura do CT-e', mensagem: 'Por que desfazer? (as faturas a pagar deste CT-e são canceladas e a pergunta volta)', textoConfirmar: 'Desfazer' })
+    if (motivo === null) return
+    try {
+        overlayAguarde()
+        const r = await apiFiscal('cte/desfazer-fatura', { id, motivo })
+        removerOverlay()
+        popup({ mensagem: `Desfeito: ${r.faturas} fatura(s) cancelada(s).`, imagem: 'imagens/concluido.png', tempo: 4 })
+        abrirCteFis(id)
+        contadoresCtesFis()
+        if (controles.ctesRecebidos) paginacao('ctesRecebidos')
+    } catch (err) {
+        removerOverlay()
+        popup({ titulo: err.status === 409 ? 'Não dá para desfazer' : undefined, mensagem: mensagemErroEst(err) })
     }
 }
 
@@ -966,6 +1100,7 @@ async function baixarExcelCtesFis() {
                 { titulo: 'Valor', largura: 14, tipo: 'moeda', soma: true, valor: d => Number(d.valor_total) || 0 },
                 { titulo: 'ICMS', largura: 12, tipo: 'moeda', soma: true, valor: d => Number(d.valor_icms) || 0 },
                 { titulo: 'Situação', largura: 12, valor: d => texto(SITUACAO_CTE_FIS, d.situacao) },
+                { titulo: 'Fatura a pagar', largura: 18, valor: d => d.fatura === 'OMIE' ? `Já no Financeiro: ${d.fatura_outra || ''}` : texto(FATURA_CTE_FIS, d.fatura) },
                 { titulo: 'Chave', largura: 48, valor: d => d.chave || '' }
             ]
         })
