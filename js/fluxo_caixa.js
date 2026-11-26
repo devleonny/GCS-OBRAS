@@ -200,7 +200,8 @@ function desenharFluxoCaixa() {
     document.querySelector('[data-cx-acoes]').innerHTML = `
         ${d.pode_planejar ? '<button type="button" class="fis-mini" onclick="conferirSaldosCx()">Conferir saldos</button>' : ''}
         ${d.pode_planejar ? '<button type="button" class="fis-mini" onclick="planejamentoCx()">Planejamento e trava</button>' : ''}
-        ${pode('financeiro.lote_salarios') ? '<button type="button" class="fis-mini" onclick="telaLotesSalarios()">Lote de salários</button>' : ''}`
+        ${pode('financeiro.lote_salarios') ? '<button type="button" class="fis-mini" onclick="telaLotesSalarios()">Lote de salários</button>' : ''}
+        <button type="button" class="fis-mini" onclick="almanaqueCx()" title="As referências que a Leitura do sistema usa para comparar os números">Almanaque</button>`
 
     const r = resumoPeriodoCx(d)
     const { de, ate } = d.periodo
@@ -214,6 +215,7 @@ function desenharFluxoCaixa() {
         ${avisosCx(d)}
         <div class="cx-faixa-periodo"><b>${escFin(nomePeriodo)}</b> · ${escFin(quem)}</div>
         ${secaoCx('Caixa', 'Temos, tivemos e teremos dinheiro em conta?')}
+        ${leituraCaixaCx(d, r)}
         <section class="cx-respostas" aria-label="Respostas rápidas">
             ${respostaCx({
                 titulo: 'Temos caixa hoje?', valor: semSaldo ? null : d.saldo_hoje,
@@ -248,6 +250,7 @@ function desenharFluxoCaixa() {
         ${blocoInvestimentosCx(d, semSaldo)}
 
         ${secaoCx('Saldo e movimento', 'Dia a dia, mês a mês e semana a semana no período escolhido.')}
+        ${leituraSaldoCx(d, r, meses)}
         <section class="cx-bloco">
             <div class="cx-bloco-topo">
                 <h3>Saldo dia a dia</h3>
@@ -269,12 +272,14 @@ function desenharFluxoCaixa() {
         </section>` : ''}
 
         ${secaoCx('Entre empresas', 'Uma empresa do grupo bancando a outra.')}
+        <div data-cx-leitura-entre></div>
         <section class="cx-bloco" data-cx-entre>
             <div class="cx-bloco-topo"><h3>Quem bancou quem</h3><small>Dinheiro de uma empresa usado pela outra: conta paga pela conta da outra, recebimento que caiu na conta da outra e transferências entre elas (pelo extrato). Clique numa linha para ver um por um.</small></div>
             <div data-cx-entre-corpo><div class="cx-carregando">Calculando…</div></div>
         </section>
 
         ${secaoCx('Daqui para frente', 'Sempre a partir de hoje: quanto dá para gastar, o que vence e o que está atrasado.')}
+        ${leituraFrenteCx(d)}
         <section class="cx-bloco cx-daqui">
             <div class="cx-bloco-topo"><h3>Quanto dá para gastar</h3><small>Sempre a partir de hoje, para planejar (não muda com o período).</small></div>
             <div class="cx-respostas">
@@ -637,6 +642,8 @@ function desenharEntreEmpresasCx() {
     const caixa = document.querySelector('[data-cx-entre-corpo]')
     if (!caixa || !estadoCx.entre) return
     const { pares, fim } = paresEntreEmpresasCx()
+    const leitura = document.querySelector('[data-cx-leitura-entre]')
+    if (leitura) leitura.innerHTML = leituraEntreCx(pares, fim)
     if (!pares.length) { caixa.innerHTML = '<div class="fis-vazio">Nenhuma empresa usou dinheiro da outra neste período.</div>'; return }
     caixa.innerHTML = `
         <div class="fis-tabela-rolagem">
@@ -1042,7 +1049,7 @@ async function carregarDistribuicaoCx() {
     if (!alvo || !d) return
     const pedido = ++esperaDistribuicaoCx
     try {
-        const dist = await apiFin('fluxo/distribuicao', { apps: estadoCx.apps, de: d.periodo.de, ate: d.periodo.ate })
+        const dist = await apiFin('fluxo/distribuicao', { apps: estadoCx.apps, de: d.periodo.de, ate: d.periodo.ate, anterior: periodoAnteriorCx(d.periodo) })
         if (pedido !== esperaDistribuicaoCx || !document.body.contains(alvo)) return
         estadoCx.dist = dist
         desenharDistribuicaoCx()
@@ -1066,6 +1073,7 @@ function desenharDistribuicaoCx() {
     const vazio = !x.categorias.length
     alvo.innerHTML = `
         ${secaoCx('Distribuição dos custos', 'Faturas a pagar do período, pagas e em aberto, pelo vencimento, mais os reembolsos pedidos.')}
+        ${vazio ? '' : leituraDistribuicaoCx(x)}
         ${vazio ? '<div class="fis-vazio">Nenhuma fatura a pagar com vencimento no período.</div>' : `
         <div class="cx-faixa-periodo">Total ${dinheiro(x.total)} · já pago ${dinheiro(x.pago)} · em aberto ${dinheiro(x.total - x.pago)}</div>
         <div class="cx-duas">
@@ -1080,6 +1088,7 @@ function desenharDistribuicaoCx() {
         </div>`}
 
         ${secaoCx('Pessoal por setor', 'Salários, refeição e transporte das pessoas, pelo setor da ficha do RH.')}
+        ${x.setores.length ? leituraPessoalCx(x) : ''}
         ${!x.setores.length ? '<div class="fis-vazio">Nenhuma despesa com pessoal no período.</div>' : `
         <div class="cx-duas">
             <section class="cx-bloco">
@@ -1109,6 +1118,7 @@ function desenharDistribuicaoCx() {
         </section>` : ''}`}
 
         ${secaoCx('Custos por estado', 'Pelo estado do cliente do orçamento (ORC) de cada departamento.')}
+        ${leituraEstadosCx(x)}
         <div class="cx-duas cx-duas-mapa">
             <section class="cx-bloco">
                 <div class="cx-bloco-topo"><h3>Mapa</h3><small>${x.estados.length} estados${x.sem_estado ? ` · ${dinheiro(x.sem_estado)} sem estado (setores, sem departamento ou cliente sem UF)` : ''}.</small></div>
@@ -1370,6 +1380,371 @@ async function desconferirCx(id, botao) {
         conferirSaldosCx()
     } catch (err) {
         removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+// ---------------- Leitura do sistema (26/11/2026)
+// Cada seção do Fluxo de Caixa + abre com uma análise feita com os números da própria tela, comparada com o
+// almanaque financeiro (fin_almanaque, gcs migrations/financeiro-almanaque.sql: faixa boa e aceitável de cada
+// indicador, editáveis em "Almanaque") e com o período anterior (mês anterior, ou o mesmo tamanho logo antes).
+// Achado = { nivel: alerta | atencao | ok | info, texto, ref (chave do almanaque), acao (HTML de botão) }.
+// Ordem: alerta → atenção → informação → ok. Dentro da faixa boa vira "ok" curto, para o painel não gritar à toa.
+
+const ORDEM_NIVEL_CX = { alerta: 0, atencao: 1, info: 2, ok: 3 }
+const ROTULO_NIVEL_CX = { alerta: 'Alerta', atencao: 'Atenção', info: 'Para saber', ok: 'Em ordem' }
+const numCx = (v, casas = 1) => Number(v || 0).toLocaleString('pt-BR', { maximumFractionDigits: casas })
+const pctNumCx = (parte, todo) => todo ? parte / todo * 100 : 0
+
+const refCx = chave => (estadoCx.dados?.almanaque || []).find(a => a.chave === chave) || null
+
+// Valor contra a faixa do almanaque: ok (faixa boa), atencao (aceitável), alerta (fora).
+function avaliarCx(chave, valor) {
+    const a = refCx(chave)
+    if (!a || valor === null || valor === undefined || !Number.isFinite(Number(valor))) return null
+    const v = Number(valor)
+    const dentro = (min, max) => (min === null || v >= min) && (max === null || v <= max)
+    return dentro(a.ok_min, a.ok_max) ? 'ok' : dentro(a.aceitavel_min, a.aceitavel_max) ? 'atencao' : 'alerta'
+}
+
+function unidadeCx(v, unidade) {
+    if (unidade === '%') return `${numCx(v)}%`
+    if (unidade === 'x') return `${numCx(v, 2)}×`
+    if (unidade === 'R$') return curtoCx(v)
+    if (unidade === 'meses') return `${numCx(v)} ${Number(v) === 1 ? 'mês' : 'meses'}`
+    if (unidade === 'dias') return `${numCx(v, 0)} dia${Number(v) === 1 ? '' : 's'}`
+    return numCx(v)
+}
+
+function faixaTextoCx(a, qual = 'ok') {
+    const min = a[`${qual}_min`], max = a[`${qual}_max`]
+    if (min !== null && max !== null) return `${unidadeCx(min, a.unidade)} a ${unidadeCx(max, a.unidade)}`
+    if (min !== null) return `${unidadeCx(min, a.unidade)} ou mais`
+    if (max !== null) return `até ${unidadeCx(max, a.unidade)}`
+    return 'qualquer valor'
+}
+
+// Achado com régua do almanaque: o texto de cada nível vem pronto (ok, atencao, alerta).
+function medirCx(chave, valor, textos) {
+    const nivel = avaliarCx(chave, valor)
+    if (!nivel) return null
+    const t = typeof textos === 'function' ? textos(nivel) : textos[nivel] || textos.padrao
+    return t ? { nivel, texto: t, ref: chave, valor } : null
+}
+
+function leituraCx(achados) {
+    const lista = achados.filter(Boolean).sort((a, b) => ORDEM_NIVEL_CX[a.nivel] - ORDEM_NIVEL_CX[b.nivel])
+    if (!lista.length) return ''
+    const piores = lista.filter(a => a.nivel === 'alerta').length
+    const atencao = lista.filter(a => a.nivel === 'atencao').length
+    const resumo = piores ? `${piores} alerta${piores === 1 ? '' : 's'}` : atencao ? `${atencao} ponto${atencao === 1 ? '' : 's'} de atenção` : 'tudo dentro do esperado'
+    return `
+        <div class="cx-leitura cx-leitura-${piores ? 'alerta' : atencao ? 'atencao' : 'ok'}" role="note">
+            <div class="cx-leitura-topo"><b>Leitura do sistema</b><small>${resumo}</small></div>
+            <ul>${lista.map(a => {
+                const r = a.ref ? refCx(a.ref) : null
+                const regua = r ? `<button type="button" class="cx-leitura-ref" onclick="almanaqueCx('${escFin(r.chave)}')"
+                    title="${escFin(`${r.titulo}\nBom: ${faixaTextoCx(r)} · aceitável: ${faixaTextoCx(r, 'aceitavel')}\n${r.explicacao}${r.fonte ? `\nFonte: ${r.fonte}` : ''}`)}">referência: ${escFin(faixaTextoCx(r))}</button>` : ''
+                return `<li class="cx-leitura-${a.nivel}"><span class="cx-leitura-nivel">${ROTULO_NIVEL_CX[a.nivel]}</span>
+                    <div>${a.texto} ${regua}${a.acao ? `<div class="cx-leitura-acoes">${a.acao}</div>` : ''}</div></li>`
+            }).join('')}</ul>
+        </div>`
+}
+
+// Mês anterior (modo mês) ou o mesmo número de dias logo antes (de/até).
+function periodoAnteriorCx({ de, ate }) {
+    if (estadoCx.modo === 'MES') { const m = somarMesesCx(de.slice(0, 7), -1); return { de: `${m}-01`, ate: fimDoMesCx(m) } }
+    const dias = Math.round((new Date(`${ate}T12:00:00Z`) - new Date(`${de}T12:00:00Z`)) / 864e5) + 1
+    return { de: somarDiasCx(de, -dias), ate: somarDiasCx(de, -1) }
+}
+const nomeAnteriorCx = a => estadoCx.modo === 'MES' ? mesLongoCx(a.de.slice(0, 7)) : `${diaAnoCx(a.de)} a ${diaAnoCx(a.ate)}`
+
+// ---- Caixa
+function leituraCaixaCx(d, r) {
+    const k = d.kpis
+    const achados = []
+    if (!d.tem_saldo) return leituraCx([{ nivel: 'alerta', texto: 'Sem saldo de partida (nenhum extrato importado nem conta conferida): as respostas desta seção mostram só a variação do caixa, não quanto existe de verdade. Importe o extrato na Conciliação bancária antes de decidir qualquer pagamento grande.' }])
+    const saidaMes = (k.gasto_dia_90 || 0) * 30
+    if (saidaMes > 0) {
+        const meses = d.saldo_hoje / saidaMes
+        achados.push(medirCx('reserva_meses', meses, n => ({
+            ok: `O caixa de hoje (${curtoCx(d.saldo_hoje)}) cobre <b>${numCx(meses)} meses</b> das saídas médias (${curtoCx(saidaMes)}/mês). Folga confortável.`,
+            atencao: `O caixa de hoje (${curtoCx(d.saldo_hoje)}) cobre <b>${numCx(meses)} ${meses < 1.05 ? 'mês' : 'meses'}</b> das saídas médias (${curtoCx(saidaMes)}/mês): dá para operar, mas sem margem para um cliente grande atrasar.`,
+            alerta: d.saldo_hoje < 0 ? `O caixa está <b>negativo</b> (${curtoCx(d.saldo_hoje)}) contra saídas médias de ${curtoCx(saidaMes)}/mês.`
+                : `O caixa de hoje (${curtoCx(d.saldo_hoje)}) cobre só <b>${numCx(meses * 30, 0)} dias</b> das saídas médias (${curtoCx(saidaMes)}/mês). Priorize cobrar os atrasados e segure o que puder ser adiado.`
+        })[n]))
+    }
+    if (d.com_investimentos && d.saldo_investido > 0)
+        achados.push({ nivel: 'info', texto: `${numCx(pctNumCx(d.saldo_investido, d.saldo_hoje), 0)}% do caixa (${curtoCx(d.saldo_investido)}) está investido: conta como caixa porque dá para resgatar, mas o resgate leva tempo e pode ter IR.` })
+    const negPassados = r.negPassado.length
+    if (r.passado.length) achados.push(medirCx('dias_vermelho', negPassados, {
+        ok: 'Nenhum dia no vermelho no período que já passou.',
+        atencao: `<b>${negPassados} dia(s) no vermelho</b> no período (pior: ${curtoCx(r.piorPassado?.valor)} em ${diaCx(r.piorPassado?.dia)}). Pouco, mas já gera juros de cheque especial.`,
+        alerta: `<b>${negPassados} dias no vermelho</b> no período (pior: ${curtoCx(r.piorPassado?.valor)} em ${diaCx(r.piorPassado?.dia)}). Esse padrão costuma custar caro em juros: vale antecipar recebíveis ou renegociar datas de pagamento para o começo do mês.`
+    }))
+    if (r.negFuturo.length) achados.push({ nivel: 'alerta', texto: `Pelo que está lançado, o caixa fica <b>negativo a partir de ${diaCx(r.negFuturo[0].dia)}</b> (${semanaCx(r.negFuturo[0].dia)}), chegando a ${curtoCx(r.piorFuturo?.valor)}. Veja em "Daqui para frente" o que dá para adiar.` })
+    const bancos = (d.bancos || []).filter(b => !b.fora)
+    if (bancos.length) {
+        const pior = bancos.reduce((m, b) => (b.dias_sem_extrato || 0) > (m.dias_sem_extrato || 0) ? b : m, bancos[0])
+        achados.push(medirCx('extrato_dias', pior.dias_sem_extrato || 0, {
+            ok: 'Extratos em dia: o saldo é o do banco.',
+            atencao: `O extrato de <b>${escFin(pior.nome)}</b> está ${pior.dias_sem_extrato} dias atrás: o saldo desses dias depende do que foi baixado no GCS.`,
+            alerta: `O extrato de <b>${escFin(pior.nome)}</b> está <b>${pior.dias_sem_extrato} dias atrás</b>: o saldo mostrado pode estar bem diferente do banco. Importe o OFX antes de confiar nesta seção.`
+        }))
+    }
+    return leituraCx(achados)
+}
+
+// ---- Saldo e movimento
+function leituraSaldoCx(d, r, meses) {
+    const k = d.kpis
+    const achados = []
+    const resultado = r.entrou - r.saiu
+    if (r.entrou || r.saiu) achados.push({
+        nivel: resultado >= 0 ? 'ok' : r.saiu && -resultado / r.saiu > 0.1 ? 'atencao' : 'info',
+        texto: `No período entrou ${curtoCx(r.entrou)} e saiu ${curtoCx(r.saiu)}: <b>${resultado >= 0 ? 'sobrou' : 'faltou'} ${curtoCx(Math.abs(resultado))}</b>${r.entrou ? ` (as saídas foram ${numCx(pctNumCx(r.saiu, r.entrou), 0)}% das entradas)` : ''}.${resultado < 0 ? ' Quem cobriu a diferença foi o caixa que já existia.' : ''}`
+    })
+    const fechados = meses.filter(m => m.passado && !m.futuro)
+    if (fechados.length >= 2) {
+        const res = m => m.entradas - m.saidas
+        const melhor = fechados.reduce((a, m) => res(m) > res(a) ? m : a)
+        const pior = fechados.reduce((a, m) => res(m) < res(a) ? m : a)
+        achados.push({ nivel: 'info', texto: `Melhor mês: <b>${mesCx(melhor.chave)}</b> (${curtoCx(res(melhor))}); pior: <b>${mesCx(pior.chave)}</b> (${curtoCx(res(pior))}).${res(pior) < 0 ? ' Olhe o que concentrou saídas nele (Distribuição dos custos, com o período desse mês).' : ''}` })
+    }
+    const te = k.tendencia_entradas, ts = k.tendencia_saidas
+    if (te && ts) {
+        const gap = ts.pct - te.pct
+        achados.push({
+            nivel: gap > 3 ? 'atencao' : 'info',
+            texto: `Tendência dos meses fechados: entradas ${te.pct >= 0 ? 'sobem' : 'caem'} ${numCx(Math.abs(te.pct))}% ao mês e saídas ${ts.pct >= 0 ? 'sobem' : 'caem'} ${numCx(Math.abs(ts.pct))}% ao mês.${gap > 3 ? ' <b>As saídas crescem mais rápido que as entradas</b>: mantido o ritmo, a margem vai encolhendo mês a mês.' : gap < -3 ? ' As entradas crescem mais rápido que as saídas: a margem está melhorando.' : ''}`
+        })
+    }
+    const abaixo = meses.reduce((s, m) => s + m.abaixo, 0)
+    if (k.reserva && abaixo) achados.push({ nivel: 'atencao', texto: `${abaixo} dia(s) do período abaixo da reserva mínima de ${curtoCx(k.reserva)}.` })
+    return leituraCx(achados)
+}
+
+// ---- Entre empresas (desenhada quando os movimentos chegam)
+function leituraEntreCx(pares, fim) {
+    if (!pares.length) return leituraCx([{ nivel: 'ok', texto: 'Nenhuma empresa usou dinheiro da outra no período.' }])
+    const achados = pares.slice(0, 4).map(p => {
+        const deve = p.saldo > 0 ? p.b : p.a, credor = p.saldo > 0 ? p.a : p.b
+        return medirCx('entre_empresas_saldo', Math.abs(p.saldo), {
+            ok: `${escFin(deve)} deve ${curtoCx(Math.abs(p.saldo))} à ${escFin(credor)}: valor pequeno, acerto simples.`,
+            atencao: `<b>${escFin(deve)} deve ${curtoCx(Math.abs(p.saldo))} à ${escFin(credor)}</b> até ${diaCx(fim)}. Já é mútuo de valor relevante: combine o acerto ou formalize com a contabilidade.`,
+            alerta: `<b>${escFin(deve)} deve ${curtoCx(Math.abs(p.saldo))} à ${escFin(credor)}</b> até ${diaCx(fim)}. Mútuo desse tamanho precisa de contrato e acerto periódico (IOF e efeito no imposto de cada empresa): leve à contabilidade.`
+        })
+    })
+    const giro = pares.reduce((s, p) => s + p.ab + p.ba, 0)
+    if (giro) achados.push({ nivel: 'info', texto: `No período, ${curtoCx(giro)} passaram de uma empresa para outra. Pagar conta da outra empresa pela própria conta é o que mais cria esse saldo: sempre que der, pague pela conta da dona da fatura.` })
+    return leituraCx(achados)
+}
+
+// ---- Daqui para frente
+function leituraFrenteCx(d) {
+    const k = d.kpis
+    const a = d.atrasados
+    const achados = []
+    if (k.cobertura_30 !== null && k.cobertura_30 !== undefined) achados.push(medirCx('cobertura_30', k.cobertura_30, {
+        ok: `Nos próximos 30 dias entram ${curtoCx(k.entradas_30)} para ${curtoCx(k.saidas_30)} lançados (${numCx(k.cobertura_30, 2)}×): as entradas pagam as contas com folga.`,
+        atencao: `Nos próximos 30 dias entram ${curtoCx(k.entradas_30)} para ${curtoCx(k.saidas_30)} lançados (<b>${numCx(k.cobertura_30, 2)}×</b>): fica no zero a zero, qualquer atraso de cliente sai do caixa.`,
+        alerta: `Nos próximos 30 dias entram só ${curtoCx(k.entradas_30)} para ${curtoCx(k.saidas_30)} lançados (<b>${numCx(k.cobertura_30, 2)}×</b>): faltam ${curtoCx(k.saidas_30 - k.entradas_30)} que vão sair do caixa. Confira se há faturamento ainda não lançado como fatura a receber.`
+    }))
+    if (k.gasto_dia_90 > 0) {
+        const v = (k.gasto_dia_30 / k.gasto_dia_90 - 1) * 100
+        achados.push(medirCx('gasto_variacao_pct', v, {
+            ok: v < -10 ? `O gasto por dia caiu ${numCx(-v, 0)}% nos últimos 30 dias (${curtoCx(k.gasto_dia_30)}/dia contra ${curtoCx(k.gasto_dia_90)} na média de 90).` : `Gasto por dia estável (${curtoCx(k.gasto_dia_30)}/dia nos últimos 30 dias).`,
+            atencao: `O gasto por dia subiu <b>${numCx(v, 0)}%</b> nos últimos 30 dias (${curtoCx(k.gasto_dia_30)} contra ${curtoCx(k.gasto_dia_90)} na média de 90). Veja na Distribuição dos custos o que puxou.`,
+            alerta: `O gasto por dia subiu <b>${numCx(v, 0)}%</b> nos últimos 30 dias (${curtoCx(k.gasto_dia_30)} contra ${curtoCx(k.gasto_dia_90)}). Se não for algo pontual (compra grande, 13º), o caixa não acompanha por muito tempo.`
+        }))
+    }
+    const entradaMes = (k.entrada_dia_90 || 0) * 30
+    if (a.RECEBER.valor > 0 && entradaMes > 0) {
+        const v = pctNumCx(a.RECEBER.valor, entradaMes)
+        const antigo = (a.RECEBER.faixas.ate180 || 0) + (a.RECEBER.faixas.mais || 0)
+        achados.push(medirCx('inadimplencia_pct', v, {
+            ok: `A receber em atraso: ${curtoCx(a.RECEBER.valor)} (${numCx(v, 0)}% do que entra num mês). Normal.`,
+            atencao: `A receber em atraso: <b>${curtoCx(a.RECEBER.valor)}</b> em ${a.RECEBER.n} faturas, ${numCx(v, 0)}% do que entra num mês. Uma rodada de cobrança agora evita que vire perda.`,
+            alerta: `A receber em atraso: <b>${curtoCx(a.RECEBER.valor)}</b> em ${a.RECEBER.n} faturas, <b>${numCx(v, 0)}% do que entra num mês</b>.${antigo ? ` ${curtoCx(antigo)} passaram de 90 dias: confira se não foram recebidos sem baixa (Conciliação) antes de cobrar.` : ''}`
+        }))
+        if (achados[achados.length - 1]) achados[achados.length - 1].acao = `<button type="button" class="fis-mini" onclick="telaFaturasFin('RECEBER', { situacao: { op: '=', value: 'ATRASADO' } })">Ver a receber em atraso</button>`
+    }
+    if (a.PAGAR.valor > 0) {
+        const antigo = (a.PAGAR.faixas.ate180 || 0) + (a.PAGAR.faixas.mais || 0)
+        const v = pctNumCx(antigo, a.PAGAR.valor)
+        const x = medirCx('atraso_pagar_antigo_pct', v, {
+            ok: `A pagar em atraso: ${curtoCx(a.PAGAR.valor)}, quase tudo recente.`,
+            atencao: `A pagar em atraso: ${curtoCx(a.PAGAR.valor)}, dos quais <b>${curtoCx(antigo)} há mais de 90 dias</b>. Provavelmente pagos sem baixa: concilie para limpar a previsão.`,
+            alerta: `A pagar em atraso: ${curtoCx(a.PAGAR.valor)}, dos quais <b>${curtoCx(antigo)} (${numCx(v, 0)}%) há mais de 90 dias</b>. Isso quase sempre é fatura paga sem baixa ou lançada em dobro, e distorce a previsão: vale um mutirão na Conciliação.`
+        })
+        if (x) { x.acao = `<button type="button" class="fis-mini" onclick="telaFaturasFin('PAGAR', { situacao: { op: '=', value: 'ATRASADO' } })">Ver a pagar em atraso</button>`; achados.push(x) }
+    }
+    if (d.tem_saldo && k.proxima_semana && k.proxima_semana.saldo_fim < 0)
+        achados.push({ nivel: 'alerta', texto: `A <b>semana que vem</b> fecha com saldo de ${curtoCx(k.proxima_semana.saldo_fim)} pelo que está lançado.` })
+    else if (d.tem_saldo && k.livre <= 0)
+        achados.push({ nivel: 'atencao', texto: `Sem folga para gastos novos nos próximos ${k.horizonte} dias: só com nova entrada ou adiando contas.` })
+    const ja = d.ja_no_extrato
+    if (ja && (ja.PAGAR.n + ja.RECEBER.n) > 0)
+        achados.push({ nivel: 'info', texto: `${ja.PAGAR.n + ja.RECEBER.n} fatura(s) em aberto já aparecem no extrato: ficaram fora da previsão, mas precisam da baixa na Conciliação para os números baterem.` })
+    return leituraCx(achados)
+}
+
+// ---- Distribuição dos custos
+function leituraDistribuicaoCx(x) {
+    const achados = []
+    const total = Number(x.total) || 0
+    const semCat = x.categorias.find(c => c.nome === 'Sem categoria')
+    const vSemCat = pctNumCx(semCat?.valor || 0, total)
+    achados.push(medirCx('sem_categoria_pct', vSemCat, {
+        ok: semCat ? `Só ${numCx(vSemCat)}% do custo está sem categoria: a leitura por categoria é confiável.` : 'Todo o custo do período tem categoria.',
+        atencao: `<b>${numCx(vSemCat)}% do custo (${curtoCx(semCat?.valor)}) está sem categoria</b>: as fatias por categoria ficam aproximadas.`,
+        alerta: `<b>${numCx(vSemCat, 0)}% do custo (${curtoCx(semCat?.valor)}) está sem categoria</b>: não dá para avaliar com precisão para onde o dinheiro foi. Categorize essas faturas antes de tirar conclusões.`
+    }))
+    const semDep = x.departamentos.find(dp => dp.tipo === 'NENHUM')
+    const vSemDep = pctNumCx(semDep?.valor || 0, total)
+    achados.push(medirCx('sem_departamento_pct', vSemDep, {
+        ok: semDep ? `${numCx(vSemDep)}% do custo sem departamento: o custo das obras está bem apropriado.` : 'Todo o custo do período tem departamento.',
+        atencao: `<b>${numCx(vSemDep, 0)}% do custo (${curtoCx(semDep?.valor)}) está sem departamento</b>: esse valor não chega a nenhuma obra nem setor.`,
+        alerta: `<b>${numCx(vSemDep, 0)}% do custo (${curtoCx(semDep?.valor)}) está sem departamento</b>: a margem dos orçamentos aparece melhor do que é. Rateie as faturas (e use o rateio automático nos lotes).`
+    }))
+    const semPessoal = x.categorias.filter(c => !String(c.codigo || '').startsWith('2.03') && c.nome !== 'Sem categoria')
+    if (semPessoal.length) {
+        const maior = semPessoal[0]
+        const v = pctNumCx(maior.valor, total)
+        achados.push(medirCx('concentracao_categoria_pct', v, {
+            ok: `Maior categoria fora pessoal: ${escFin(maior.nome)} (${numCx(v, 0)}%). Custos bem distribuídos.`,
+            atencao: `<b>${escFin(maior.nome)}</b> sozinha é ${numCx(v, 0)}% do custo do período (${curtoCx(maior.valor)}): acompanhe de perto e negocie preço/prazo com os principais fornecedores dela.`,
+            alerta: `<b>${escFin(maior.nome)}</b> sozinha é ${numCx(v, 0)}% do custo do período (${curtoCx(maior.valor)}). Qualquer variação nela muda o resultado do mês inteiro.`
+        }))
+    }
+    const setores = x.departamentos.filter(dp => dp.tipo === 'SETOR').reduce((s, dp) => s + Number(dp.valor), 0)
+    const obras = x.departamentos.filter(dp => dp.tipo === 'CONTRATO').reduce((s, dp) => s + Number(dp.valor), 0)
+    if (setores + obras > 0) achados.push({ nivel: 'info', texto: `${numCx(pctNumCx(obras, total), 0)}% do custo foi para obras (ORC) e ${numCx(pctNumCx(setores, total), 0)}% para setores (estrutura). Quanto maior a parte da estrutura, mais cada obra precisa render para pagá-la.` })
+    const ant = x.anterior
+    if (ant && Number(ant.total) > 0) {
+        const v = (total / Number(ant.total) - 1) * 100
+        const antes = new Map(ant.categorias.map(c => [c.nome, Number(c.valor)]))
+        const subiu = x.categorias.map(c => ({ nome: c.nome, dif: Number(c.valor) - (antes.get(c.nome) || 0) })).sort((a, b) => b.dif - a.dif).filter(c => c.dif > 0).slice(0, 3)
+        const puxou = subiu.length ? ` Mais subiram: ${subiu.map(c => `${escFin(c.nome)} (+${curtoCx(c.dif)})`).join(', ')}.` : ''
+        achados.push(medirCx('custo_variacao_pct', v, n => ({
+            ok: `Custo ${v >= 0 ? 'subiu' : 'caiu'} ${numCx(Math.abs(v), 0)}% contra ${nomeAnteriorCx(ant)} (${curtoCx(ant.total)}): estável.`,
+            atencao: `Custo <b>${v >= 0 ? 'subiu' : 'caiu'} ${numCx(Math.abs(v), 0)}%</b> contra ${nomeAnteriorCx(ant)} (${curtoCx(ant.total)} → ${curtoCx(total)}).${v >= 0 ? puxou : ' Confira se não ficou fatura sem lançar.'}`,
+            alerta: `Custo <b>${v >= 0 ? 'subiu' : 'caiu'} ${numCx(Math.abs(v), 0)}%</b> contra ${nomeAnteriorCx(ant)} (${curtoCx(ant.total)} → ${curtoCx(total)}).${v >= 0 ? puxou : ' Queda grande assim costuma ser lançamento faltando (folha, impostos, fornecedores do mês).'}`
+        })[n]))
+    }
+    const aberto = total - Number(x.pago)
+    if (aberto > 0 && x.periodo.ate < hojeCx()) achados.push({ nivel: 'atencao', texto: `O período já acabou e ainda há ${curtoCx(aberto)} em aberto (${numCx(pctNumCx(aberto, total), 0)}%): ou está atrasado, ou foi pago sem baixa.` })
+    return leituraCx(achados)
+}
+
+// ---- Pessoal por setor
+function leituraPessoalCx(x) {
+    const achados = []
+    const totalPessoal = x.setores.reduce((s, v) => s + Number(v.valor), 0)
+    const v = pctNumCx(totalPessoal, x.total)
+    achados.push(medirCx('pessoal_pct', v, {
+        ok: `Pessoal é ${numCx(v, 0)}% do custo do período (${curtoCx(totalPessoal)}), dentro do usual para empresa de serviço técnico.`,
+        atencao: v > 50 ? `Pessoal é <b>${numCx(v, 0)}% do custo</b> (${curtoCx(totalPessoal)}): acima do usual, a margem depende muito de produtividade nas obras.`
+            : `Pessoal é só <b>${numCx(v, 0)}% do custo</b> (${curtoCx(totalPessoal)}): confira se salários, vales ou prestadores não estão em outras categorias.`,
+        alerta: v > 50 ? `Pessoal é <b>${numCx(v, 0)}% do custo</b>: bem acima do usual. Compare com o faturamento do período antes de contratar.`
+            : `Pessoal é só <b>${numCx(v, 0)}% do custo</b>: quase certo que parte da folha não foi lançada neste período ou está em outra categoria.`
+    }))
+    const soma = g => x.setores.reduce((s, st) => s + Number(st.grupos?.[g] || 0), 0)
+    const salarios = soma('Salários'), beneficios = soma('Refeição') + soma('Transporte')
+    if (salarios > 0) {
+        const b = pctNumCx(beneficios, salarios)
+        achados.push(medirCx('beneficios_pct', b, {
+            ok: `Refeição + transporte = ${numCx(b, 0)}% dos salários.`,
+            atencao: b < 8 ? `Refeição + transporte = só <b>${numCx(b, 0)}% dos salários</b>: algum lote do mês (vale refeição ou transporte) pode não ter sido lançado.` : `Refeição + transporte = <b>${numCx(b, 0)}% dos salários</b>: acima do usual, vale conferir os dias e valores dos lotes.`,
+            alerta: b < 8 ? `Refeição + transporte = <b>${numCx(b, 0)}% dos salários</b>: os lotes de vale refeição/transporte do mês provavelmente não foram lançados.` : `Refeição + transporte = <b>${numCx(b, 0)}% dos salários</b>: muito acima do usual; confira lançamentos em dobro.`
+        }))
+    }
+    const sem = x.setores.find(s => s.nome === 'Sem setor definido')
+    achados.push(medirCx('sem_setor_pct', pctNumCx(sem?.valor || 0, totalPessoal), {
+        ok: sem ? `Só ${curtoCx(sem.valor)} de pessoal sem setor.` : 'Todo o pessoal do período tem setor.',
+        atencao: `<b>${curtoCx(sem?.valor)} (${numCx(pctNumCx(sem?.valor, totalPessoal), 0)}%) de pessoal sem setor</b> (${sem?.pessoas} pessoas): use "Definir setor" na lista abaixo.`,
+        alerta: `<b>${curtoCx(sem?.valor)} (${numCx(pctNumCx(sem?.valor, totalPessoal), 0)}%) de pessoal sem setor</b> (${sem?.pessoas} pessoas): a divisão por setor ainda não é confiável. Defina o setor na lista abaixo.`
+    }))
+    const com = x.setores.filter(s => s.nome !== 'Sem setor definido' && s.pessoas)
+    if (com.length) {
+        const maior = com[0]
+        const porPessoa = com.map(s => ({ nome: s.nome, v: Number(s.valor) / s.pessoas })).sort((a, b) => b.v - a.v)
+        achados.push({ nivel: 'info', texto: `<b>${escFin(maior.nome)}</b> é o setor que mais custa (${curtoCx(maior.valor)}, ${numCx(pctNumCx(maior.valor, totalPessoal), 0)}% do pessoal). Custo médio por pessoa no período: ${porPessoa.slice(0, 4).map(s => `${escFin(s.nome)} ${curtoCx(s.v)}`).join(' · ')}.` })
+    }
+    const ant = x.anterior
+    if (ant?.setores?.length) {
+        const antes = new Map(ant.setores.map(s => [s.nome, Number(s.valor)]))
+        const mudou = x.setores.map(s => ({ nome: s.nome, dif: Number(s.valor) - (antes.get(s.nome) || 0), antes: antes.get(s.nome) || 0 }))
+            .filter(s => s.antes > 0 && Math.abs(s.dif) / s.antes > 0.2 && Math.abs(s.dif) > 1000)
+        if (mudou.length) achados.push({ nivel: 'atencao', texto: `Mudou mais de 20% contra ${nomeAnteriorCx(ant)}: ${mudou.map(s => `${escFin(s.nome)} ${s.dif > 0 ? '+' : '−'}${curtoCx(Math.abs(s.dif))}`).join(' · ')}. Admissão, desligamento, troca de setor ou lote faltando?` })
+    }
+    return leituraCx(achados)
+}
+
+// ---- Custos por estado
+function leituraEstadosCx(x) {
+    const achados = []
+    const comEstado = x.estados.reduce((s, e) => s + Number(e.quantidade), 0)
+    if (!comEstado) return leituraCx([{ nivel: 'info', texto: 'Nenhum custo do período está ligado a orçamento com estado: o mapa fica vazio.' }])
+    const maior = x.estados[0]
+    const v = pctNumCx(maior.quantidade, comEstado)
+    achados.push(medirCx('concentracao_estado_pct', v, {
+        ok: `${escFin(maior.uf)} concentra ${numCx(v, 0)}% do custo de obras do período; o restante se espalha por ${x.estados.length - 1} estado(s).`,
+        atencao: `<b>${escFin(maior.uf)} concentra ${numCx(v, 0)}%</b> do custo de obras do período (${curtoCx(maior.quantidade)}).`,
+        alerta: `<b>${escFin(maior.uf)} concentra ${numCx(v, 0)}%</b> do custo de obras: a operação depende quase toda de uma região.`
+    }))
+    const longe = x.estados.filter(e => e.uf !== maior.uf)
+    if (longe.length) {
+        const somaLonge = longe.reduce((s, e) => s + Number(e.quantidade), 0)
+        achados.push({ nivel: 'info', texto: `Fora de ${escFin(maior.uf)}: ${curtoCx(somaLonge)} em ${longe.length} estado(s), ${longe.reduce((s, e) => s + Number(e.departamentos || 0), 0)} orçamento(s). Obra longe costuma ter deslocamento, hospedagem e alimentação extras: confira se o preço desses orçamentos cobriu isso.` })
+    }
+    const sem = pctNumCx(x.sem_estado, x.total)
+    if (sem > 40) achados.push({ nivel: 'info', texto: `${numCx(sem, 0)}% do custo do período não tem estado (setores, sem departamento ou cliente sem UF): o mapa mostra só a parte das obras.` })
+    return leituraCx(achados)
+}
+
+// ---- Almanaque: as réguas da leitura (ver e, com financeiro.planejamento, ajustar)
+function almanaqueCx(foco = null) {
+    const lista = estadoCx.dados?.almanaque || []
+    if (!lista.length) return popup({ mensagem: 'O almanaque ainda não foi carregado.' })
+    const editar = Boolean(estadoCx.dados?.pode_planejar)
+    const campo = (a, k) => `<input class="fis-input fis-num cx-alm-num" type="number" step="any" name="${k}" value="${a[k] ?? ''}" placeholder="—" ${editar ? '' : 'disabled'}>`
+    const grupos = [...new Set(lista.map(a => a.grupo))]
+    popup({
+        titulo: 'Almanaque financeiro',
+        linhas: [{ elemento: `
+            <div class="cx-almanaque">
+                <p>As réguas que a <b>Leitura do sistema</b> usa. Dentro da faixa <b>boa</b> = em ordem; fora dela mas dentro da <b>aceitável</b> = atenção; fora das duas = alerta. Vazio = sem limite.
+                ${editar ? 'Ajuste para a realidade da empresa: cada troca fica no histórico.' : 'Só quem define o planejamento ajusta.'}</p>
+                ${grupos.map(g => `
+                <h4>${escFin(g)}</h4>
+                ${lista.filter(a => a.grupo === g).map(a => `
+                <div class="cx-alm-item${a.chave === foco ? ' foco' : ''}" data-alm="${escFin(a.chave)}">
+                    <div class="cx-alm-titulo"><b>${escFin(a.titulo)}</b> <small>(${escFin(a.unidade)})</small></div>
+                    <div class="cx-alm-faixas">
+                        <label>Boa ${campo(a, 'ok_min')} a ${campo(a, 'ok_max')}</label>
+                        <label>Aceitável ${campo(a, 'aceitavel_min')} a ${campo(a, 'aceitavel_max')}</label>
+                        ${editar ? `<button type="button" class="fis-mini" onclick="salvarAlmanaqueCx(this)">Salvar</button>` : ''}
+                    </div>
+                    <small>${escFin(a.explicacao)}${a.fonte ? `<br><i>Fonte: ${escFin(a.fonte)}</i>` : ''}${a.atualizado_por ? `<br>Ajustado por ${escFin(a.atualizado_por)} em ${escFin(String(a.atualizado_em || '').slice(0, 10).split('-').reverse().join('/'))}` : ''}</small>
+                </div>`).join('')}`).join('')}
+            </div>` }]
+    })
+    if (foco) setTimeout(() => document.querySelector(`.cx-alm-item.foco`)?.scrollIntoView({ block: 'center' }), 50)
+}
+
+async function salvarAlmanaqueCx(botao) {
+    const item = botao.closest('[data-alm]')
+    const v = k => item.querySelector(`[name="${k}"]`).value
+    try {
+        botao.disabled = true
+        const r = await apiFin('almanaque/salvar', { chave: item.dataset.alm, ok_min: v('ok_min'), ok_max: v('ok_max'), aceitavel_min: v('aceitavel_min'), aceitavel_max: v('aceitavel_max') })
+        estadoCx.dados.almanaque = r.almanaque
+        botao.textContent = 'Salvo'
+        desenharFluxoCaixa()
+        if (estadoCx.dist) desenharDistribuicaoCx()
+    } catch (err) {
+        botao.disabled = false
         popup({ mensagem: mensagemErroEst(err) })
     }
 }

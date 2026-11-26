@@ -370,3 +370,33 @@
 .cx-rateio-manual { border-left-color: #f2a600; }
 .cx-rateio-nenhum { border-left-color: #c9cfcb; color: #8a8984; }
 .cx-rateio-explica { max-width: 560px; font-size: 13px; line-height: 1.4; }
+
+/* Leitura do sistema (26/11/2026): análise de cada seção com os números da tela + almanaque. Nível sempre em texto
+   (Alerta / Atenção / Para saber / Em ordem); a cor só reforça. */
+.cx-leitura { border: 1px solid var(--cx-borda); border-left: 4px solid #2f7d4f; border-radius: 10px; background: #fbfdfc; padding: 10px 14px; }
+.cx-leitura-alerta { border-left-color: #c62828; background: #fffafa; }
+.cx-leitura-atencao { border-left-color: #d48806; background: #fffdf6; }
+.cx-leitura-topo { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+.cx-leitura-topo b { font-size: 13.5px; color: #2f6b45; }
+.cx-leitura-topo small { color: var(--cx-tinta-2); }
+.cx-leitura ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.cx-leitura li { display: grid; grid-template-columns: 86px 1fr; gap: 10px; align-items: start; font-size: 13.5px; line-height: 1.45; }
+.cx-leitura-nivel { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; padding: 2px 6px; border-radius: 5px; text-align: center; }
+li.cx-leitura-alerta .cx-leitura-nivel { background: #fde7e7; color: #a11d1d; }
+li.cx-leitura-atencao .cx-leitura-nivel { background: #fff1cf; color: #7a5200; }
+li.cx-leitura-info .cx-leitura-nivel { background: #e8f0fb; color: #1d4f91; }
+li.cx-leitura-ok .cx-leitura-nivel { background: #e3f3e8; color: #1f6b38; }
+li.cx-leitura-ok { color: var(--cx-tinta-2); }
+.cx-leitura-ref { border: 0; background: none; padding: 0 2px; font-size: 11.5px; color: #6b7a72; text-decoration: underline dotted; cursor: help; }
+.cx-leitura-acoes { margin-top: 4px; }
+@media (max-width: 640px) { .cx-leitura li { grid-template-columns: 1fr; gap: 2px; } .cx-leitura-nivel { justify-self: start; } }
+
+/* Janela do Almanaque */
+.cx-almanaque { max-width: 760px; max-height: 70vh; overflow: auto; font-size: 13px; }
+.cx-almanaque h4 { margin: 14px 0 6px; color: #2f6b45; border-bottom: 1px solid #dfe7e2; padding-bottom: 3px; }
+.cx-alm-item { padding: 8px 6px; border-radius: 8px; display: flex; flex-direction: column; gap: 4px; }
+.cx-alm-item.foco { background: #fff8e1; }
+.cx-alm-item small { color: #5c6660; line-height: 1.4; }
+.cx-alm-faixas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.cx-alm-faixas label { display: inline-flex; align-items: center; gap: 4px; }
+.cx-alm-num { width: 84px; }
