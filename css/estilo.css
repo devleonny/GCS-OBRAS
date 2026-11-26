@@ -2434,3 +2434,40 @@ img[src$="loading-gcs.png"] {
         min-height: 0;
     }
 }
+
+/* Seleção de texto (26/11/2026): arrastar/clicar duas vezes não pinta a interface de azul.
+   Bloqueado: topo, menu lateral, botões, rótulos, títulos de janela, cabeçalhos de tabela, abas,
+   chips/etiquetas, ícones e o que é clicável (fora de células de tabela).
+   Continua selecionável: campos de digitação, células de tabela, textos dos popups e o que tiver .selecionavel. */
+.toolbar-top,
+.side-menu,
+button,
+label,
+summary,
+th,
+img,
+svg,
+.fin-janela-topo,
+.cc-aviso,
+.cc-cartao-topo,
+.cc-cartao-rodape,
+.cc-chips,
+.cc-abas,
+.cc-tags,
+.cc-progresso,
+.cc-saldos,
+[draggable="true"],
+[onclick]:not(td):not(tr):not(input):not(textarea) {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+input,
+textarea,
+[contenteditable=""],
+[contenteditable="true"],
+.selecionavel,
+.selecionavel * {
+    -webkit-user-select: text;
+    user-select: text;
+}
