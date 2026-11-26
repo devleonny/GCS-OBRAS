@@ -11,7 +11,7 @@
 // Os blocos se montam sozinhos ao entrar na página (MutationObserver no fim do arquivo).
 //
 // "Foto" = cópia do endereço no momento da escolha, gravada no documento (dados_orcam.endereco,
-// dados_ocorrencias.endereco, requisicoes.entrega, destinatario.endereco_id na nota): se o endereço for
+// dados_ocorrencias.endereco, requisicoes.entrega, destinatario.entrega na NF-e): se o endereço for
 // alterado ou removido depois, o documento continua mostrando o que valeu nele.
 
 const TIPOS_ENDERECO = {
@@ -589,6 +589,99 @@ function aplicarEnderecoChips(el, e) {
     if (raiz && typeof agendarPreviaFis === 'function' && raiz.matches?.('.fis-form')) agendarPreviaFis()
 }
 
+// ---------------------------------------------------------------- local de entrega da NF-e
+// 26/11/2026: o destinatário da NF-e fica com o endereço fiscal do CNPJ (a SEFAZ confere a IE pela UF dele) e
+// o endereço secundário escolhido vai como "Local de entrega" (grupo G). O bloco guarda a foto do endereço
+// num campo escondido (JSON); vazio = entrega no próprio endereço do destinatário.
+
+function entregaEnderecoHtml({ campo = 'd_entrega', contexto = 'nota', clienteDe = '', foto = null }) {
+    return `<div class="fis-enderecos fis-entrega" data-end-entrega
+        data-campo="${escaparAtributo(campo)}"
+        data-contexto="${escaparAtributo(contexto)}"
+        data-cliente-de="${escaparAtributo(clienteDe)}"></div>
+        <input type="hidden" name="${escaparAtributo(campo)}" value="${escaparAtributo(foto?.endereco ? JSON.stringify(foto) : '')}">`
+}
+
+function contextoEntrega(el) {
+    const raiz = el.closest('form, .fis-form, .painel-padrao, .popup') || document
+    const alvo = el.dataset.clienteDe ? raiz.querySelector(el.dataset.clienteDe) : null
+    const input = raiz.querySelector(`[name="${el.dataset.campo}"]`)
+    let foto = null
+    try { foto = input?.value ? JSON.parse(input.value) : null } catch { }
+    return { raiz, input, foto, clienteId: String(alvo?.value || '').trim() }
+}
+
+function gravarEntrega(el, e) {
+    const { raiz, input, clienteId } = contextoEntrega(el)
+    if (input) input.value = e ? JSON.stringify({ ...fotoEndereco(e), cliente_id: clienteId }) : ''
+    renderEntregaEndereco(el)
+    if (typeof agendarPreviaFis === 'function' && raiz.matches?.('.fis-form')) agendarPreviaFis()
+}
+
+async function renderEntregaEndereco(el) {
+    if (!el) return
+    const { input, foto, clienteId } = contextoEntrega(el)
+    // Trocou o cliente: a entrega escolhida era de outro.
+    if (foto && foto.cliente_id && String(foto.cliente_id) !== clienteId && input) input.value = ''
+    const atual = contextoEntrega(el).foto
+    if (!/^\d+$/.test(clienteId)) {
+        el.innerHTML = ''
+        return
+    }
+    let lista
+    try {
+        lista = await listarEnderecosCliente(clienteId)
+    } catch {
+        el.innerHTML = ''
+        return
+    }
+    if (contextoEntrega(el).clienteId !== clienteId) return
+    const extras = lista.enderecos || []
+    el._enderecos = extras
+    const vivo = atual?.id ? extras.find(e => Number(e.id) === Number(atual.id)) : null
+
+    el.innerHTML = `
+        <small>Local de entrega</small>
+        <button type="button" class="fis-endereco-chip ${atual ? '' : 'ativo'}" data-chip="mesmo"
+            title="A mercadoria vai para o endereço do destinatário (o fiscal, acima)">Mesmo do destinatário</button>
+        ${extras.map(e => `
+            <button type="button" class="fis-endereco-chip ${Number(atual?.id) === Number(e.id) ? 'ativo' : ''}" data-chip="${e.id}"
+                title="${escaparAtributo(textoEnderecoCompleto(e))}">
+                ${escaparAtributo(e.apelido || TIPOS_ENDERECO[e.tipo] || 'Outro')}
+                <small>${escaparAtributo([e.cidade, e.estado].filter(Boolean).join('/'))}</small>
+            </button>`).join('')}
+        ${atual && !vivo ? `<button type="button" class="fis-endereco-chip ativo" data-chip="atual">${escaparAtributo(atual.apelido || 'Escolhido')}</button>` : ''}
+        <button type="button" class="fis-endereco-chip novo" data-chip="novo">+ Novo endereço</button>
+        ${atual ? `<div class="fis-entrega-texto">
+            <b>Entrega em:</b> ${escaparAtributo(textoEnderecoCompleto(atual))}
+            <small>Vai no campo "Local de entrega" da NF-e e nas informações complementares; o destinatário continua com o endereço fiscal acima.</small>
+            ${atual.id && !vivo ? '<small class="end-alerta">Este endereço foi removido do cadastro; a nota guarda o que foi escolhido.</small>' : ''}
+        </div>` : ''}`
+
+    if (!el._ouvindo) {
+        el._ouvindo = true
+        el.addEventListener('click', ev => {
+            const botao = ev.target.closest('[data-chip]')
+            if (!botao) return
+            const chip = botao.dataset.chip
+            if (chip === 'atual') return
+            if (chip === 'mesmo') return gravarEntrega(el, null)
+            if (chip === 'novo') {
+                const { raiz, clienteId: id } = contextoEntrega(el)
+                return formularioEnderecoCliente({
+                    clienteId: id,
+                    endereco: { tipo: 'ENTREGA' },
+                    contexto: el.dataset.contexto,
+                    ref: raiz.dataset?.id || '',
+                    aoSalvar: novo => gravarEntrega(el, novo)
+                })
+            }
+            const e = (el._enderecos || []).find(x => String(x.id) === chip)
+            if (e) gravarEntrega(el, e)
+        })
+    }
+}
+
 // Os blocos se montam ao entrar na página (formulários montados por popup/innerHTML).
 new MutationObserver(mutacoes => {
     for (const mutacao of mutacoes)
@@ -599,5 +692,6 @@ new MutationObserver(mutacoes => {
             achar('[data-end-cadastro]').forEach(el => { if (!el.dataset.montado) { el.dataset.montado = 'S'; renderEnderecosCadastro(el) } })
             achar('[data-end-resumo]').forEach(el => { if (!el.dataset.montado) { el.dataset.montado = 'S'; renderResumoEnderecos(el) } })
             achar('[data-end-chips]').forEach(el => { if (!el.dataset.montado) { el.dataset.montado = 'S'; renderChipsEndereco(el) } })
+            achar('[data-end-entrega]').forEach(el => { if (!el.dataset.montado) { el.dataset.montado = 'S'; renderEntregaEndereco(el) } })
         }
 }).observe(document.documentElement, { childList: true, subtree: true })

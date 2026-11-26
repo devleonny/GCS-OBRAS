@@ -371,6 +371,22 @@
     color: #24693a;
 }
 
+.fis-entrega-texto {
+    flex-basis: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    border-left: 3px solid #24693a;
+    background: #f3f8f4;
+    color: #324b3c;
+    font-size: 12px;
+}
+
+.fis-entrega-texto small {
+    color: #4f5f55;
+}
+
 @media (max-width: 640px) {
     .end-form { grid-template-columns: 1fr 1fr; }
     .end-atual { flex-wrap: wrap; }

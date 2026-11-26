@@ -2735,9 +2735,9 @@ function indicadorPadraoFis(dest = {}) {
     return ie ? '1' : '9'
 }
 
-// Endereços do cliente (js/enderecos.js) em cima dos campos do destinatário: escolher preenche, o usuário
-// pode alterar à mão e salvar o digitado no cadastro. d_endereco_id: '0' = principal, id = outro, '' = digitado.
-const CAMPOS_ENDERECO_FIS = { cep: 'd_cep', endereco: 'd_logradouro', numero: 'd_numero', complemento: 'd_complemento', bairro: 'd_bairro', cidade: 'd_municipio', estado: 'd_uf', codigo_ibge: 'd_codigo_municipio', id: 'd_endereco_id' }
+// Endereços do cliente (js/enderecos.js): o destinatário/tomador fica sempre com o endereço fiscal do CNPJ;
+// na NF-e, um endereço secundário escolhido vai como "Local de entrega" (d_entrega, grupo G da nota). Até
+// 26/11/2026 escolher um secundário trocava o endereço do destinatário e a SEFAZ recusava a IE de outra UF.
 
 function blocoDestinatarioFis(dest = {}, { nfse = false } = {}) {
     return `
@@ -2759,9 +2759,8 @@ function blocoDestinatarioFis(dest = {}, { nfse = false } = {}) {
                 ${campoFis('E-mail', inputFis('d_email', dest.email, 'type="email"'))}
                 ${campoFis('Telefone', inputFis('d_telefone', dest.telefone, 'inputmode="numeric"'))}
             </div>
-            ${chipsEnderecoHtml({ campos: CAMPOS_ENDERECO_FIS, contexto: 'nota', clienteDe: '[name="d_cliente_id"]' })}
+            ${nfse ? '' : entregaEnderecoHtml({ campo: 'd_entrega', contexto: 'nota', clienteDe: '[name="d_cliente_id"]', foto: dest.entrega })}
             <input type="hidden" name="d_cliente_id" value="${escFis(dest.cliente_id || '')}">
-            <input type="hidden" name="d_endereco_id" value="${escFis(dest.endereco_id || '')}">
             <div class="fis-aviso" data-aviso-destinatario></div>
         </fieldset>`
 }
@@ -2889,7 +2888,7 @@ function lerDestinatarioFis(form) {
         complemento: v('complemento'), bairro: v('bairro'), municipio: v('municipio'), uf: v('uf').toUpperCase(),
         codigo_municipio: soDigFis(v('codigo_municipio')), email: v('email'), telefone: soDigFis(v('telefone')),
         cliente_id: v('cliente_id') || undefined,
-        endereco_id: v('endereco_id') || undefined
+        entrega: (() => { try { return v('entrega') ? JSON.parse(v('entrega')) : undefined } catch { return undefined } })()
     }
 }
 
@@ -2905,7 +2904,7 @@ function limparDestinatarioFis(form, manter = []) {
     if (aviso) aviso.innerHTML = ''
     const bloco = form.querySelector('[data-bloco-destinatario]')
     if (bloco) bloco.dataset.preenchido = ''
-    renderChipsEndereco(form.querySelector('[data-end-chips]') || document.createElement('div'))
+    renderEntregaEndereco(form.querySelector('[data-end-entrega]'))
     agendarPreviaFis()
 }
 
@@ -2939,8 +2938,7 @@ async function buscarParticipanteFis(input) {
         const indicador = form.querySelector('[name="d_indicador_ie"]')
         if (indicador && !p.indicador_ie) indicador.value = indicadorPadraoFis({ ...p, documento: doc })
         if (bloco) bloco.dataset.preenchido = doc
-        const chips = form.querySelector('[data-end-chips]')
-        if (chips) renderChipsEndereco(chips)
+        renderEntregaEndereco(form.querySelector('[data-end-entrega]'))
         aviso.innerHTML = `<small class="fis-positivo">Dados ${p.fonte === 'fiscal' ? 'de notas anteriores' : 'do cadastro de clientes'}: confira.</small>`
         agendarPreviaFis()
     } catch (err) {
