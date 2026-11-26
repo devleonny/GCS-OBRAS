@@ -990,9 +990,12 @@ function aplicarColunasOcultas(pag) {
 
         th.style.display = deveOcultar ? 'none' : ''
 
-        if (thsPesquisa[index]) {
-            thsPesquisa[index].style.display = deveOcultar ? 'none' : ''
-        }
+        // Com o cabeçalho avançado, título e filtro carregam data-col (índice original): casa por ele, não pela
+        // posição, para um filtro fora do lugar não ficar à mostra no lugar de outro (select de App em Fornecedor).
+        const thPesquisa = th.dataset.col != null
+            ? [...thsPesquisa].find(f => f.dataset.col === th.dataset.col) || thsPesquisa[index]
+            : thsPesquisa[index]
+        if (thPesquisa) thPesquisa.style.display = deveOcultar ? 'none' : ''
 
         const linhas = [...document.getElementById(ctrl.body).children]
         linhas.forEach(linha => {
