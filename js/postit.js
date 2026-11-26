@@ -661,7 +661,17 @@ async function alternarConcluidoPIT(id) {
     try {
         // Mescla com o que está gravado: texto, anexos ou quadro mudados em outra aba não se perdem.
         const gravado = await recuperarDado('postit', id) || {}
-        const atualizado = { ...anterior, ...gravado, id, status }
+        // Só as colunas do post-it: o que vem da tela traz campos da listagem (ex.: "base") que a tabela não tem.
+        const origem = { ...anterior, ...gravado }
+        const atualizado = {
+            id,
+            usuario: origem.usuario || acesso.usuario,
+            status,
+            comentario: origem.comentario || '',
+            prazo: origem.prazo || '',
+            anexos: origem.anexos || {},
+            quadro: origem.quadro ?? null
+        }
         const resposta = await enviar(`postit/${id}`, atualizado)
         if (!resposta?.success) throw resposta
         postitsPIT.set(id, atualizado)
