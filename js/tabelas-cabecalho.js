@@ -590,9 +590,13 @@ function montarFiltrosFunil(pag, { forcar = false } = {}) {
     if (!linhaFiltros) return
     tabela.classList.add('cab-filtros')
     const cols = colunasCab(pag)
-    ;[...linhaFiltros.children].forEach((thVelho, i) => {
-        thVelho.dataset.col = i
+    ;[...linhaFiltros.children].forEach((thVelho, pos) => {
+        // data-col é o índice ORIGINAL da coluna (ordem do modTab). Só se marca na 1ª vez: depois que o
+        // aplicarLayoutCab reordena a linha, a posição no DOM não é mais o índice, e remarcar pela posição
+        // embaralhava os filtros a cada carga (digitar em Fornecedor e o campo ir parar em CPF/CNPJ).
+        if (thVelho.dataset.col == null) thVelho.dataset.col = pos
         if (thVelho.classList.contains('cab-filtro-th')) return
+        const i = Number(thVelho.dataset.col)
         const c = cols[i]
         if (!c?.chave) return
         // Troca o filtro do modTab (contentEditable / select / 2 datas) pelo funil + campo.
