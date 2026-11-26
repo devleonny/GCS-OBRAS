@@ -3,6 +3,8 @@
 .ctf-area { padding: 8px 12px 12px; min-height: 0; }
 /* Uma linha de texto por nota: nada quebra nem empilha; o que não cabe termina em "..." (texto inteiro no título). */
 .ctf-tela .tabela > tbody td { white-space: nowrap; line-height: 1.25; }
+/* Teto padrão de toda coluna (a alça do título muda: a largura escolhida vai na célula e vence). */
+.ctf-tela .tabela > tbody td:not(.cab-largura-fixa) { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 .ctf-tela .tabela > tbody td.ctf-corta { max-width: 150px; overflow: hidden; }
 .ctf-tela .tabela > tbody td.ctf-corta.ctf-largo { max-width: 260px; }
 .ctf-tela .tabela > tbody td.ctf-corta > span,

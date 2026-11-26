@@ -156,7 +156,7 @@ function criarLinhaControleFat(d) {
             ${corta(d.responsavel)}
             ${corta(d.grupo)}
             ${corta(d.cliente, 'ctf-largo')}
-            <td class="fin-centro">${escFin(d.orcamento || '')}</td>
+            <td class="ctf-corta" title="${escFin(Number(d.orcamentos_extras) ? `${d.orcamento} e mais ${d.orcamentos_extras} orçamento(s) no rateio da nota` : d.orcamento || '')}"><span>${escFin(d.orcamento || '')}${Number(d.orcamentos_extras) ? ` <small class="ctf-modelo">+${d.orcamentos_extras}</small>` : ''}</span></td>
             <td class="fis-num">${dinheiro(d.valor)}</td>
             <td class="fin-centro fin-doc" title="${escFin(d.modelo)}"><span class="ctf-modelo">${escFin(d.modelo)}</span> ${escFin(d.numero || '')}</td>
             ${corta(d.tipo)}

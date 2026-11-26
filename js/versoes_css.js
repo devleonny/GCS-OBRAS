@@ -12,7 +12,7 @@ const VERSOES_CSS = {
     "composicoes": "fd6d81f2",
     "comunicados": "c9e16f77",
     "conciliacao": "755ad944",
-    "controle_faturamento": "02afe438",
+    "controle_faturamento": "3078b148",
     "criar_orcamento": "f22fe372",
     "custos": "0fbcf30d",
     "dashboard_chamados": "928a2e8b",
@@ -51,7 +51,7 @@ const VERSOES_CSS = {
     "seletor-cores": "c0e10ff3",
     "status": "58249c5d",
     "tabelas-parceiro": "22c15cc9",
-    "tabelas": "7dfde69b",
+    "tabelas": "c7f23522",
     "tags_pagamentos": "3dd031a5",
     "veiculos": "501f0f13",
     "velocimetro": "2cfa4cff"

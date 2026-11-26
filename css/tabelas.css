@@ -1024,6 +1024,10 @@ body.cab-redimensionando .cab-alca-largura:hover::after { background: #2e7d4f; t
 body.cab-redimensionando,
 body.cab-redimensionando * { cursor: col-resize !important; user-select: none !important; }
 
+/* Largura padrão: nenhuma coluna passa de 360px por causa de um texto muito grande (o texto quebra dentro dela).
+   Quem quiser outra largura arrasta a alça do título: o valor escolhido vai direto na célula e vence este limite. */
+.tabela.cab-avancado > tbody > tr > td:not(.cab-largura-fixa) { max-width: 360px; overflow-wrap: anywhere; }
+
 /* Coluna com largura escolhida: o que não cabe vira "…". */
 .tabela.cab-avancado .cab-largura-fixa { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tabela.cab-avancado > thead > tr:first-child > th.cab-largura-fixa > div > span:first-child { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
