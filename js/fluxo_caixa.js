@@ -998,7 +998,8 @@ function graficoSaldoCx(d) {
         responsive: true, maintainAspectRatio: false, animation: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
-            legend: { display: datasets.length > 1, position: 'bottom', labels: { color: CORES_CX.texto, boxWidth: 12, boxHeight: 12 } },
+            // Legenda como amostra de linha (com o tracejado de cada série), não quadradinho cheio.
+            legend: { display: datasets.length > 1, position: 'bottom', labels: { color: CORES_CX.texto, usePointStyle: true, pointStyle: 'line', pointStyleWidth: 34, boxHeight: 10, padding: 16 } },
             tooltip: {
                 callbacks: {
                     title: itens => { const x = serie[itens[0].dataIndex]; return x ? `${semanaCx(x.dia)} ${diaAnoCx(x.dia)}${x.dia > hoje ? ' (lançado)' : x.dia === hoje ? ' (hoje)' : ''}` : '' },
