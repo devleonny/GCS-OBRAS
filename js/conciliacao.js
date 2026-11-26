@@ -628,7 +628,7 @@ function barraSomaConc(soma, alvo, ok) {
     const passou = Math.abs(soma) > Math.abs(alvo) + 0.004
     return `
         <div class="cc-soma-info">
-            <span>Marcado <b class="${ok ? 'cc-ok' : ''}">${dinheiro(Math.abs(soma))}</b> de ${dinheiro(Math.abs(alvo))}${ok ? ' ✔' : soma ? ` · ${passou ? `<b class="cc-acima">${dinheiro(dif)} acima</b>` : `falta ${dinheiro(dif)}`}` : ''}</span>
+            <span class="cc-soma-texto"><span>Marcado <b class="${ok ? 'cc-ok' : ''}">${dinheiro(Math.abs(soma))}</b></span> <span>de ${dinheiro(Math.abs(alvo))}${ok ? '&nbsp;<b class="cc-ok">✔</b>' : ''}</span>${!ok && soma ? ` <span>· ${passou ? `<b class="cc-acima">${dinheiro(dif)} acima</b>` : `falta ${dinheiro(dif)}`}</span>` : ''}</span>
             <div class="cc-soma-barra ${ok ? 'cc-soma-ok' : Math.abs(soma) > Math.abs(alvo) + 0.004 ? 'cc-soma-passou' : ''}"><span style="width:${pct}%"></span></div>
         </div>`
 }

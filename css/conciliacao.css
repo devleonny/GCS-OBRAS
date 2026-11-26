@@ -214,8 +214,12 @@ label.cc-item { cursor: pointer; }
 .cc-rodape-detalhe { position: sticky; bottom: 0; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: auto; padding: 10px 12px; background: #fff; border-top: 1px solid #e0e8e3; box-shadow: 0 -4px 10px rgba(31, 42, 36, 0.05); }
 .cc-rodape-detalhe .fis-botao { margin-left: auto; }
 .fis-botao .cc-credito, .fis-botao .cc-debito { color: inherit; }
-.cc-rodape-detalhe > div[data-soma-baixas], .cc-rodape-faturas .cc-soma-info { flex: 1 1 200px; }
+/* A soma pede ~260px: se não cabe com os botões ao lado, ela fica na linha de cima inteira e os botões descem. */
+.cc-rodape-detalhe > div[data-soma-baixas], .cc-rodape-faturas .cc-soma-info { flex: 1 1 260px; min-width: 0; }
 .cc-soma-info { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; }
+/* "Marcado R$ X" · "de R$ Y ✔" · "falta R$ Z": cada pedaço inteiro; quebra só entre eles, nunca o ✔ sozinho. */
+.cc-soma-texto { display: flex; flex-wrap: wrap; column-gap: 0.3em; row-gap: 2px; }
+.cc-soma-texto > span { white-space: nowrap; }
 .cc-soma-barra { height: 6px; border-radius: 3px; background: #eef2ef; overflow: hidden; }
 .cc-soma-barra span { display: block; height: 100%; background: #e0a43a; transition: width 150ms; }
 .cc-soma-barra.cc-soma-ok span { background: #2e8b57; }
