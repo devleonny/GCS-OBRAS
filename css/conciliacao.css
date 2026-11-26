@@ -85,6 +85,13 @@
 .cc-linha:hover td { background: #f3f8f4; }
 .cc-linha.cc-ativa td { background: var(--fin-verde-claro, #e4f2dc); }
 .cc-linha.cc-fechada td { color: #6b7a71; }
+/* Linhas juntadas com Ctrl + clique: faixa azul à esquerda. */
+.cc-linha.cc-no-grupo td { background: #e3edf9; }
+.cc-linha.cc-no-grupo td:first-child { box-shadow: inset 3px 0 0 #1d4f7c; }
+.cc-grupo-linhas { display: flex; flex-direction: column; gap: 6px; padding: 10px 18px; border-bottom: 1px solid var(--fin-borda, #d6e0da); background: #f6f9fd; }
+.cc-grupo-linhas .cc-tag { font-size: 12px; padding: 2px 4px 2px 9px; display: inline-flex; align-items: center; gap: 4px; }
+.cc-tag-tirar { border: 0; background: transparent; color: inherit; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 4px; border-radius: 8px; }
+.cc-tag-tirar:hover { background: #c9dbf1; }
 .cc-debito { color: #9b1c12; }
 .cc-credito { color: #1f5a2e; }
 .cc-area { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(360px, 1fr); gap: 12px; min-height: 0; }

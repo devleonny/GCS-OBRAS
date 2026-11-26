@@ -7,7 +7,8 @@
 // aberto, lançar tarifa/IOF, transferência entre contas, fora do Financeiro). Fechar até uma data: tudo casado até ali;
 // o saldo do banco vira o saldo conferido (Fluxo de Caixa) e as baixas até a data travam.
 
-const estadoConc = { painel: false, conta: null, mes: null, filtro: 'TODAS', busca: '', sel: null, aba: null }
+// multi: chaves das linhas juntadas com Ctrl + clique (grupo N × N); com 2 ou mais, o detalhe trabalha com a soma.
+const estadoConc = { painel: false, conta: null, mes: null, filtro: 'TODAS', busca: '', sel: null, aba: null, multi: [] }
 let contasConcCache = null
 let dadosConc = null
 let detalheConc = null
@@ -367,6 +368,7 @@ function abrirConciliarConc(id, mes = null) {
     estadoConc.filtro = 'TODAS'
     estadoConc.busca = ''
     estadoConc.sel = null
+    estadoConc.multi = []
     return telaConciliarConc()
 }
 
@@ -377,7 +379,7 @@ async function telaConciliarConc(manterSel = true) {
         removerOverlay()
         dadosConc = dados
         estadoConc.mes = dados.mes
-        if (!manterSel) estadoConc.sel = null
+        if (!manterSel) { estadoConc.sel = null; estadoConc.multi = [] }
         // A linha escolhida pode ter sido resolvida: escolhe a próxima pendente.
         const linhas = linhasConc()
         if (estadoConc.sel && !linhas.some(l => l.chave === estadoConc.sel)) estadoConc.sel = null
@@ -387,7 +389,10 @@ async function telaConciliarConc(manterSel = true) {
         const rolagem = ['[data-tabela-conc]', '.cc-tela .fin-painel'].map(s => [s, document.querySelector(s)?.scrollTop || 0])
         desenharConciliarConc()
         if (manterSel) rolagem.forEach(([s, y]) => { const el = document.querySelector(s); if (el) el.scrollTop = y })
-        if (estadoConc.sel) escolherLinhaConc(estadoConc.sel, false)
+        // O grupo só continua se as linhas ainda estão pendentes.
+        estadoConc.multi = estadoConc.multi.filter(k => podeJuntarConc(linhas.find(l => l.chave === k)))
+        if (estadoConc.multi.length < 2) estadoConc.multi = []
+        reabrirSelecaoConc()
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
@@ -437,7 +442,7 @@ function desenharConciliarConc() {
         ${cabecaPainelCartaoFin((c.contas.find(k => String(k.id) === String(c.conta_principal_id)) || c.contas[0] || {}).app || '?', `${c.nome} · ${mesNomeConc(d.mes)}`,
             `<small>${c.conferida_ate ? `conferida até ${dataFin(c.conferida_ate)}` : `ainda não fechada · corte ${dataFin(c.corte)}`}</small>`)}
         <label class="cc-mes cc-so-aberto">Mês
-            <select class="fis-input" onchange="estadoConc.mes = this.value; estadoConc.sel = null; telaConciliarConc(false)">
+            <select class="fis-input" onchange="estadoConc.mes = this.value; telaConciliarConc(false)">
                 ${meses.map(m => `<option value="${m}" ${m === d.mes ? 'selected' : ''}>${mesNomeConc(m)}</option>`).join('')}
             </select>
         </label>
@@ -445,7 +450,7 @@ function desenharConciliarConc() {
         <div class="cc-filtros" role="group" aria-label="Filtrar as linhas">
             ${[['TODAS', 'Todas'], ['SUGESTAO', 'Sugestões'], ['SEM_PAR', 'Sem par'], ['SO_GCS', 'Só no GCS'], ['CASADA', 'Casadas'], ['IGNORADA', 'Fora do Financeiro']]
                 .map(([k, t]) => `<button type="button" class="fin-acao cc-filtro ${estadoConc.filtro === k ? 'ativo' : ''}" aria-pressed="${estadoConc.filtro === k}" title="${t} (${conta(k)})"
-                    onclick="estadoConc.filtro = '${k}'; desenharConciliarConc(); if (estadoConc.sel) escolherLinhaConc(estadoConc.sel, false)">
+                    onclick="estadoConc.filtro = '${k}'; desenharConciliarConc(); reabrirSelecaoConc()">
                     ${k === 'TODAS' ? `<span class="cc-sit cc-sit-todas" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 8h10M7 12h10M7 16h10"/></svg></span>` : iconeSitConc(k)}<span>${t}</span><em>${conta(k)}</em></button>`).join('')}
         </div>
         <hr>
@@ -503,12 +508,12 @@ function desenharTabelaConc() {
             <thead><tr><th class="cc-col-data">Dia</th><th>Descrição no banco</th><th class="fis-num cc-col-valor">Valor</th><th class="cc-col-sit" title="Situação"></th></tr></thead>
             <tbody>${linhas.map(l => {
                 const noGcs = l.gcs ? `Baixa sem linha no extrato · ${escFin(l.baixa.conta)}`
-                    : l.sit === 'CASADA' ? '→ ' + l.casadas.map(b => escFin([b.participante || b.descricao, b.numero && `nº ${b.numero}`].filter(Boolean).join(' · '))).join(' + ') + (l.casadas.some(b => b.automatico) ? ' (sozinha)' : '')
+                    : l.sit === 'CASADA' ? '→ ' + (l.grupo_linhas ? `[junto com mais ${l.grupo_linhas.length - 1}] ` : '') + l.casadas.map(b => escFin([b.participante || b.descricao, b.numero && `nº ${b.numero}`].filter(Boolean).join(' · '))).join(' + ') + (l.casadas.some(b => b.automatico) ? ' (sozinha)' : '')
                     : l.sit === 'IGNORADA' ? escFin(l.observacao || '')
                     : l.sit === 'SUGESTAO' ? '→ ' + escFin(l.sugestoes[0].itens.length > 1 ? `${l.sugestoes[0].itens.length} baixas somam o valor` : [l.sugestoes[0].itens[0]?.participante_nome, l.sugestoes[0].itens[0]?.descricao].filter(Boolean).join(' · ')) + (l.sugestoes.length > 1 ? ` (+${l.sugestoes.length - 1})` : '')
                     : l.antes_corte ? 'antes do corte' : ''
                 return `
-                <tr class="cc-linha ${estadoConc.sel === l.chave ? 'cc-ativa' : ''} ${l.fechada ? 'cc-fechada' : ''}" data-chave="${l.chave}" onclick="escolherLinhaConc('${l.chave}')">
+                <tr class="cc-linha ${linhaAtivaConc(l.chave) ? 'cc-ativa' : ''} ${estadoConc.multi.includes(l.chave) ? 'cc-no-grupo' : ''} ${l.fechada ? 'cc-fechada' : ''}" data-chave="${l.chave}" onmousedown="if (event.ctrlKey || event.metaKey) event.preventDefault()" onclick="cliqueLinhaConc(event, '${l.chave}')">
                     <td class="cc-col-data">${dataFin(l.data).slice(0, 5)}</td>
                     <td class="cc-desc">
                         <span class="cc-desc-banco" title="${escFin(l.descricao || '')}">${escFin(l.descricao || '—')}</span>
@@ -518,7 +523,7 @@ function desenharTabelaConc() {
                     <td class="cc-col-sit">${iconeSitConc(l.sit)}${l.fechada ? '<span class="cc-cadeado" title="Período fechado">🔒</span>' : ''}</td>
                 </tr>`
             }).join('') || '<tr><td colspan="4" class="fis-vazio">Nada neste filtro.</td></tr>'}</tbody>
-            ${linhas.length ? `<tfoot><tr><td colspan="2">${linhas.length} linha${linhas.length === 1 ? '' : 's'}</td><td class="fis-num"><b>${sinalConc(total)}</b></td><td></td></tr></tfoot>` : ''}
+            ${linhas.length ? `<tfoot><tr><td colspan="2">${linhas.length} linha${linhas.length === 1 ? '' : 's'} <small class="cc-cinza" title="Para casar vários PIX/depósitos com várias faturas ou baixas de uma vez">· Ctrl + clique junta linhas</small></td><td class="fis-num"><b>${sinalConc(total)}</b></td><td></td></tr></tfoot>` : ''}
         </table>`
 }
 
@@ -619,9 +624,92 @@ function barraSomaConc(soma, alvo, ok) {
         </div>`
 }
 
+// ---- várias linhas juntas (Ctrl + clique): N linhas do extrato × N faturas/baixas, pela soma
+
+const linhaAtivaConc = chave => estadoConc.multi.length ? estadoConc.multi.includes(chave) : estadoConc.sel === chave
+const podeJuntarConc = l => Boolean(l && !l.gcs && ['SUGESTAO', 'SEM_PAR'].includes(l.sit) && !l.fechada)
+
+function pintarLinhasConc() {
+    document.querySelectorAll('[data-tabela-conc] .cc-linha').forEach(tr => {
+        tr.classList.toggle('cc-ativa', linhaAtivaConc(tr.dataset.chave))
+        tr.classList.toggle('cc-no-grupo', estadoConc.multi.includes(tr.dataset.chave))
+    })
+}
+
+function reabrirSelecaoConc() {
+    if (estadoConc.multi.length > 1) return escolherGrupoConc()
+    if (estadoConc.sel) return escolherLinhaConc(estadoConc.sel, false)
+}
+
+function cliqueLinhaConc(ev, chave) {
+    if (!(ev.ctrlKey || ev.metaKey)) {
+        estadoConc.multi = []
+        return escolherLinhaConc(chave)
+    }
+    ev.preventDefault()
+    const todas = linhasConc()
+    const l = todas.find(x => x.chave === chave)
+    if (!podeJuntarConc(l)) return popup({ mensagem: 'Só dá para juntar linhas do extrato que ainda estão pendentes (sem casar e fora do período fechado).' })
+    // Começa pela linha que já estava aberta, se ela também pode entrar.
+    let m = estadoConc.multi.length ? [...estadoConc.multi]
+        : (estadoConc.sel !== chave && podeJuntarConc(todas.find(x => x.chave === estadoConc.sel)) ? [estadoConc.sel] : [])
+    if (m.includes(chave)) m = m.filter(k => k !== chave)
+    else {
+        const primeira = todas.find(x => x.chave === m[0])
+        if (primeira && Math.sign(primeira.valor) !== Math.sign(l.valor)) return popup({ mensagem: 'Junte só saídas ou só entradas.' })
+        m.push(chave)
+    }
+    if (m.length >= 2) {
+        estadoConc.multi = m
+        estadoConc.sel = chave
+        pintarLinhasConc()
+        return escolherGrupoConc()
+    }
+    estadoConc.multi = []
+    if (m.length === 1) return escolherLinhaConc(m[0])
+    estadoConc.sel = null
+    pintarLinhasConc()
+    const caixa = document.querySelector('[data-detalhe-conc]')
+    if (caixa) caixa.innerHTML = '<p class="cc-explica cc-escolha">Escolha uma linha à esquerda para ver as opções.</p>'
+}
+
+async function escolherGrupoConc() {
+    const todas = linhasConc()
+    const ls = estadoConc.multi.map(k => todas.find(x => x.chave === k)).filter(Boolean)
+    const caixa = document.querySelector('[data-detalhe-conc]')
+    if (ls.length < 2 || !caixa) return
+    const marca = estadoConc.multi.join(',')
+    const total = r2Fin(ls.reduce((a, l) => a + Number(l.valor), 0))
+    const datas = ls.map(l => l.data).sort()
+    const cabeca = `${cabecaConc({ valor: total, data: datas[datas.length - 1], descricao: `${ls.length} linhas juntas`, sit: 'SEM_PAR' })}
+        <div class="cc-grupo-linhas">
+            <span class="cc-tags">${ls.map(l => `<span class="cc-tag cc-tag-azul" title="${escFin(l.descricao || '')}">${dataFin(l.data).slice(0, 5)} · ${dinheiro(Math.abs(l.valor))}<button type="button" class="cc-tag-tirar" title="Tirar do grupo" onclick="cliqueLinhaConc({ ctrlKey: true, preventDefault() {} }, '${l.chave}')">×</button></span>`).join('')}</span>
+            <small class="cc-cinza">Marque as faturas ou baixas que somam o total. Ctrl + clique na lista junta ou tira linhas.</small>
+        </div>`
+    caixa.innerHTML = `${cabeca}${vazioConc('relogio', 'Procurando faturas e baixas…')}`
+    const ids = ls.map(l => l.id)
+    let det
+    try {
+        det = await apiFin('conciliacao/linha', { id: ids[0], ids })
+    } catch (err) {
+        caixa.innerHTML = `${cabeca}<p class="cc-explica">${escFin(mensagemErroEst(err))}</p>`
+        return
+    }
+    if (estadoConc.multi.join(',') !== marca) return
+    detalheConc = det
+    detalheConc.grupo = ids
+    detalheConc.sugestoes = []
+    detalheConc.cabeca = cabeca
+    if (estadoConc.abaDe !== `g:${marca}`) {
+        estadoConc.aba = detalheConc.combinacao ? 'faturas' : detalheConc.baixas.length ? 'baixas' : 'faturas'
+        estadoConc.abaDe = `g:${marca}`
+    }
+    desenharDetalheConc()
+}
+
 async function escolherLinhaConc(chave, redesenhar = true) {
     estadoConc.sel = chave
-    if (redesenhar) document.querySelectorAll('[data-tabela-conc] .cc-linha').forEach(tr => tr.classList.toggle('cc-ativa', tr.dataset.chave === chave))
+    if (redesenhar) pintarLinhasConc()
     const l = linhasConc().find(x => x.chave === chave)
     const caixa = document.querySelector('[data-detalhe-conc]')
     if (!l || !caixa) return
@@ -642,7 +730,9 @@ async function escolherLinhaConc(chave, redesenhar = true) {
         caixa.innerHTML = `${cabeca}
             ${l.sit === 'IGNORADA'
                 ? `<div class="cc-alerta-gcs cc-alerta-neutro">${iconeFin('cancelar')}<span>Fora do Financeiro, por ${escFin(l.resolvido_por || '')}: <b>${escFin(l.observacao || '')}</b></span></div>`
-                : `<b class="cc-sub-titulo">${iconeFin('check')} Casada com ${l.casadas.length === 1 ? 'esta baixa' : `estas ${l.casadas.length} baixas`}</b>
+                : `${l.grupo_linhas ? `<div class="cc-alerta-gcs cc-alerta-neutro">${iconeFin('check')}<span>Casada <b>junto com ${l.grupo_linhas.length - 1 === 1 ? 'outra linha' : `outras ${l.grupo_linhas.length - 1} linhas`}</b> do extrato
+                    (${l.grupo_linhas.map(g => `${dataFin(g.data).slice(0, 5)} ${dinheiro(Math.abs(g.valor))}`).join(' + ')} = <b>${dinheiro(Math.abs(l.grupo_linhas.reduce((a, g) => a + g.valor, 0)))}</b>): as baixas abaixo são do grupo todo. Desfazer desfaz o grupo.</span></div>` : ''}
+            <b class="cc-sub-titulo">${iconeFin('check')} Casada com ${l.casadas.length === 1 ? 'esta baixa' : `estas ${l.casadas.length} baixas`}</b>
             ${l.casadas.length > 1 ? buscaListaConc('[data-lista-casadas]') : ''}
             <div class="cc-lista" data-lista-casadas>${l.casadas.map(b => itemConc({
                 nome: b.participante || b.descricao, valor: b.mov, data: b.data,
@@ -651,7 +741,7 @@ async function escolherLinhaConc(chave, redesenhar = true) {
                 depois: `<button type="button" class="fis-mini" onclick="abrirFaturaFin(${b.titulo_id})">Fatura</button>`
             })).join('')}</div>`}
             <div class="cc-rodape-detalhe">
-                ${l.fechada ? '<small class="cc-cinza">Período fechado: reabra para mudar.</small>' : `<button type="button" class="fis-mini" onclick="desfazerLinhaConc(${l.id}, ${l.casadas?.some(b => b.criou) ? 'true' : 'false'})">Desfazer</button>`}
+                ${l.fechada ? '<small class="cc-cinza">Período fechado: reabra para mudar.</small>' : `<button type="button" class="fis-mini" onclick="desfazerLinhaConc(${l.id}, ${l.casadas?.some(b => b.criou) ? 'true' : 'false'}, ${l.grupo_linhas ? l.grupo_linhas.length : 0})">Desfazer</button>`}
             </div>`
         return
     }
@@ -677,14 +767,14 @@ async function escolherLinhaConc(chave, redesenhar = true) {
 function desenharDetalheConc() {
     const caixa = document.querySelector('[data-detalhe-conc]')
     if (!caixa || !detalheConc) return
-    const { linha: l, tipo, baixas, faturas, combinacao, transferencias, destinos, apps, sugestoes, cabeca } = detalheConc
+    const { linha: l, tipo, baixas, faturas, combinacao, transferencias, destinos, apps, sugestoes, cabeca, grupo } = detalheConc
     const abs = Math.abs(l.valor)
     const abas = [
         ['sugestao', 'raio', 'Sugestões', sugestoes.length, sugestoes.length],
         ['faturas', 'baixa', 'Faturas', faturas.length, true],
         ['baixas', 'check', 'Baixas lançadas', baixas.length, true],
-        ['lancar', 'incluir', l.valor < 0 ? 'Lançar despesa' : 'Lançar receita', null, true],
-        ['transferencia', 'repetir', 'Transferência', transferencias.length, true]
+        ['lancar', 'incluir', l.valor < 0 ? 'Lançar despesa' : 'Lançar receita', null, !grupo],
+        ['transferencia', 'repetir', 'Transferência', transferencias.length, !grupo]
     ]
     const aba = estadoConc.aba
     let corpo = '', rodape = ''
@@ -705,7 +795,7 @@ function desenharDetalheConc() {
         }).join('') || vazioConc('raio', 'Sem sugestão.')
     } else if (aba === 'baixas') {
         corpo = `
-            <p class="cc-explica">Baixas de ${tipo === 'RECEBER' ? 'recebimento' : 'pagamento'} destas contas, até 10 dias antes ou depois, que ainda não casaram. Marque as que formam esta linha (ex.: as pessoas do lote de salários).</p>
+            <p class="cc-explica">Baixas de ${tipo === 'RECEBER' ? 'recebimento' : 'pagamento'} destas contas, até 10 dias antes ou depois, que ainda não casaram. ${grupo ? 'Marque as que formam o total das linhas juntas.' : 'Marque as que formam esta linha (ex.: as pessoas do lote de salários).'}</p>
             ${baixas.length > 1 ? buscaListaConc('[data-marcar-baixas]') : ''}
             <div class="cc-lista" data-marcar-baixas>${baixas.map(b => itemConc({
                 nome: b.participante_nome || b.descricao, marcar: true, valor: b.mov, data: b.data,
@@ -731,7 +821,7 @@ function desenharDetalheConc() {
         corpo = `
             ${sugestoes.length ? `<p class="cc-explica"><b>Atenção:</b> já existe baixa lançada que bate com esta linha (aba Sugestões). Baixar uma fatura aqui cria outro pagamento.</p>` : ''}
             <p class="cc-explica">${buscando ? `Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto encontradas pela busca (as marcadas ficam no topo).`
-                : `Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto com valor parecido ou do mesmo favorecido.${combinacao ? ' <b>Já marcadas as que somam exatamente o valor.</b>' : ''} Não achou? Busque abaixo.`} A baixa sai com a data da linha (${dataFin(l.data)}).</p>
+                : `Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto com valor parecido ou do mesmo favorecido.${combinacao ? ' <b>Já marcadas as que somam exatamente o valor.</b>' : ''} Não achou? Busque abaixo.`} A baixa sai com a data da linha${grupo ? ' mais recente' : ''} (${dataFin(l.data)}).</p>
             <div class="cc-busca-faturas">
                 <input class="fis-input" type="search" data-busca-fat placeholder="Buscar favorecido, CPF/CNPJ, nº, descrição ou valor…" value="${escFin(b.busca)}" oninput="filtrarFaturasConc()">
                 <label class="cc-busca-data" title="Vencimento a partir de"><span>Vence de</span><input class="fis-input" type="date" data-de-fat value="${escFin(b.de)}" onchange="filtrarFaturasConc(true)"></label>
@@ -776,7 +866,7 @@ function desenharDetalheConc() {
         <div class="cc-abas" role="tablist">${abas.filter(a => a[4]).map(([k, ic, t, n]) => `
             <button type="button" role="tab" aria-selected="${aba === k}" class="cc-aba ${aba === k ? 'ativo' : ''}" onclick="if (estadoConc.aba === 'faturas') guardarMarcadasFatConc(); estadoConc.aba = '${k}'; desenharDetalheConc()">
                 ${iconeFin(ic)}<span>${t}</span>${n != null ? `<em>${n}</em>` : ''}</button>`).join('')}
-            <button type="button" class="cc-aba cc-aba-ignorar" onclick="ignorarLinhaConc(${l.id})" title="Marcar como fora do Financeiro">${iconeFin('cancelar')}<span>Fora</span></button>
+            ${grupo ? '' : `<button type="button" class="cc-aba cc-aba-ignorar" onclick="ignorarLinhaConc(${l.id})" title="Marcar como fora do Financeiro">${iconeFin('cancelar')}<span>Fora</span></button>`}
         </div>
         <div class="cc-aba-corpo">${corpo}</div>
         ${rodape}`
@@ -917,16 +1007,17 @@ async function baixarFaturasConc(linhaId) {
     const abs = r2Fin(Math.abs(detalheConc.linha.valor))
     let itens = marcadas.map(it => ({ titulo_id: it.querySelector('input[type=checkbox]').value, valor: it.querySelector('.cc-valor').value }))
     if (ajuste === 'parcial') { itens = [{ titulo_id: itens[0].titulo_id, valor: abs }]; ajuste = null }
-    await acaoConc('baixar', { linha_id: linhaId, itens, ajuste }, () => telaConciliarConc(), 'Baixa feita e linha casada')
+    const grupo = detalheConc.grupo || null
+    await acaoConc('baixar', { linha_id: linhaId, linhas: grupo, itens, ajuste }, () => { estadoConc.multi = []; return telaConciliarConc() }, grupo ? 'Baixa feita e linhas casadas' : 'Baixa feita e linha casada')
 }
 
-function casarConc(linhaId, baixas) {
-    return acaoConc('casar', { linha_id: linhaId, baixas }, () => telaConciliarConc(), 'Linha casada')
+function casarConc(linhaId, baixas, linhas = null) {
+    return acaoConc('casar', { linha_id: linhaId, baixas, linhas }, () => { estadoConc.multi = []; return telaConciliarConc() }, linhas ? 'Linhas casadas' : 'Linha casada')
 }
 
 function casarMarcadasConc(linhaId) {
     const ids = [...document.querySelectorAll('[data-marcar-baixas] input:checked')].map(i => Number(i.value))
-    return casarConc(linhaId, ids)
+    return casarConc(linhaId, ids, detalheConc.grupo || null)
 }
 
 // Favorecido da aba Lançar: do cadastro (seletor que só aceita quem existe, leva CPF/CNPJ e o vínculo) ou texto
@@ -992,10 +1083,10 @@ async function ignorarLinhaConc(linhaId) {
     return acaoConc('ignorar', { linha_id: linhaId, motivo }, () => telaConciliarConc())
 }
 
-async function desfazerLinhaConc(linhaId, criou) {
-    if (!await confirmarPopup({ titulo: 'Desfazer', mensagem: criou
+async function desfazerLinhaConc(linhaId, criou, noGrupo = 0) {
+    if (!await confirmarPopup({ titulo: 'Desfazer', mensagem: (noGrupo ? `Esta linha foi casada junto com outras ${noGrupo - 1}: todas as ${noGrupo} voltam a ficar pendentes. ` : '') + (criou
         ? 'A linha volta a ficar pendente e o pagamento feito aqui na conciliação é desfeito (a fatura lançada aqui é cancelada; na transferência, os dois lados).'
-        : 'A linha volta a ficar pendente. As baixas continuam como estão.', textoConfirmar: 'Desfazer' })) return
+        : 'A linha volta a ficar pendente. As baixas continuam como estão.'), textoConfirmar: 'Desfazer' })) return
     return acaoConc('desfazer', { linha_id: linhaId }, () => telaConciliarConc())
 }
 
