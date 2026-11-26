@@ -301,3 +301,11 @@
 
 /* Investimentos (26/11/2026): botões à direita do título */
 .cx-inv-acoes { margin-left: auto; display: inline-flex; gap: 6px; }
+/* Gráficos dos investimentos (26/11/2026): saldo dia a dia + barras por mês, lado a lado */
+.cx-inv-graficos { margin-top: 12px; }
+.cx-inv-figura { margin: 0; min-width: 0; }
+.cx-inv-figura figcaption { font-weight: 600; font-size: 13px; color: #2b2a27; margin: 0 0 6px; }
+.cx-inv-figura figcaption small { display: block; font-weight: 400; color: var(--cx-tinta-2, #6b6a66); font-size: 11px; }
+.cx-inv-tabela { margin-top: 10px; }
+.cx-inv-tabela summary { cursor: pointer; font-size: 12px; color: var(--cx-tinta-2, #6b6a66); }
+.cx-inv-tabela table { margin-top: 6px; }

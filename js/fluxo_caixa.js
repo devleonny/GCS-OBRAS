@@ -15,6 +15,9 @@ const CORES_CX = {
     entrada: '#2a78d6', entradaClara: '#9ec5f4',
     saida: '#eb6834', saidaClara: '#f6b899',
     saldo: '#2a78d6', previsao: '#6250d6', reserva: '#e34948',
+    // Investimentos (26/11/2026): aplicação azul, resgate laranja, rendimento/saldo aplicado verde-água
+    // (validados juntos: dataviz validate_palette, modo claro).
+    aplicado: '#2a78d6', resgatado: '#eb6834', investido: '#1f9e89', investidoFundo: 'rgba(31, 158, 137, 0.12)',
     positivo: 'rgba(31, 122, 58, 0.12)', negativo: 'rgba(198, 40, 40, 0.20)',
     texto: '#52514e', grade: '#ecebe7', zero: '#52514e'
 }
@@ -214,7 +217,9 @@ function desenharFluxoCaixa() {
             ${respostaCx({
                 titulo: 'Temos caixa hoje?', valor: semSaldo ? null : d.saldo_hoje,
                 selo: semSaldo ? null : d.saldo_hoje >= 0 ? ['ok', 'Sim'] : ['perigo', 'No vermelho'],
-                nota: semSaldo ? 'Nenhum extrato importado nem conta conferida ainda.' : notaSaldoCx(d)
+                nota: semSaldo ? 'Nenhum extrato importado nem conta conferida ainda.'
+                    : d.com_investimentos ? `${dinheiro(d.saldo_caixa)} em conta + ${dinheiro(d.saldo_investido)} investidos (dá para resgatar). ${notaSaldoCx(d)}`
+                    : notaSaldoCx(d)
             })}
             ${respostaCx({
                 titulo: `Tivemos caixa? ${r.passado.length ? `(${diaCx(r.passado[0].dia)} a ${diaCx(r.passado[r.passado.length - 1].dia)})` : ''}`,
@@ -244,7 +249,7 @@ function desenharFluxoCaixa() {
         <section class="cx-bloco">
             <div class="cx-bloco-topo">
                 <h3>Saldo dia a dia</h3>
-                <small>Acima do zero (verde): com caixa. Abaixo (vermelho): no vermelho. Linha cheia: o que aconteceu (extrato). Tracejada: o que está lançado no GCS.${r.futuro.length ? ' Roxa: somando as previsões pela média.' : ''}${k.reserva ? ' Vermelha fina: reserva mínima.' : ''}</small>
+                <small>Acima do zero (verde): com caixa. Abaixo (vermelho): no vermelho. Linha cheia: o que aconteceu (extrato). Tracejada: o que está lançado no GCS.${r.futuro.length ? ' Roxa: somando as previsões pela média.' : ''}${k.reserva ? ' Vermelha fina: reserva mínima.' : ''}${d.com_investimentos ? ' O saldo inclui os investimentos; a linha verde-água fina é só o que está em conta.' : ''}</small>
             </div>
             <div class="cx-grafico cx-grafico-alto"><canvas data-cx-saldo aria-label="Saldo diário no período" role="img"></canvas></div>
         </section>
@@ -333,6 +338,7 @@ function desenharFluxoCaixa() {
                     <li><b>Contas sem extrato</b>: entram pelo saldo conferido à mão (botão Conferir saldos) mais as baixas do GCS. Sem conferência ficam fora para não distorcer.</li>
                     <li><b>O que vem pela frente vem do GCS</b>: tudo que está nas faturas a pagar e a receber, no dia do vencimento, mais os reembolsos pedidos que esperam aprovação. Fatura em aberto que já aparece no extrato com o mesmo valor fica fora, para não contar duas vezes.</li>
                     <li><b>Com previsões</b> (linha roxa): soma o que acontece todo mês (categoria presente em 3 dos 4 últimos meses) e ainda falta lançar, pela média dos 3 últimos meses.</li>
+                    <li><b>Investimentos</b>: ${d.com_investimentos ? 'o saldo aplicado (CDB) entra no caixa, porque dá para resgatar; aplicação e resgate só trocam o dinheiro de lugar e não mudam o total.' : 'hoje estão fora do caixa.'} Muda em Planejamento e trava. Os investimentos não rendem na previsão: o rendimento só entra quando a posição do banco é informada.</li>
                     <li><b>Livre para gastar</b>: o menor saldo dos próximos dias, pelo pior das duas linhas, menos a reserva mínima.</li>
                     <li><b>Atrasados</b>: hoje ${escFin(ROTULO_ATRASO_CX[d.plan.atrasados_pagar].toLowerCase())} os a pagar e ${escFin(ROTULO_ATRASO_CX[d.plan.atrasados_receber].toLowerCase())} os a receber (entram como se fossem pagos hoje). Muda em Planejamento e trava.</li>
                     <li><b>Trava</b>: com a trava ligada ou automática sem folga, o servidor recusa novos pedidos em Reembolsos → Solicitar Pagamento (menos para quem estiver liberado na Central de acessos).</li>
@@ -341,7 +347,7 @@ function desenharFluxoCaixa() {
         </section>`
 
     estadoCx.graficos.forEach(g => g?.destroy())
-    estadoCx.graficos = [graficoSaldoCx(d)]
+    estadoCx.graficos = [graficoSaldoCx(d), ...graficosInvestimentosCx(d)]
     carregarEntreEmpresasCx()
 }
 
@@ -354,11 +360,16 @@ function blocoInvestimentosCx(d, semSaldo) {
     if (!inv || !inv.contas.length) return ''
     const rend = inv.contas.reduce((a, c) => a + Number(c.rendimento || 0), 0)
     const desde = inv.contas.map(c => c.rendimento_desde).filter(Boolean).sort()[0]
+    const meses = inv.meses || []
+    const aplicado = meses.reduce((a, m) => a + m.aplicado, 0), resgatado = meses.reduce((a, m) => a + m.resgatado, 0)
+    const serie = inv.serie || []
+    const maior = serie.reduce((m, x) => !m || x.saldo > m.saldo ? x : m, null)
+    const media = serie.length ? serie.reduce((a, x) => a + x.saldo, 0) / serie.length : 0
     return `
         <section class="cx-bloco">
             <div class="cx-bloco-topo">
                 <h3>Investimentos</h3>
-                <small>Fora do "Temos caixa hoje?". Aplicações e resgates entram pela conciliação bancária (Transferência → conta do investimento); a posição que o banco mostra lança o rendimento do período.</small>
+                <small>${d.com_investimentos ? 'Contam no "Temos caixa hoje?" e no saldo dia a dia, porque dá para resgatar.' : 'Fora do "Temos caixa hoje?" (Planejamento e trava).'} Aplicações e resgates entram pela conciliação bancária (Transferência → conta do investimento); a posição que o banco mostra lança o rendimento do período.</small>
                 <span class="cx-inv-acoes">
                     ${d.pode_planejar ? '<button type="button" class="fis-mini" onclick="posicaoInvestimentoCx()">Informar posição</button>' : ''}
                     <button type="button" class="fis-mini" onclick="historicoInvestimentosCx()">Histórico</button>
@@ -368,10 +379,114 @@ function blocoInvestimentosCx(d, semSaldo) {
                 ${inv.contas.map(c => miniCx(c.nome, dinheiro(c.saldo),
                     `Última posição: ${c.posicao_data ? `${dinheiro(c.posicao_saldo)} em ${diaAnoCx(c.posicao_data)}` : '—'} · no ano: aplicou ${dinheiro(c.aplicado_ano)}, resgatou ${dinheiro(c.resgatado_ano)}`)).join('')}
                 ${miniCx('Rendimento lançado', dinheiro(rend), desde ? `Pelas posições informadas desde ${diaAnoCx(desde)} (líquido do IR)` : '')}
-                ${miniCx('Caixa + investimentos', semSaldo ? '—' : dinheiro(Math.round((d.saldo_hoje + inv.total) * 100) / 100),
-                    semSaldo ? 'Sem saldo de caixa de partida.' : `${dinheiro(d.saldo_hoje)} em caixa + ${dinheiro(inv.total)} aplicados`)}
+                ${d.com_investimentos
+                    ? miniCx('Só em conta (sem investimentos)', semSaldo ? '—' : dinheiro(d.saldo_caixa), 'O que dá para pagar hoje sem resgatar nada', d.saldo_caixa < 0)
+                    : miniCx('Caixa + investimentos', semSaldo ? '—' : dinheiro(Math.round((d.saldo_hoje + inv.saldo_hoje) * 100) / 100),
+                        semSaldo ? 'Sem saldo de caixa de partida.' : `${dinheiro(d.saldo_hoje)} em caixa + ${dinheiro(inv.saldo_hoje)} aplicados`)}
+                ${serie.length ? miniCx(`Desde ${diaAnoCx(serie[0].dia)}`, `${dinheiro(aplicado)} aplicados`,
+                    `${dinheiro(resgatado)} resgatados · saldo médio ${dinheiro(Math.round(media * 100) / 100)} · maior ${maior ? `${dinheiro(maior.saldo)} em ${diaCx(maior.dia)}` : '—'}`) : ''}
             </div>
+            ${serie.length > 1 ? `
+            <div class="cx-duas cx-inv-graficos">
+                <figure class="cx-inv-figura">
+                    <figcaption>Saldo investido dia a dia <small>Pontos: posições informadas pelo banco.</small></figcaption>
+                    <div class="cx-grafico"><canvas data-cx-inv-saldo aria-label="Saldo investido dia a dia" role="img"></canvas></div>
+                </figure>
+                <figure class="cx-inv-figura">
+                    <figcaption>Mês a mês <small>Quanto foi aplicado, resgatado e quanto rendeu (pelas posições).</small></figcaption>
+                    <div class="cx-grafico"><canvas data-cx-inv-meses aria-label="Aplicações, resgates e rendimento por mês" role="img"></canvas></div>
+                </figure>
+            </div>
+            <details class="cx-inv-tabela">
+                <summary>Ver a tabela mês a mês</summary>
+                <table class="fis-tabela">
+                    <thead><tr><th>Mês</th><th class="fis-num">Aplicado</th><th class="fis-num">Resgatado</th><th class="fis-num">Rendimento</th><th class="fis-num">Saldo no fim</th></tr></thead>
+                    <tbody>${meses.map(m => `<tr><td>${escFin(mesCx(m.mes))}</td><td class="fis-num">${dinheiro(m.aplicado)}</td><td class="fis-num">${dinheiro(m.resgatado)}</td>
+                        <td class="fis-num">${m.rendimento ? dinheiro(m.rendimento) : '—'}</td><td class="fis-num">${dinheiro(m.saldo_fim)}</td></tr>`).join('')}</tbody>
+                </table>
+            </details>` : ''}
         </section>`
+}
+
+// Dois gráficos do investimento, um eixo cada: saldo dia a dia (com as posições do banco) e barras por mês.
+function graficosInvestimentosCx(d) {
+    const inv = d.investimentos
+    if (typeof Chart === 'undefined' || !inv?.serie?.length) return []
+    const serie = inv.serie
+    const graficos = []
+    const eixoX = rotulo => ({ grid: { display: false }, ticks: { color: CORES_CX.texto, maxRotation: 0, autoSkipPadding: 16, callback: rotulo } })
+    const eixoY = { border: { display: false }, beginAtZero: true, grid: { color: CORES_CX.grade }, ticks: { color: CORES_CX.texto, callback: v => curtoCx(v) } }
+    const c1 = document.querySelector('[data-cx-inv-saldo]')
+    if (c1) {
+        const posicoes = new Map((inv.posicoes || []).map(p => [p.data, p]))
+        graficos.push(new Chart(c1, {
+            type: 'line',
+            data: {
+                labels: serie.map((_, i) => i),
+                datasets: [{
+                    label: 'Saldo investido', data: serie.map(x => x.saldo),
+                    borderColor: CORES_CX.investido, backgroundColor: CORES_CX.investidoFundo, borderWidth: 2, fill: 'origin', stepped: true,
+                    pointRadius: serie.map(x => posicoes.has(x.dia) ? 5 : 0), pointHoverRadius: 4,
+                    pointBackgroundColor: CORES_CX.investido, pointBorderColor: '#fff', pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: itens => { const x = serie[itens[0].dataIndex]; return x ? `${semanaCx(x.dia)} ${diaAnoCx(x.dia)}` : '' },
+                            label: c => `Saldo: ${dinheiroTexto(c.raw)}`,
+                            afterBody: itens => {
+                                const x = serie[itens[0].dataIndex]
+                                if (!x) return ''
+                                const l = []
+                                if (x.aplicado) l.push(`Aplicou: ${dinheiroTexto(x.aplicado)}`)
+                                if (x.resgatado) l.push(`Resgatou: ${dinheiroTexto(x.resgatado)}`)
+                                if (x.rendimento) l.push(`Rendimento lançado: ${dinheiroTexto(x.rendimento)}`)
+                                if (posicoes.has(x.dia)) l.push(`Posição do banco: ${dinheiroTexto(posicoes.get(x.dia).saldo)}`)
+                                return l
+                            }
+                        }
+                    }
+                },
+                scales: { x: eixoX(v => serie[v] ? diaCx(serie[v].dia) : ''), y: eixoY }
+            }
+        }))
+    }
+    const c2 = document.querySelector('[data-cx-inv-meses]')
+    const meses = inv.meses || []
+    if (c2 && meses.length) {
+        const barra = { borderRadius: 4, borderSkipped: 'bottom', borderWidth: 0, maxBarThickness: 18, categoryPercentage: 0.7, barPercentage: 0.9 }
+        graficos.push(new Chart(c2, {
+            type: 'bar',
+            data: {
+                labels: meses.map(m => mesCx(m.mes)),
+                datasets: [
+                    { ...barra, label: 'Aplicado', data: meses.map(m => m.aplicado), backgroundColor: CORES_CX.aplicado },
+                    { ...barra, label: 'Resgatado', data: meses.map(m => m.resgatado), backgroundColor: CORES_CX.resgatado },
+                    { ...barra, label: 'Rendimento', data: meses.map(m => m.rendimento), backgroundColor: CORES_CX.investido }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: CORES_CX.texto, boxWidth: 12, boxHeight: 12 } },
+                    tooltip: {
+                        callbacks: {
+                            label: c => `${c.dataset.label}: ${dinheiroTexto(c.raw)}`,
+                            afterBody: itens => { const m = meses[itens[0].dataIndex]; return m ? [`Saldo no fim do mês: ${dinheiroTexto(m.saldo_fim)}`] : '' }
+                        }
+                    }
+                },
+                scales: { x: { grid: { display: false }, ticks: { color: CORES_CX.texto } }, y: eixoY }
+            }
+        }))
+    }
+    return graficos
 }
 
 function posicaoInvestimentoCx() {
@@ -826,11 +941,17 @@ function graficoSaldoCx(d) {
     // Índice a partir do qual a linha é "lançado" (tracejada): hoje, ou o começo se o período é todo futuro.
     const inicioFuturo = hojeIdx >= 0 ? hojeIdx : serie[0].dia > hoje ? 0 : serie.length
     const datasets = [{
-        label: 'Saldo', data: saldos,
+        label: d.com_investimentos ? 'Saldo (conta + investimentos)' : 'Saldo', data: saldos,
         borderColor: CORES_CX.saldo, backgroundColor: CORES_CX.saldo, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
         fill: { target: { value: 0 }, above: CORES_CX.positivo, below: CORES_CX.negativo },
         segment: { borderDash: c => c.p0DataIndex >= inicioFuturo ? [6, 4] : undefined }
     }]
+    // Com investimentos no caixa: linha fina do que está só em conta (saldo − investido), mesma escala.
+    if (d.com_investimentos && serie.some(x => x.investido)) datasets.push({
+        label: 'Só em conta (sem investimentos)', data: saldos.map((v, i) => v === null || serie[i].investido === undefined ? null : Math.round((v - serie[i].investido) * 100) / 100),
+        borderColor: CORES_CX.investido, backgroundColor: CORES_CX.investido, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3, fill: false,
+        segment: { borderDash: c => c.p0DataIndex >= inicioFuturo ? [6, 4] : undefined }
+    })
     const comPrev = serie.map(x => x.dia >= hoje && x.saldo_previsao !== undefined ? x.saldo_previsao : null)
     if (temFuturo && comPrev.some((v, i) => v !== null && Math.abs(v - (saldos[i] ?? v)) > 1)) datasets.push({
         label: 'Com previsões pela média', data: comPrev,
@@ -853,7 +974,8 @@ function graficoSaldoCx(d) {
                         const x = serie[itens[0].dataIndex]
                         if (!x) return ''
                         const m = movDiaCx(x, hoje)
-                        return [`Entrou: ${dinheiroTexto(m.e)}`, `Saiu: ${dinheiroTexto(m.s)}`]
+                        return [`Entrou: ${dinheiroTexto(m.e)}`, `Saiu: ${dinheiroTexto(m.s)}`,
+                            ...(x.investido ? [`Investido (incluso no saldo): ${dinheiroTexto(x.investido)}`] : [])]
                     }
                 }
             }
@@ -894,6 +1016,9 @@ async function planejamentoCx() {
                     <label class="fis-campo"><span>Horizonte do "livre para gastar"</span>
                         <select class="fis-input" name="horizonte_dias">${[7, 14, 30, 45, 60, 90].map(n => `<option value="${n}" ${p.horizonte_dias === n ? 'selected' : ''}>${n} dias</option>`).join('')}</select></label>
                 </div>
+                <label class="fis-check"><input type="checkbox" name="investimentos_no_caixa" ${p.investimentos_no_caixa !== false ? 'checked' : ''}>
+                    Contar os investimentos (CDB) como caixa disponível</label>
+                <small class="cx-plan-nota">Ligado: o saldo aplicado entra no "Temos caixa hoje?", no saldo dia a dia, no "livre para gastar" e na trava automática, porque dá para resgatar.</small>
                 <h4>Contas em atraso no saldo previsto</h4>
                 <div class="fis-grade">
                     <label class="fis-campo"><span>A pagar em atraso</span><select class="fis-input" name="atrasados_pagar">${opcoesAtraso(p.atrasados_pagar)}</select>
@@ -931,6 +1056,7 @@ async function salvarPlanejamentoCx(botao) {
         await apiFin('planejamento/salvar', {
             reserva_minima: Number(v('reserva_minima')) || 0, horizonte_dias: Number(v('horizonte_dias')),
             atrasados_pagar: v('atrasados_pagar'), atrasados_receber: v('atrasados_receber'),
+            investimentos_no_caixa: Boolean(f.querySelector('[name="investimentos_no_caixa"]')?.checked),
             trava: {
                 modo: f.querySelector('[name="trava_modo"]:checked')?.value || 'DESLIGADA', dias: Number(v('trava_dias')),
                 teto_semanal: Number(v('teto_semanal')) || 0, mensagem: v('trava_mensagem')
