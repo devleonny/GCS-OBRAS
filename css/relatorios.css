@@ -257,3 +257,7 @@ button.secundario:hover:not(:disabled) {
     background-color: #e3eee7;
     border-color: #4f6859;
 }
+
+/* Custos por Departamento no layout financeiro (26/11/2026): abas e situações na barra do topo, tabela na área branca. */
+.relatorio-departamentos .relatorio-dep-conteudo { padding: 8px 12px 12px; min-height: 0; }
+.relatorio-departamentos .relatorio-dep-barra { gap: 8px 12px; }

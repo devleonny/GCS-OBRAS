@@ -309,3 +309,64 @@
 .cx-inv-tabela { margin-top: 10px; }
 .cx-inv-tabela summary { cursor: pointer; font-size: 12px; color: var(--cx-tinta-2, #6b6a66); }
 .cx-inv-tabela table { margin-top: 6px; }
+
+/* ---------------- Fluxo de Caixa + (26/11/2026) ---------------- */
+/* "+" do nome: na tela e no menu (js/esquema_botoes.js, item com mais: true). */
+.cx-mais, .menu-mais {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 1.25em; height: 1.25em; padding: 0 0.2em; border-radius: 0.4em;
+    font-weight: 800; line-height: 1; vertical-align: 0.08em;
+    background: linear-gradient(135deg, #2f7d4f, #1f9e89); color: #fff;
+    box-shadow: 0 1px 4px rgba(31, 122, 58, 0.35);
+}
+.cx-mais { font-size: 0.9em; margin-left: 2px; }
+.menu-mais { font-size: 0.85em; margin-left: 3px; background: linear-gradient(135deg, #f2a600, #f47230); box-shadow: none; }
+
+/* Título de cada seção: separa Caixa / Saldo / Entre empresas / Daqui para frente / Distribuição / Setor / Estado. */
+.cx-secao {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
+    margin: 18px 0 0; padding: 0 0 6px; border-bottom: 2px solid #2f7d4f;
+    font-size: 17px; color: #2f6b45;
+}
+.cx-secao:first-of-type { margin-top: 4px; }
+.cx-secao small { font-size: 12.5px; font-weight: 400; color: var(--cx-tinta-2); }
+[data-cx-distribuicao] { display: flex; flex-direction: column; gap: 14px; }
+
+/* Rosca + lista (a lista é a legenda e a tabela). */
+.cx-rosca { display: grid; grid-template-columns: minmax(170px, 220px) 1fr; gap: 16px; align-items: center; }
+.cx-rosca-grafico { position: relative; height: 220px; }
+.cx-rosca-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cx-rosca-lista li { display: grid; grid-template-columns: 12px 1fr auto 52px; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; font-size: 13px; }
+.cx-rosca-lista li i, .cx-ponto { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.cx-ponto { margin-right: 6px; vertical-align: -1px; }
+.cx-rosca-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cx-rosca-nome small, .cx-rosca-lista li > small { color: var(--cx-tinta-3); font-size: 11.5px; }
+.cx-rosca-lista li > small { text-align: right; }
+.cx-clicavel { cursor: pointer; }
+.cx-clicavel:hover, .cx-clicavel:focus-visible { background: #eef5f0; outline: none; }
+@media (max-width: 640px) { .cx-rosca { grid-template-columns: 1fr; } }
+
+/* Sem setor definido: nome + botão para gravar o setor na ficha do RH. */
+.cx-sem-setor { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.cx-pessoa-setor { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 10px; border: 1px dashed #c9cfcb; border-radius: 8px; font-size: 13px; }
+.cx-pessoa-setor small { color: var(--cx-tinta-3); }
+
+/* Mapa reaproveitado do antigo Dashboard (mapaDash + css/dashboard_chamados.css) sem o layout de página do .dash. */
+.dash.cx-mapa { padding: 0; min-height: 0; gap: 8px; background: transparent; }
+.dash.cx-mapa .dash-mapa { max-height: 380px; }
+.cx-duas-mapa { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+
+/* Lote: rateio da linha (js/lote_salarios.js celulaRateioSal). Cor = de onde veio; o rótulo diz em texto. */
+.cx-rateio-chip {
+    display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0; max-width: 190px;
+    padding: 3px 8px; border: 1px solid #d6ddd9; border-left-width: 4px; border-radius: 6px;
+    background: #fff; color: var(--cx-tinta, #1f2a24); font-size: 12px; line-height: 1.25; text-align: left; cursor: pointer;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cx-rateio-chip small { font-size: 10.5px; color: #6b7a72; text-transform: uppercase; letter-spacing: 0.02em; }
+.cx-rateio-chip:hover { background: #f1f6f3; }
+.cx-rateio-auto { border-left-color: #257de0; }
+.cx-rateio-fixo { border-left-color: #00b894; }
+.cx-rateio-manual { border-left-color: #f2a600; }
+.cx-rateio-nenhum { border-left-color: #c9cfcb; color: #8a8984; }
+.cx-rateio-explica { max-width: 560px; font-size: 13px; line-height: 1.4; }

@@ -1,6 +1,7 @@
 // Painel de Custos: os números vêm de /painel-custos, a mesma fonte do relatório de custos
 // (pagamentos válidos + PESSOAL). Todos veem o pessoal como valor geral; adm/diretoria/fin
-// veem também o detalhe mensal e o atalho para a tela Custos de Pessoal.
+// veem também o detalhe mensal. Desde 26/11/2026 o pessoal entra pelo rateio das faturas dos lotes (tela Custos de
+// Pessoal removida); set/out de 2026 seguem pelo rateio antigo (custos_pessoal_rateio, congelada).
 const dadosPainelCustos = new Map()
 
 async function buscarPainelCustos(contrato) {
@@ -20,11 +21,6 @@ async function buscarPainelCustos(contrato) {
 function mesCurtoPainel(mes) {
     const [ano, numero] = String(mes).split('-').map(Number)
     return new Date(ano, numero - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '')
-}
-
-function abrirCustosPessoalDoPainel() {
-    removerTodosPopups()
-    telaCustosPessoal()
 }
 
 // Acima de 40% do orçamento o custo fica em alerta; acima de 100%, estourado.
@@ -70,8 +66,7 @@ async function painelCustos(contrato) {
         // Detalhe do pessoal só chega do servidor para adm/diretoria/fin.
         const detalhePessoal = Array.isArray(pessoal_por_mes)
             ? `
-                ${pessoal_por_mes.length ? `<div class="pc-meses">${pessoal_por_mes.map(p => `<span>${mesCurtoPainel(p.mes)} <b>${dinheiro(p.valor)}</b></span>`).join('')}</div>` : ''}
-                <button type="button" class="pc-link" onclick="abrirCustosPessoalDoPainel()">Ver Custos de Pessoal →</button>`
+                ${pessoal_por_mes.length ? `<div class="pc-meses">${pessoal_por_mes.map(p => `<span>${mesCurtoPainel(p.mes)} <b>${dinheiro(p.valor)}</b></span>`).join('')}</div>` : ''}`
             : ''
 
         const local = [cliente, cidade].filter(Boolean).map(v => escaparAtributo(v)).join(' · ')

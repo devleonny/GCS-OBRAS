@@ -77,17 +77,18 @@ function iconeSilhuetaMenu(chave) {
     return `<svg class="icone-menu" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">${icones[chave]}</svg>`
 }
 
-function criarAtalhoMenu({ nome, img, gif, especial }, nivel) {
+// mais: "+" em destaque depois do nome (tela com mais coisas, ex.: Fluxo de Caixa +). svg: ícone imagens/<svg>.svg.
+function criarAtalhoMenu({ nome, img, gif, svg, especial, mais }, nivel) {
 
     const imagem = gif
         ? `gifs/${gif}.gif`
-        : `imagens/${img}.png`
+        : svg ? `imagens/${svg}.svg` : `imagens/${img}.png`
 
     return `
     <div class="botao-lateral nivel-${nivel}"
         style="margin-left:${nivel * 12}px">
         <img src="${imagem}" alt="">
-            <div>${nome}</div>
+            <div>${nome}${mais ? ' <b class="menu-mais" title="Fluxo de caixa e mais: distribuição dos custos, pessoal por setor e mapa">+</b>' : ''}</div>
             ${especial ? '<span class="menu-etiqueta-especial">especial</span>' : ''}
     </div>
     `
@@ -302,7 +303,7 @@ const esquemaBotoes = {
             img: 'dinheiro',
             sub: [
                 { nome: 'Conciliação Bancária', funcao: 'telaConciliacaoFin', acesso: 'financeiro.conciliacao', img: 'conciliacao' },
-                { nome: 'Fluxo de Caixa', funcao: 'telaFluxoCaixa', acesso: 'financeiro.fluxo_caixa', img: 'dashboard' },
+                { nome: 'Fluxo de Caixa', mais: true, funcao: 'telaFluxoCaixa', acesso: 'financeiro.fluxo_caixa', img: 'dashboard' },
                 { nome: 'Faturas a Pagar', funcao: 'telaFaturasPagar', acesso: 'financeiro.faturas_pagar', img: 'pagar' },
                 { nome: 'Faturas a Receber', funcao: 'telaFaturasReceber', acesso: 'financeiro.faturas_receber', img: 'receber' },
                 { nome: 'Controle de Faturamento', funcao: 'abrirControleFaturamento', acesso: 'financeiro.controle_faturamento', img: 'dashboard' },
@@ -312,10 +313,9 @@ const esquemaBotoes = {
                 { nome: 'Faturas do Cartão', funcao: 'abrirFaturasCartaoFin', acesso: 'financeiro.cartoes', img: 'cartao' },
                 { nome: 'Contas Correntes', funcao: 'telaContasFin', acesso: 'financeiro.contas', img: 'banco' },
                 { nome: 'Categorias', funcao: 'telaCategoriasFin', acesso: 'financeiro.categorias', img: 'prancheta' },
-                { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', acesso: 'financeiro.dashboard', img: 'dashboard' },
-                // Relatórios (antes num menu próprio, com as mesmas permissões).
-                { nome: 'Custos por Departamento', funcao: 'telaCustosDepartamentos', acesso: 'financeiro.custos_departamento', img: 'dashboard' },
-                { nome: 'Custos de Pessoal', funcao: 'telaCustosPessoal', acesso: 'financeiro.custos_pessoal', img: 'dashboard' }
+                // Relatórios (antes num menu próprio, com as mesmas permissões). O Dashboard (que veio de Reembolsos) e os
+                // Custos de Pessoal saíram em 26/11/2026: os gráficos estão no Fluxo de Caixa + e o rateio de pessoal nos lotes.
+                { nome: 'Custos por Departamento', funcao: 'telaCustosDepartamentos', acesso: 'financeiro.custos_departamento', svg: 'custos_departamentos' }
             ]
         },
         {

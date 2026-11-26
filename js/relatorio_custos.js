@@ -91,28 +91,77 @@ async function telaCustosDepartamentos() {
     relatorioCustosDep.situacao = ''
     relatorioCustosDep.responsavel = ''
 
+    if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
+
+    // Layout financeiro (26/11/2026): tela branca, título verde, abas e filtros rápidos na barra do topo
+    // (toggle .fluxo-chave-empresa) e a paginação no rodapé, como nas Faturas.
     tela.innerHTML = `
-        <div class="pagina-conteudo relatorio-departamentos">
-            <div class="cabecalho-pagina"><h2>Custos por Departamento</h2></div>
-            <div class="relatorio-dep-conteudo"></div>
+        <div class="fis-pagina fin-tela relatorio-departamentos">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Custos por Departamento</h2>
+                    <div class="fin-barra relatorio-dep-barra" data-barra-custos-dep></div>
+                </header>
+                <div class="fin-tabela-area relatorio-dep-conteudo"></div>
+            </section>
         </div>
     `
 
     await abrirAbaCustosDep('departamentos')
 }
 
-// Abas + filtros rápidos, dentro da barra verde da tabela (mesmo padrão das outras telas).
+// Abas + filtros rápidos na barra do topo (layout financeiro).
 function barraCustosDep(chaveAtiva) {
+    const alvo = document.querySelector('[data-barra-custos-dep]')
+    if (!alvo) return
     const abas = Object.entries(ABAS_CUSTOS_DEP)
         .map(([chave, aba]) => `
-            <button type="button" class="${chave === chaveAtiva ? 'ativa' : ''}" aria-selected="${chave === chaveAtiva}"
+            <button type="button" role="tab" class="${chave === chaveAtiva ? 'ativo' : ''}" aria-selected="${chave === chaveAtiva}"
                 onclick="abrirAbaCustosDep('${chave}')">${aba.titulo}</button>`)
         .join('')
-    return `
-        <div class="relatorio-dep-barra">
-            <nav class="relatorio-dep-abas" role="tablist">${abas}</nav>
-            ${ABAS_CUSTOS_DEP[chaveAtiva].filtrosRapidos ? '<div class="relatorio-dep-filtros"></div>' : ''}
+    alvo.innerHTML = `
+        <div class="fluxo-chave-empresa" role="tablist" aria-label="Agrupar">${abas}</div>
+        ${ABAS_CUSTOS_DEP[chaveAtiva].filtrosRapidos ? '<div class="relatorio-dep-filtros"></div>' : ''}`
+}
+
+// Depois de cada página: contadores dos filtros rápidos e o rodapé "1 - 50 de N · página".
+async function aposCarregarCustosDep() {
+    desenharRodapeCustosDep()
+    if (ABAS_CUSTOS_DEP[relatorioCustosDep.aba]?.filtrosRapidos) await contarSituacoesCustosDep()
+}
+
+function desenharRodapeCustosDep() {
+    const pag = ABAS_CUSTOS_DEP[relatorioCustosDep.aba]?.pag
+    const alvo = document.querySelector('[data-rodape-custos-dep]')
+    const ctrl = controles[pag]
+    if (!alvo || !ctrl) return
+    const porPagina = Number(ctrl.limite) || 50
+    const total = Number(document.getElementById(`resultados_${pag}`)?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const inicio = total ? (pagina - 1) * porPagina + 1 : 0
+    const fim = Math.min(total, pagina * porPagina)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaCustosDep(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} registro${total === 1 ? '' : 's'}</span>${typeof filtrosAtivosRodapeCab === 'function' ? filtrosAtivosRodapeCab(pag) : ''}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaCustosDep(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
         </div>`
+}
+
+async function irPaginaCustosDep(n) {
+    const ctrl = controles[ABAS_CUSTOS_DEP[relatorioCustosDep.aba]?.pag]
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeCustosDep()
+    ctrl.pagina = pagina
+    await paginacao(ctrl.pag)
 }
 
 async function abrirAbaCustosDep(chave) {
@@ -129,12 +178,14 @@ async function abrirAbaCustosDep(chave) {
         if (!conteudo) return
 
         const { titulo, filtrosRapidos, ...config } = aba
+        barraCustosDep(chave)
         conteudo.innerHTML = await modTab({
             ...config,
-            topoEmLinha: true,
-            btnExtras: barraCustosDep(chave),
-            ...(filtrosRapidos ? { filtrosFixos: filtrosRapidosCustosDep(), funcaoAdicional: ['contarSituacoesCustosDep'] } : {})
+            caber: true,
+            funcaoAdicional: ['aposCarregarCustosDep'],
+            ...(filtrosRapidos ? { filtrosFixos: filtrosRapidosCustosDep() } : {})
         })
+        conteudo.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-custos-dep></div>')
 
         if (filtrosRapidos) renderizarFiltrosCustosDep()
 
@@ -164,19 +215,21 @@ function renderizarFiltrosCustosDep(contagem = null) {
     const div = document.querySelector('.relatorio-dep-filtros')
     if (!div) return
 
+    // Toggle do layout financeiro: a contagem fica na dica (title), não no botão.
     const quantidade = chave => {
         if (!contagem) return ''
         const n = chave === '' ? contagem.todos
             : chave === 'acima' ? (contagem.acima || 0) + (contagem.estourado || 0)
             : contagem[chave] || 0
-        return `<b>${Number(n || 0).toLocaleString('pt-BR')}</b>`
+        return `${Number(n || 0).toLocaleString('pt-BR')} departamento(s)`
     }
 
     const { situacao, responsavel } = relatorioCustosDep
     div.innerHTML = `
-        ${SITUACOES_CUSTOS_DEP.map(s => `
-            <button type="button" class="relatorio-dep-chip relatorio-dep-chip--${s.chave || 'todos'}${situacao === s.chave ? ' ativo' : ''}"
-                onclick="filtrarSituacaoCustosDep('${s.chave}')">${s.titulo} ${quantidade(s.chave)}</button>`).join('')}
+        <div class="fluxo-chave-empresa" role="group" aria-label="Situação do custo">${SITUACOES_CUSTOS_DEP.map(s => `
+            <button type="button" class="${situacao === s.chave ? 'ativo' : ''}" title="${quantidade(s.chave)}"
+                onclick="filtrarSituacaoCustosDep('${s.chave}')">${s.titulo}</button>`).join('')}
+        </div>
         ${responsavel ? `
             <span class="relatorio-dep-responsavel">Responsável: <b>${escaparAtributo(responsavel)}</b>
                 <button type="button" title="Tirar filtro" aria-label="Tirar filtro de responsável" onclick="filtrarResponsavelCustosDep('')">✕</button>

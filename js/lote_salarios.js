@@ -10,7 +10,7 @@
 
 const estadoLoteSal = {
     tipo: 'SALARIOS', id: null, versao: null, situacao: 'RASCUNHO', emEdicao: false, titulo: '', competencia: '', cabecalho: {}, itens: [],
-    faturas: {}, base: new Map(), op: null, categoriaSalario: null, filtro: '',
+    faturas: {}, base: new Map(), op: null, categoriaSalario: null, filtro: '', rateios: { competencia: null, automaticos: {}, fixos: {} },
     timer: null, salvando: null, pendente: false, erro: null, salvoEm: null, observador: null
 }
 const SITUACAO_LOTE_SAL = { RASCUNHO: 'Rascunho', LANCADO: 'Lançado' }
@@ -130,7 +130,7 @@ function linhaDaPessoaSal(p, cab) {
         chave: novaChaveSal(), incluir: diariaSal() || valor > 0, cliente_id: p.cliente_id, nome: p.nome, documento: p.documento || '',
         valor_dia: null, dias: null,
         app: p.ultimo_app || cab.app, conta_id: p.ultima_conta || null, categoria_id: estadoLoteSal.categoriaSalario,
-        valor, vencimento: null, departamento: p.ultimo_departamento || null, forma_pagamento: p.ultima_forma || cab.forma_pagamento || null,
+        valor, vencimento: null, departamento: null, rateio_modo: null, rateio: [], forma_pagamento: p.ultima_forma || cab.forma_pagamento || null,
         chave_pix: p.chave_pix || null, observacao: null
     }
 }
@@ -219,6 +219,7 @@ async function abrirLoteSalarios(id = null, copiarDe = null) {
         })
         estadoLoteSal.observador.observe(document.body, { childList: true, subtree: true })
         desenharLoteSal()
+        carregarRateiosLoteSal()
         // Lote novo já nasce guardado.
         if (!estadoLoteSal.id || estadoLoteSal.pendente) agendarSalvarLoteSal(0)
     } catch (err) {
@@ -269,17 +270,17 @@ function desenharLoteSal() {
             ${diariaSal()
             ? `<button type="button" class="fis-mini" title="Nas linhas marcadas, apaga o valor diário e os dias próprios: voltam aos do lote" onclick="voltarAoLoteSal()">Todos com o valor e os dias do lote</button>`
             : `<button type="button" class="fis-mini" title="Nas linhas marcadas, valor = último valor lançado para a pessoa" onclick="valoresLoteSal('ultimo')">Valor = último pago</button>`}
+            <button type="button" class="fis-mini" title="Nas linhas marcadas, tira o rateio feito à mão: volta ao fixo da pessoa ou ao automático pelos chamados de ${escFin(mesSal(e.competencia))}" onclick="rateioAutomaticoLoteSal()">Rateio automático</button>
             <div class="fin-escolha cx-lote-busca">
                 <input class="fis-input" placeholder="+ Adicionar pessoa (nome ou CPF)…" autocomplete="off" oninput="buscarPessoaLoteSal(this)" onblur="setTimeout(() => { const l = this.nextElementSibling; if (l) l.hidden = true }, 200)">
                 <div class="fin-escolha-lista" hidden></div>
             </div>
         </div>
-        <datalist id="lote-sal-deps">${(op.departamentos || []).map(d => `<option value="${escFin(d.id)}">${escFin(d.cliente || (d.tipo === 'SETOR' ? 'setor' : ''))}</option>`).join('')}</datalist>
         <div class="fis-tabela-rolagem cx-lote-rolagem">
             <table class="fis-tabela cx-lote-tabela">
                 <thead><tr>
                     <th></th><th>Pessoa</th>${tipoSal().rh ? '<th class="fis-num">Salário RH</th>' : ''}<th class="fis-num">Último pago</th>${diariaSal() ? '<th class="fis-num">Valor diário</th><th class="fis-num">Dias</th>' : ''}<th class="fis-num">Valor</th>
-                    <th>Empresa</th><th>Categoria</th><th>Departamento</th><th>Vencimento</th><th>Fatura</th><th></th>
+                    <th>Empresa</th><th>Categoria</th><th>Rateio</th><th>Vencimento</th><th>Fatura</th><th></th>
                 </tr></thead>
                 <tbody data-linhas-lote>${e.itens.map(linhaLoteSal).join('')}</tbody>
             </table>
@@ -307,7 +308,7 @@ function linhaLoteSal(i) {
             <td class="fis-num"><input class="fis-input fis-num" type="number" min="0" step="0.01" name="valor" value="${Number(i.valor) || ''}" ${trava} ${calculadaSal(i) ? 'readonly title="Valor diário × dias"' : ''} oninput="editarLinhaLoteSal(this)"></td>
             <td><select class="fis-input" name="app" ${trava} onchange="editarLinhaLoteSal(this)">${(e.op.empresas || []).filter(x => x.tipo !== 'SOCIO').map(x => `<option value="${escFin(x.app)}" ${x.app === i.app ? 'selected' : ''}>${escFin(x.app)}</option>`).join('')}</select></td>
             <td><select class="fis-input cx-lote-cat" name="categoria_id" ${trava} onchange="editarLinhaLoteSal(this)">${opcoesCategoriasFin(e.op.categorias || [], 'PAGAR', i.categoria_id)}</select></td>
-            <td><input class="fis-input" name="departamento" list="lote-sal-deps" value="${escFin(i.departamento || '')}" placeholder="sem" onchange="editarLinhaLoteSal(this)"></td>
+            <td data-rateio-celula>${celulaRateioSal(i)}</td>
             <td><input class="fis-input" type="date" name="vencimento" value="${escFin(i.vencimento || '')}" title="Em branco: o vencimento do lote" ${trava} onchange="editarLinhaLoteSal(this)"></td>
             <td>${f ? `<span class="fis-link" onclick="abrirFaturaFin('${escFin(f.id)}')">${escFin(situacaoTextoSal(f))}</span>` : '<small>—</small>'}</td>
             <td class="cx-lote-acoes">
@@ -407,6 +408,8 @@ function editarCabLoteSal(input) {
     else if (input.name === 'competencia') {
         const antes = e.competencia
         e.competencia = v
+        // Rateio automático é pelos chamados do mês da competência.
+        if (v) carregarRateiosLoteSal()
         // Vencimento ainda o sugerido do mês anterior: acompanha a competência.
         if (v && e.cabecalho.vencimento === quintoDiaUtilSal(antes || v)) {
             e.cabecalho.vencimento = quintoDiaUtilSal(v)
@@ -550,6 +553,7 @@ function adicionarPessoaLoteSal(p, botao) {
     caixa.querySelector('input').value = ''
     caixa.querySelector('.fin-escolha-lista').hidden = true
     desenharLoteSal()
+    carregarRateiosLoteSal()
     agendarSalvarLoteSal()
     document.querySelector(`[data-chave="${CSS.escape(linha.chave)}"] [name="valor"]`)?.focus()
 }
@@ -699,4 +703,149 @@ async function excluirLoteSal() {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
     }
+}
+
+// ---------------- rateio por departamento (26/11/2026; gcs SCRIPTS/financeiro_rateio_pessoal.js)
+// Cada linha vai para a fatura com um rateio, nesta ordem (a mesma do servidor):
+//   Manual    feito só nesta linha (rateio_modo MANUAL; linha antiga com "departamento" conta como manual);
+//   Fixo      memorizado para a pessoa (escritório): vale para todos os lotes dela e os lançados acompanham;
+//   Automático pelos chamados: dias de cada técnico em cada chamado no mês da competência (pagamento de
+//             dezembro = trabalhado em novembro). Chamado sem ORC vai para o setor da pessoa no RH.
+//   Sem rateio sem chamado no mês e sem fixo (nada é obrigatório).
+// Lote lançado: o servidor atualiza o rateio das faturas Automático/Fixo a cada 30 min, conforme as correções mudam.
+
+const ROTULO_RATEIO_SAL = { MANUAL: 'Manual', FIXO: 'Fixo', AUTO: 'Automático', NENHUM: 'Sem rateio' }
+
+async function carregarRateiosLoteSal() {
+    const e = estadoLoteSal
+    const ids = [...new Set(e.itens.map(i => String(i.cliente_id || '')).filter(Boolean))]
+    if (!e.competencia || !ids.length) return
+    const competencia = e.competencia
+    try {
+        const r = await apiFin('salarios/rateios', { tipo: e.tipo, competencia, cliente_ids: ids })
+        if (estadoLoteSal.competencia !== competencia) return
+        e.rateios = { competencia, automaticos: r.automaticos || {}, fixos: r.fixos || {} }
+        redesenharRateiosLoteSal()
+    } catch (err) {
+        console.error('[lote] rateios', err)
+    }
+}
+
+function redesenharRateiosLoteSal() {
+    document.querySelectorAll('[data-linhas-lote] tr[data-chave]').forEach(tr => {
+        const i = itemSal(tr.dataset.chave)
+        const td = tr.querySelector('[data-rateio-celula]')
+        if (i && td) td.innerHTML = celulaRateioSal(i)
+    })
+}
+
+const listaRateioSal = v => (Array.isArray(v) ? v : []).filter(x => x && x.departamento).map(x => ({ departamento: x.departamento, percentual: Number(x.percentual) || 0 }))
+
+function rateioLinhaSal(i) {
+    if (i.rateio_modo === 'MANUAL') return { origem: 'MANUAL', rateio: listaRateioSal(i.rateio) }
+    if (!i.rateio_modo && i.departamento) return { origem: 'MANUAL', rateio: [{ departamento: i.departamento, percentual: 100 }] }
+    const id = String(i.cliente_id || '')
+    const fixo = estadoLoteSal.rateios.fixos[id]
+    if (fixo && listaRateioSal(fixo.rateio).length) return { origem: 'FIXO', rateio: listaRateioSal(fixo.rateio) }
+    const auto = estadoLoteSal.rateios.automaticos[id]
+    if (auto?.rateio?.length) return { origem: 'AUTO', rateio: auto.rateio, auto }
+    return { origem: 'NENHUM', rateio: [] }
+}
+
+function celulaRateioSal(i) {
+    const r = rateioLinhaSal(i)
+    const pct = v => Number(v).toLocaleString('pt-BR')
+    const resumo = !r.rateio.length ? '—'
+        : r.rateio.length === 1 ? r.rateio[0].departamento
+            : `${r.rateio[0].departamento} ${pct(r.rateio[0].percentual)}% + ${r.rateio.length - 1}`
+    const dica = r.rateio.map(x => `${x.departamento}: ${pct(x.percentual)}%`).join('\n') || 'Sem rateio: a fatura fica sem departamento'
+    return `<button type="button" class="cx-rateio-chip cx-rateio-${r.origem.toLowerCase()}" title="${escFin(`${ROTULO_RATEIO_SAL[r.origem]}\n${dica}\nClique para ver ou mudar`)}"
+        onclick="abrirRateioLoteSal('${escFin(i.chave)}')"><small>${ROTULO_RATEIO_SAL[r.origem]}</small>${escFin(resumo)}</button>`
+}
+
+function abrirRateioLoteSal(chave) {
+    const i = itemSal(chave)
+    if (!i) return
+    const e = estadoLoteSal
+    const r = rateioLinhaSal(i)
+    const id = String(i.cliente_id || '')
+    const fixo = e.rateios.fixos[id]
+    const auto = e.rateios.automaticos[id]
+    const n = v => Number(v || 0).toLocaleString('pt-BR')
+    const explica = {
+        MANUAL: 'Feito à mão só nesta linha.',
+        FIXO: `Fixo da pessoa${fixo?.atualizado_por ? ` (por ${fixo.atualizado_por})` : ''}: vale para todos os lotes dela.`,
+        AUTO: `Pelos chamados de ${mesSal(e.competencia)}: ${n(auto?.dias)} dia(s) útil(eis) em ${auto?.chamados || 0} departamento(s)${auto?.sem_orc ? `; ${n(auto.sem_orc)} dia(s) em chamado sem ORC foram para ${auto.setor_sem_orc}` : ''}. Atualiza sozinho conforme as correções.`,
+        NENHUM: `Sem chamado em ${mesSal(e.competencia)} e sem rateio fixo: a fatura fica sem departamento.`
+    }[r.origem]
+    popup({
+        titulo: `Rateio · ${i.nome || 'linha'}`,
+        linhas: [
+            { elemento: `<div class="cx-rateio-explica"><b>${ROTULO_RATEIO_SAL[r.origem]}</b> — ${escFin(explica)}${pagaSal(i) ? '<br><small>Fatura já paga: só o rateio muda.</small>' : ''}</div>` },
+            { elemento: `<div data-rateio-lote>${editorRateioFin(e.op.departamentos || [], r.rateio, { total: Number(i.valor) || 0 })}</div>` },
+            { elemento: '<small>"Só nesta linha" vale para este lote. "Memorizar para a pessoa" vale para todos os lotes dela (gente do escritório) e os já lançados acompanham.</small>' }
+        ],
+        botoes: [
+            { texto: 'Só nesta linha', img: 'concluido', funcao: `salvarRateioLoteSal(this, '${escFin(chave)}', 'MANUAL')` },
+            ...(id ? [{ texto: 'Memorizar para a pessoa', img: 'salvo', funcao: `salvarRateioLoteSal(this, '${escFin(chave)}', 'FIXO')` }] : []),
+            ...(r.origem === 'MANUAL' ? [{ texto: 'Voltar ao automático', img: 'atualizar', funcao: `salvarRateioLoteSal(this, '${escFin(chave)}', 'AUTO')` }] : []),
+            ...(fixo ? [{ texto: 'Esquecer o fixo', img: 'cancel', funcao: `salvarRateioLoteSal(this, '${escFin(chave)}', 'ESQUECER')` }] : [])
+        ]
+    })
+    const bloco = document.querySelector('[data-rateio-lote] [data-rateio]')
+    if (bloco && typeof somarRateioFin === 'function') somarRateioFin(bloco)
+}
+
+async function salvarRateioLoteSal(botao, chave, modo) {
+    const i = itemSal(chave)
+    const janela = botao.closest('.popup')
+    if (!i) return removerPopup(janela?.id)
+    const e = estadoLoteSal
+    const id = String(i.cliente_id || '')
+    let rateio = []
+    if (modo === 'MANUAL' || modo === 'FIXO') {
+        rateio = lerRateioFin(janela.querySelector('[data-rateio-lote]'))
+        const soma = rateio.reduce((s, x) => s + Number(x.percentual), 0)
+        if (rateio.length > 1 && Math.abs(soma - 100) > 0.01)
+            return popup({ mensagem: `O rateio soma ${soma.toLocaleString('pt-BR')}%: tem que dar 100%.` })
+        if (rateio.length === 1) rateio[0].percentual = 100
+        if (modo === 'FIXO' && !rateio.length) return popup({ mensagem: 'Escolha ao menos um departamento para memorizar.' })
+    }
+    try {
+        if (modo === 'FIXO' || modo === 'ESQUECER') {
+            overlayAguarde()
+            const r = await apiFin('salarios/rateio-fixo', { tipo: e.tipo, cliente_id: id, rateio: modo === 'FIXO' ? rateio : [] })
+            if (modo === 'FIXO') e.rateios.fixos[id] = { rateio: r.rateio, atualizado_por: acesso?.usuario || null }
+            else delete e.rateios.fixos[id]
+            removerOverlay()
+            // Fixo vale para a pessoa: as linhas dela neste lote seguem o fixo (sai o manual).
+            e.itens.filter(x => String(x.cliente_id || '') === id).forEach(x => Object.assign(x, { rateio_modo: null, rateio: [], departamento: null }))
+        } else if (modo === 'MANUAL') {
+            Object.assign(i, { rateio_modo: 'MANUAL', rateio, departamento: null })
+        } else {
+            Object.assign(i, { rateio_modo: 'AUTO', rateio: [], departamento: null })
+        }
+    } catch (err) {
+        removerOverlay()
+        return popup({ mensagem: mensagemErroEst(err) })
+    }
+    removerPopup(janela?.id)
+    redesenharRateiosLoteSal()
+    agendarSalvarLoteSal()
+}
+
+// Barra do lote: tira o manual das linhas marcadas (voltam ao fixo da pessoa ou ao automático).
+async function rateioAutomaticoLoteSal() {
+    const manuais = estadoLoteSal.itens.filter(i => i.incluir && rateioLinhaSal(i).origem === 'MANUAL')
+    if (manuais.length && !await confirmarPopup({
+        titulo: 'Rateio automático',
+        mensagem: `${manuais.length} linha(s) marcada(s) têm rateio feito à mão. Elas voltam ao fixo da pessoa ou ao automático pelos chamados de ${mesSal(estadoLoteSal.competencia)}.`,
+        textoConfirmar: 'Usar o automático'
+    })) return
+    manuais.forEach(i => Object.assign(i, { rateio_modo: 'AUTO', rateio: [], departamento: null }))
+    await carregarRateiosLoteSal()
+    redesenharRateiosLoteSal()
+    agendarSalvarLoteSal()
+    const r = estadoLoteSal.itens.filter(i => i.incluir).map(rateioLinhaSal)
+    popup({ mensagem: `Rateio: ${r.filter(x => x.origem === 'AUTO').length} pelos chamados, ${r.filter(x => x.origem === 'FIXO').length} fixo(s), ${r.filter(x => x.origem === 'MANUAL').length} à mão, ${r.filter(x => x.origem === 'NENHUM').length} sem rateio (sem chamado no mês).` })
 }

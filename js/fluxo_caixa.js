@@ -80,8 +80,8 @@ async function telaFluxoCaixa() {
             <header class="cx-topo">
                 <div class="cx-topo-titulo">
                     <div>
-                        <h2>Fluxo de Caixa</h2>
-                        <small>Temos caixa? Tivemos? Vamos ter? Escolha as empresas e o período.</small>
+                        <h2>Fluxo de Caixa <span class="cx-mais" title="Fluxo de caixa e mais: distribuição dos custos, pessoal por setor e mapa">+</span></h2>
+                        <small>Temos caixa? Tivemos? Vamos ter? E para onde vai o dinheiro. Escolha as empresas e o período.</small>
                     </div>
                     <div class="cx-acoes" data-cx-acoes></div>
                 </div>
@@ -213,6 +213,7 @@ function desenharFluxoCaixa() {
     corpo.innerHTML = `
         ${avisosCx(d)}
         <div class="cx-faixa-periodo"><b>${escFin(nomePeriodo)}</b> · ${escFin(quem)}</div>
+        ${secaoCx('Caixa', 'Temos, tivemos e teremos dinheiro em conta?')}
         <section class="cx-respostas" aria-label="Respostas rápidas">
             ${respostaCx({
                 titulo: 'Temos caixa hoje?', valor: semSaldo ? null : d.saldo_hoje,
@@ -246,6 +247,7 @@ function desenharFluxoCaixa() {
 
         ${blocoInvestimentosCx(d, semSaldo)}
 
+        ${secaoCx('Saldo e movimento', 'Dia a dia, mês a mês e semana a semana no período escolhido.')}
         <section class="cx-bloco">
             <div class="cx-bloco-topo">
                 <h3>Saldo dia a dia</h3>
@@ -266,13 +268,15 @@ function desenharFluxoCaixa() {
             ${tabelaSemanasCx(semanas, k.reserva)}
         </section>` : ''}
 
+        ${secaoCx('Entre empresas', 'Uma empresa do grupo bancando a outra.')}
         <section class="cx-bloco" data-cx-entre>
-            <div class="cx-bloco-topo"><h3>Entre empresas</h3><small>Dinheiro de uma empresa usado pela outra: conta paga pela conta da outra, recebimento que caiu na conta da outra e transferências entre elas (pelo extrato). Clique numa linha para ver um por um.</small></div>
+            <div class="cx-bloco-topo"><h3>Quem bancou quem</h3><small>Dinheiro de uma empresa usado pela outra: conta paga pela conta da outra, recebimento que caiu na conta da outra e transferências entre elas (pelo extrato). Clique numa linha para ver um por um.</small></div>
             <div data-cx-entre-corpo><div class="cx-carregando">Calculando…</div></div>
         </section>
 
+        ${secaoCx('Daqui para frente', 'Sempre a partir de hoje: quanto dá para gastar, o que vence e o que está atrasado.')}
         <section class="cx-bloco cx-daqui">
-            <div class="cx-bloco-topo"><h3>Daqui para frente</h3><small>Sempre a partir de hoje, para planejar (não muda com o período).</small></div>
+            <div class="cx-bloco-topo"><h3>Quanto dá para gastar</h3><small>Sempre a partir de hoje, para planejar (não muda com o período).</small></div>
             <div class="cx-respostas">
                 ${cartaoCx({
                     titulo: `Livre para gastar nos próximos ${k.horizonte} dias`, valor: d.tem_saldo ? k.livre : null, destaque: true,
@@ -328,6 +332,12 @@ function desenharFluxoCaixa() {
             </details>
         </section>
 
+        <div data-cx-distribuicao>
+            ${secaoCx('Distribuição dos custos', 'Faturas a pagar do período, pagas e em aberto, pelo vencimento, mais os reembolsos pedidos.')}
+            <div class="cx-carregando">Calculando a distribuição…</div>
+        </div>
+
+        ${secaoCx('Ajuda')}
         <section class="cx-bloco cx-explica">
             <details>
                 <summary><b>Como ler este painel</b></summary>
@@ -349,6 +359,7 @@ function desenharFluxoCaixa() {
     estadoCx.graficos.forEach(g => g?.destroy())
     estadoCx.graficos = [graficoSaldoCx(d), ...graficosInvestimentosCx(d)]
     carregarEntreEmpresasCx()
+    carregarDistribuicaoCx()
 }
 
 // ---------------- investimentos (26/11/2026; gcs migrations/financeiro-aplicacoes.sql, financeiro_fluxo.js → investimentos)
@@ -994,6 +1005,216 @@ function graficoSaldoCx(d) {
         }
     }
     return new Chart(canvas, { type: 'line', data: { labels: serie.map((_, i) => i), datasets }, options: opcoes, plugins: [linhaHojeCx(hojeIdx)] })
+}
+
+// ---------------- Fluxo de Caixa + (26/11/2026): seções com título e a distribuição dos custos
+// Dados: POST financeiro/fluxo/distribuicao { apps, de, ate } (gcs financeiro_fluxo.js → distribuicao), pelo mesmo
+// período e empresas do fluxo. Roscas pedidas pelo dono (categoria, departamento, setor): no máximo 7 fatias com
+// cor (paleta categórica do dataviz, ordem fixa) + "Outras" em cinza; a lista ao lado é a legenda e a tabela.
+// Setor = ficha do RH na hora da consulta: corrigir o setor (no RH ou aqui, em "Sem setor definido") muda o painel.
+// O mapa reaproveita o do antigo Dashboard do Financeiro (mapaDash, js/dashboard_chamados.js).
+
+const CATEGORICAS_CX = ['#257de0', '#f47230', '#00b894', '#f2a600', '#ee7fac', '#008a17', '#6a4ce2']
+const OUTRAS_CX = '#a8a6a0'
+// Cor do setor presa ao setor (não à posição): trocar empresa ou período não repinta.
+const ORDEM_SETORES_CX = ['PROJETOS', 'ASSISTÊNCIA TÉCNICA', 'FINANCEIRO', 'LOGÍSTICA', 'COMERCIAL', 'ADMINISTRATIVO', 'EMPRESA']
+const corSetorCx = nome => nome === 'Sem setor definido' ? OUTRAS_CX : CATEGORICAS_CX[ORDEM_SETORES_CX.indexOf(nome)] || OUTRAS_CX
+
+const secaoCx = (titulo, sub = '') => `
+    <h2 class="cx-secao"><span>${escFin(titulo)}</span>${sub ? `<small>${escFin(sub)}</small>` : ''}</h2>`
+
+const pctCx = (v, total) => total ? `${(v / total * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : '—'
+
+// Até 7 fatias com nome + "Outras" com o resto (soma e quantos itens entraram nela).
+function fatiasCx(lista, { cor = null, max = 7 } = {}) {
+    const positivos = lista.filter(x => Number(x.valor) > 0)
+    const cabe = positivos.length <= max + 1 ? positivos : positivos.slice(0, max)
+    const resto = positivos.slice(cabe.length)
+    const fatias = cabe.map((x, i) => ({ ...x, cor: cor ? cor(x) : CATEGORICAS_CX[i] || OUTRAS_CX }))
+    if (resto.length) fatias.push({ nome: `Outras (${resto.length})`, valor: resto.reduce((s, x) => s + Number(x.valor), 0), cor: OUTRAS_CX, outras: true })
+    return fatias
+}
+
+let esperaDistribuicaoCx = 0
+async function carregarDistribuicaoCx() {
+    const alvo = document.querySelector('[data-cx-distribuicao]')
+    const d = estadoCx.dados
+    if (!alvo || !d) return
+    const pedido = ++esperaDistribuicaoCx
+    try {
+        const dist = await apiFin('fluxo/distribuicao', { apps: estadoCx.apps, de: d.periodo.de, ate: d.periodo.ate })
+        if (pedido !== esperaDistribuicaoCx || !document.body.contains(alvo)) return
+        estadoCx.dist = dist
+        desenharDistribuicaoCx()
+    } catch (err) {
+        if (pedido !== esperaDistribuicaoCx) return
+        alvo.innerHTML = `${secaoCx('Distribuição dos custos')}<div class="fis-vazio">Não deu para calcular a distribuição: ${mensagemErroEst(err)}
+            <button type="button" class="fis-mini" onclick="carregarDistribuicaoCx()">Tentar de novo</button></div>`
+    }
+}
+
+function desenharDistribuicaoCx() {
+    const alvo = document.querySelector('[data-cx-distribuicao]')
+    const x = estadoCx.dist
+    if (!alvo || !x) return
+    const cats = fatiasCx(x.categorias)
+    const deps = fatiasCx(x.departamentos)
+    const setores = fatiasCx(x.setores, { cor: s => corSetorCx(s.nome), max: 8 })
+    const totalSetores = x.setores.reduce((s, v) => s + Number(v.valor), 0)
+    const semSetor = x.pessoas.filter(p => p.setor === 'Sem setor definido')
+    const contratos = x.departamentos.filter(dp => dp.tipo === 'CONTRATO').slice(0, 12)
+    const vazio = !x.categorias.length
+    alvo.innerHTML = `
+        ${secaoCx('Distribuição dos custos', 'Faturas a pagar do período, pagas e em aberto, pelo vencimento, mais os reembolsos pedidos.')}
+        ${vazio ? '<div class="fis-vazio">Nenhuma fatura a pagar com vencimento no período.</div>' : `
+        <div class="cx-faixa-periodo">Total ${dinheiro(x.total)} · já pago ${dinheiro(x.pago)} · em aberto ${dinheiro(x.total - x.pago)}</div>
+        <div class="cx-duas">
+            <section class="cx-bloco">
+                <div class="cx-bloco-topo"><h3>Por categoria</h3><small>${x.categorias.length} categorias. Fatura com várias categorias entra pela parte de cada uma.</small></div>
+                ${roscaCx('categorias', cats, x.total)}
+            </section>
+            <section class="cx-bloco">
+                <div class="cx-bloco-topo"><h3>Por departamento</h3><small>${x.departamentos.length} departamentos, pelo rateio de cada fatura. Clique num ORC para abrir o painel de custos.</small></div>
+                ${roscaCx('departamentos', deps, x.total, true)}
+            </section>
+        </div>`}
+
+        ${secaoCx('Pessoal por setor', 'Salários, refeição e transporte das pessoas, pelo setor da ficha do RH.')}
+        ${!x.setores.length ? '<div class="fis-vazio">Nenhuma despesa com pessoal no período.</div>' : `
+        <div class="cx-duas">
+            <section class="cx-bloco">
+                <div class="cx-bloco-topo"><h3>Quanto cada setor custa</h3><small>Total ${dinheiro(totalSetores)} em despesas com pessoal (categorias 2.03).</small></div>
+                ${roscaCx('setores', setores, totalSetores)}
+            </section>
+            <section class="cx-bloco">
+                <div class="cx-bloco-topo"><h3>Setor × tipo de despesa</h3><small>Outros = férias, plano, adiantamento e o resto das despesas com pessoal.</small></div>
+                ${tabelaSetoresCx(x)}
+            </section>
+        </div>
+        ${semSetor.length ? `
+        <section class="cx-bloco">
+            <div class="cx-bloco-topo"><h3>Sem setor definido (${semSetor.length})</h3>
+                <small>Defina o setor aqui mesmo: grava na ficha do RH e o painel já se atualiza.</small></div>
+            <div class="cx-sem-setor">${semSetor.map(p => `
+                <span class="cx-pessoa-setor">${escFin(p.nome || 'Sem nome')}${p.valor != null ? ` <small>${dinheiro(p.valor)}</small>` : ''}
+                    ${p.cliente_id ? `<button type="button" class="fis-mini" onclick="definirSetorCx('${escFin(p.cliente_id)}', this)" data-nome="${escFin(p.nome || '')}">Definir setor</button>` : ''}</span>`).join('')}
+            </div>
+        </section>` : ''}
+        ${x.pessoas.some(p => p.valor != null && p.setor !== 'Sem setor definido') ? `
+        <section class="cx-bloco">
+            <details>
+                <summary><b>Pessoas por setor</b> — valores do período (só para quem abre o Lote de Salários)</summary>
+                ${tabelaPessoasCx(x.pessoas)}
+            </details>
+        </section>` : ''}`}
+
+        ${secaoCx('Custos por estado', 'Pelo estado do cliente do orçamento (ORC) de cada departamento.')}
+        <div class="cx-duas cx-duas-mapa">
+            <section class="cx-bloco">
+                <div class="cx-bloco-topo"><h3>Mapa</h3><small>${x.estados.length} estados${x.sem_estado ? ` · ${dinheiro(x.sem_estado)} sem estado (setores, sem departamento ou cliente sem UF)` : ''}.</small></div>
+                <div class="dash cx-mapa">${typeof mapaDash === 'function' ? mapaDash(x.estados, { formatar: curtoCx, descrever: v => dinheiroTexto(v) }) : ''}</div>
+            </section>
+            <section class="cx-bloco">
+                <div class="cx-bloco-topo"><h3>Orçamentos com mais custo no período</h3><small>Clique para abrir o painel de custos.</small></div>
+                ${contratos.length ? `
+                <div class="fis-tabela-rolagem"><table class="fis-tabela">
+                    <thead><tr><th>Departamento</th><th>Cliente</th><th>UF</th><th class="fis-num">Custo</th></tr></thead>
+                    <tbody>${contratos.map(c => `
+                        <tr class="cx-clicavel" tabindex="0" onclick="painelCustos('${escFin(c.nome)}')" onkeydown="if (event.key === 'Enter') painelCustos('${escFin(c.nome)}')">
+                            <td>${escFin(c.nome)}</td><td>${escFin(c.cliente || '—')}</td><td>${escFin(c.uf || '')}</td><td class="fis-num">${dinheiro(c.valor)}</td>
+                        </tr>`).join('')}</tbody>
+                </table></div>` : '<div class="fis-vazio">Nenhum custo ligado a orçamento no período.</div>'}
+            </section>
+        </div>`
+    if (typeof ligarTooltipsDash === 'function') ligarTooltipsDash(alvo)
+    estadoCx.roscas?.forEach(g => g?.destroy())
+    estadoCx.roscas = vazio ? [] : [
+        graficoRoscaCx('categorias', cats, x.total), graficoRoscaCx('departamentos', deps, x.total),
+        ...(x.setores.length ? [graficoRoscaCx('setores', setores, totalSetores)] : [])]
+}
+
+// Rosca + lista (legenda com valor e %: identidade nunca só pela cor).
+function roscaCx(chave, fatias, total, clicavel = false) {
+    return `
+        <div class="cx-rosca">
+            <div class="cx-rosca-grafico"><canvas data-cx-rosca="${chave}" role="img" aria-label="Divisão ${escFin(chave)}"></canvas></div>
+            <ul class="cx-rosca-lista">${fatias.map(f => {
+                const abre = clicavel && !f.outras && /^ORC_/.test(f.nome)
+                return `
+                <li${abre ? ` class="cx-clicavel" tabindex="0" onclick="painelCustos('${escFin(f.nome)}')" title="Abrir o painel de custos"` : ''}>
+                    <i style="background: ${f.cor}"></i>
+                    <span class="cx-rosca-nome">${escFin(f.nome)}${f.cliente ? ` <small>${escFin(f.cliente)}</small>` : ''}</span>
+                    <b>${dinheiro(f.valor)}</b><small>${pctCx(f.valor, total)}</small>
+                </li>`
+            }).join('')}</ul>
+        </div>`
+}
+
+function graficoRoscaCx(chave, fatias, total) {
+    const canvas = document.querySelector(`[data-cx-rosca="${chave}"]`)
+    if (!canvas || typeof Chart === 'undefined' || !fatias.length) return null
+    return new Chart(canvas, {
+        type: 'doughnut',
+        data: { labels: fatias.map(f => f.nome), datasets: [{ data: fatias.map(f => Number(f.valor)), backgroundColor: fatias.map(f => f.cor), borderColor: '#fff', borderWidth: 2, hoverOffset: 6 }] },
+        options: {
+            responsive: true, maintainAspectRatio: false, animation: false, cutout: '58%',
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: c => `${c.label}: ${dinheiroTexto(c.raw)} (${pctCx(c.raw, total)})` } }
+            }
+        }
+    })
+}
+
+function tabelaSetoresCx(x) {
+    const grupos = x.grupos_pessoal || ['Salários', 'Refeição', 'Transporte', 'Outros']
+    const soma = g => x.setores.reduce((s, v) => s + Number(v.grupos?.[g] || 0), 0)
+    return `
+        <div class="fis-tabela-rolagem"><table class="fis-tabela">
+            <thead><tr><th>Setor</th>${grupos.map(g => `<th class="fis-num">${escFin(g)}</th>`).join('')}<th class="fis-num">Total</th><th class="fis-num">Pessoas</th></tr></thead>
+            <tbody>${x.setores.map(s => `
+                <tr><td><i class="cx-ponto" style="background: ${corSetorCx(s.nome)}"></i>${escFin(s.nome)}</td>
+                    ${grupos.map(g => `<td class="fis-num">${s.grupos?.[g] ? dinheiro(s.grupos[g]) : '—'}</td>`).join('')}
+                    <td class="fis-num"><b>${dinheiro(s.valor)}</b></td><td class="fis-num">${s.pessoas}</td></tr>`).join('')}
+            </tbody>
+            <tfoot><tr><th>Total</th>${grupos.map(g => `<th class="fis-num">${dinheiro(soma(g))}</th>`).join('')}
+                <th class="fis-num">${dinheiro(x.setores.reduce((s, v) => s + Number(v.valor), 0))}</th><th></th></tr></tfoot>
+        </table></div>`
+}
+
+function tabelaPessoasCx(pessoas) {
+    return `
+        <div class="fis-tabela-rolagem"><table class="fis-tabela">
+            <thead><tr><th>Setor</th><th>Pessoa</th><th class="fis-num">Valor no período</th><th></th></tr></thead>
+            <tbody>${pessoas.map(p => `
+                <tr><td>${escFin(p.setor)}</td><td>${escFin(p.nome || '—')}</td><td class="fis-num">${dinheiro(p.valor || 0)}</td>
+                    <td>${p.cliente_id ? `<button type="button" class="fis-mini" onclick="definirSetorCx('${escFin(p.cliente_id)}', this)" data-nome="${escFin(p.nome || '')}" data-setor="${escFin(p.setor)}">Trocar setor</button>` : ''}</td></tr>`).join('')}
+            </tbody>
+        </table></div>`
+}
+
+// Setor da pessoa: grava na ficha do RH (rh_funcionarios.setor, como no Controle de Faturamento) e recalcula.
+function definirSetorCx(clienteId, botao) {
+    const atual = botao?.dataset.setor && botao.dataset.setor !== 'Sem setor definido' ? botao.dataset.setor : ''
+    const opcoes = typeof SETORES_PADRAO_RH !== 'undefined' ? SETORES_PADRAO_RH : ORDEM_SETORES_CX
+    popup({
+        titulo: 'Setor da pessoa',
+        linhas: [
+            { texto: 'Pessoa', elemento: `<b>${escFin(botao?.dataset.nome || '')}</b>` },
+            { texto: 'Setor', elemento: `<select name="setor"><option value="">— sem setor —</option>${opcoes.map(s => `<option value="${escFin(s)}" ${s === atual ? 'selected' : ''}>${escFin(s)}</option>`).join('')}</select>` },
+            { elemento: '<small>Grava na ficha do RH: vale para o Fluxo de Caixa +, o Controle de Faturamento e o rateio dos lotes.</small>' }
+        ],
+        botoes: [{ texto: 'Salvar', img: 'concluido', funcao: `salvarSetorCx(this, '${escFin(clienteId)}')` }]
+    })
+}
+
+async function salvarSetorCx(botao, clienteId) {
+    const janela = botao.closest('.popup')
+    const setor = janela?.querySelector('[name="setor"]')?.value || null
+    const resposta = await enviar(`rh_funcionarios/${clienteId}/setor`, setor)
+    if (!resposta?.success) return popup({ mensagem: resposta?.mensagem || 'Não foi possível salvar o setor.' })
+    removerPopup(janela?.id)
+    await carregarDistribuicaoCx()
 }
 
 // ---------------- planejamento e trava
