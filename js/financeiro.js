@@ -1311,6 +1311,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
     const abas = [
         ['detalhes', 'Detalhes', true],
         ['categorias', 'Categorias', true],
+        ['tags', 'Tags', true],
         ['departamentos', 'Departamentos', true],
         ['parcelas', 'Parcelas', Boolean(t)],
         ['repeticoes', 'Repetições', nova || Boolean(t && !cancelada)],
@@ -1348,10 +1349,6 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                                     <select class="fis-input" name="conta_id" data-conta-original="${escFin(base?.conta_id || '')}" ${cancelada ? 'disabled' : ''}>${opcoesContasFin(op.contas, app, base?.conta_id)}</select></label>
                             </div>
                         </div>
-                        <div class="fin-form-tags">
-                            <span>Tags <small>de onde é a conta (ex.: GALPÃO 6)</small></span>
-                            ${htmlTagsPag(base?.tags, { editavel: !cancelada })}
-                        </div>
                         ${avisos.map(a => `<div class="fis-info">${a}</div>`).join('')}
                         <div class="fis-info" data-aviso-empresa-fin hidden></div>
                         ${rec ? '' : blocoLeitorFin(t, manual && !cancelada)}
@@ -1380,6 +1377,10 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                                 <div><span>Inclusão</span>${quando(t.criado_em, t.criado_por)}</div>
                                 <div><span>Última alteração</span>${quando(t.atualizado_em, t.atualizado_por)}</div>
                             </div>` : ''}
+                        </div>
+
+                        <div class="fin-aba" data-painel-aba="tags" ${aba === 'tags' ? '' : 'hidden'}>
+                            ${abaTagsPag(base?.tags, { editavel: !cancelada })}
                         </div>
 
                         <div class="fin-aba" data-painel-aba="categorias" ${aba === 'categorias' ? '' : 'hidden'}>
@@ -1427,7 +1428,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
             .then(c => { if (avatar.isConnected && document.querySelector('[data-form-fatura]')?.dataset.cliente === String(base.cliente_id)) pintarAvatarFin(avatar, base.participante_nome, c?.foto) })
             .catch(() => { })
     }
-    desenharCamposTagsPag(document.querySelector('[data-form-fatura]') || document)
+    prepararAbaTagsPag(document.querySelector('[data-form-fatura]') || document)
     desenharAnexosFin()
     desenharPainelFormFin(t, rec)
     sincronizarTopoFin()
@@ -2007,7 +2008,7 @@ async function salvarFaturaFin() {
         numero_documento: v('numero_documento'),
         conta_id: v('conta_id') || null, forma_pagamento: v('forma_pagamento'), observacao: v('observacao'),
         chave_pix: v('chave_pix'), anexos: anexosFormFin, rateio: lerRateioFin(form),
-        tags: lerTagsPag(form.querySelector('.fin-form-tags .tags-pag')),
+        tags: lerTagsPag(form.querySelector('.tags-pag-aba .tags-pag')),
         // Boleto / Pix lido (js/financeiro_leitor.js); sem o campo no formulário, o servidor não mexe.
         ...(form.querySelector('[name="codigo_barras"]') ? { codigo_barras: v('codigo_barras'), pix_copia_cola: v('pix_copia_cola') } : {})
     }

@@ -95,8 +95,24 @@ function tirarTagPag(botao, id) {
 
 // ------------------------------------------------------------------ painel: escolher / criar / editar
 
+// Busca + lista + editor; o mesmo miolo vai no popup (pagamento) e embutido na aba Tags da fatura.
+function corpoPainelTagsPag() {
+    return `
+                <div class="tags-pag-barra">
+                    <input type="search" class="fin-extrato-busca" placeholder="Buscar tag" autocomplete="off"
+                        oninput="filtrarTagsPag(this.value)" onkeydown="if (event.key === 'Enter') { event.preventDefault(); enterBuscaTagsPag(this.value) }"
+                        data-busca-tags-pag>
+                    <button type="button" class="tags-pag-nova" onclick="editarTagPag()">+ Nova tag</button>
+                </div>
+                <div class="tags-pag-editor" data-editor-tags-pag hidden></div>
+                <div class="tags-pag-lista" data-lista-tags-pag role="listbox" aria-multiselectable="true"></div>
+                <div class="tags-pag-rodape" data-rodape-tags-pag></div>`
+}
+
 async function abrirTagsPag(campo) {
     if (!campo) return
+    // Aba Tags da fatura aberta: a lista já está na tela.
+    if (document.querySelector('[data-tags-pag-embutido]')) return document.querySelector('[data-busca-tags-pag]')?.focus()
     estadoTagsPag.campo = campo
     estadoTagsPag.editando = null
     overlayAguarde()
@@ -106,18 +122,7 @@ async function abrirTagsPag(campo) {
     if (anterior) removerPopup(anterior)
     popup({
         titulo: 'Tags do pagamento',
-        elemento: `
-            <div class="fis-painel popup-consulta tags-pag-painel" data-escolha-tags-pag>
-                <div class="tags-pag-barra">
-                    <input type="search" class="fin-extrato-busca" placeholder="Buscar tag" autocomplete="off"
-                        oninput="filtrarTagsPag(this.value)" onkeydown="if (event.key === 'Enter') { event.preventDefault(); enterBuscaTagsPag(this.value) }"
-                        data-busca-tags-pag>
-                    <button type="button" class="tags-pag-nova" onclick="editarTagPag()">+ Nova tag</button>
-                </div>
-                <div class="tags-pag-editor" data-editor-tags-pag hidden></div>
-                <div class="tags-pag-lista" data-lista-tags-pag role="listbox" aria-multiselectable="true"></div>
-                <div class="tags-pag-rodape" data-rodape-tags-pag></div>
-            </div>`
+        elemento: `<div class="fis-painel popup-consulta tags-pag-painel" data-escolha-tags-pag>${corpoPainelTagsPag()}</div>`
     })
     redesenharEscolhaTagsPag()
     setTimeout(() => document.querySelector('[data-busca-tags-pag]')?.focus(), 50)
@@ -263,4 +268,31 @@ async function salvarTagPag() {
     redesenharEscolhaTagsPag()
     // Lista de faturas aberta: nome/cor novos aparecem nas linhas.
     if (edicao.id && document.getElementById('bodyFaturasFin') && typeof paginacao === 'function') paginacao('faturasFin')
+}
+
+// Aba Tags da fatura: as marcadas em cima (chips) e a lista inteira embaixo, sem popup.
+// Só leitura (fatura excluída): só os chips.
+function abaTagsPag(ids = [], { editavel = true } = {}) {
+    return `
+        <div class="tags-pag-aba">
+            <div class="tags-pag-aba-marcadas">
+                <span>Marcadas</span>
+                ${htmlTagsPag(ids, { editavel: false })}
+            </div>
+            ${editavel ? `<div class="tags-pag-painel tags-pag-embutido" data-escolha-tags-pag data-tags-pag-embutido>${corpoPainelTagsPag()}</div>` : ''}
+        </div>`
+}
+
+// Depois de desenhar o formulário: liga a lista ao campo de chips da aba.
+async function prepararAbaTagsPag(raiz = document) {
+    const aba = raiz.querySelector('.tags-pag-aba')
+    if (!aba) return
+    await catalogoTagsPag()
+    const campo = aba.querySelector('.tags-pag')
+    if (aba.querySelector('[data-tags-pag-embutido]')) {
+        estadoTagsPag.campo = campo
+        estadoTagsPag.editando = null
+        redesenharEscolhaTagsPag()
+    }
+    await desenharCamposTagsPag(aba)
 }

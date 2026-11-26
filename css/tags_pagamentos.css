@@ -97,28 +97,52 @@
     overflow: hidden;
 }
 
-/* Formulário da fatura: linha das tags embaixo do favorecido. */
-.fin-form-tags {
+/* Aba Tags da fatura: marcadas em cima, lista inteira embaixo (sem popup). */
+.tags-pag-aba {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin: 12px 0 0 80px;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 560px;
+    padding-top: 4px;
 }
 
-.fin-form-tags > span {
+.tags-pag-aba-marcadas {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tags-pag-aba-marcadas > span {
     font-size: 12px;
     color: #44544a;
 }
 
-.fin-form-tags > span small {
-    color: #8a978f;
+.tags-pag-embutido {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-@media (max-width: 800px) {
-    .fin-form-tags {
-        margin-left: 0;
-    }
+.tags-pag-embutido .fin-extrato-busca {
+    flex: 1 1 auto;
+    margin: 0;
+    height: 34px;
+    padding: 0 12px 0 34px;
+    border: 1px solid #d5ded8;
+    border-radius: 8px;
+    font-size: 13px;
+    background: #fff no-repeat 11px center / 15px
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7a71' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E");
+}
+
+.tags-pag-embutido .fin-extrato-busca:focus {
+    outline: none;
+    border-color: #76a987;
+    box-shadow: 0 0 0 3px #76a98726;
+}
+
+.tags-pag-embutido .tags-pag-lista {
+    max-height: 46vh;
 }
 
 /* ---------------------------------------------------------------- painel (popup branco) */
