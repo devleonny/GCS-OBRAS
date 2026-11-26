@@ -609,9 +609,12 @@ const vazioConc = (icone, texto) => `<div class="cc-vazio-detalhe">${iconeFin(ic
 // Barra do rodapé do detalhe: quanto já foi marcado do valor da linha.
 function barraSomaConc(soma, alvo, ok) {
     const pct = alvo ? Math.min(100, Math.round(Math.abs(soma) * 100 / Math.abs(alvo))) : 0
+    // Diferença com o nome certo: passou do valor da linha é "acima", ainda não chegou é "falta".
+    const dif = Math.abs(Math.abs(alvo) - Math.abs(soma))
+    const passou = Math.abs(soma) > Math.abs(alvo) + 0.004
     return `
         <div class="cc-soma-info">
-            <span>Marcado <b class="${ok ? 'cc-ok' : ''}">${dinheiro(Math.abs(soma))}</b> de ${dinheiro(Math.abs(alvo))}${ok ? ' ✔' : soma ? ` · falta ${dinheiro(Math.abs(Math.abs(alvo) - Math.abs(soma)))}` : ''}</span>
+            <span>Marcado <b class="${ok ? 'cc-ok' : ''}">${dinheiro(Math.abs(soma))}</b> de ${dinheiro(Math.abs(alvo))}${ok ? ' ✔' : soma ? ` · ${passou ? `<b class="cc-acima">${dinheiro(dif)} acima</b>` : `falta ${dinheiro(dif)}`}` : ''}</span>
             <div class="cc-soma-barra ${ok ? 'cc-soma-ok' : Math.abs(soma) > Math.abs(alvo) + 0.004 ? 'cc-soma-passou' : ''}"><span style="width:${pct}%"></span></div>
         </div>`
 }

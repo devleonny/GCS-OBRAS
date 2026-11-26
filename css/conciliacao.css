@@ -213,6 +213,7 @@ label.cc-item { cursor: pointer; }
 .cc-soma-barra span { display: block; height: 100%; background: #e0a43a; transition: width 150ms; }
 .cc-soma-barra.cc-soma-ok span { background: #2e8b57; }
 .cc-soma-barra.cc-soma-passou span { background: #c0392b; }
+.cc-acima { color: #c0392b; }
 .cc-ajuste { display: flex; flex-direction: column; gap: 4px; flex-basis: 100%; font-size: 12.5px; }
 .cc-form-lancar { padding: 12px; background: #fff; border: 1px solid #dfe7e2; border-radius: 10px; }
 
