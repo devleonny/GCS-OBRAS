@@ -337,7 +337,7 @@ function desenharResultadosConc() {
             <div class="cc-res ${alerta ? 'cc-res-erro' : 'cc-res-ok'}">
                 <b>${escFin(r.conta)} · ${dataFin(r.de)} a ${dataFin(r.ate)}</b>
                 <small>${r.linhas} linhas: <b>${r.novas} novas</b>, ${r.repetidas} já importadas${r.automaticas ? ` · ${r.automaticas} casada${r.automaticas === 1 ? '' : 's'} sozinha${r.automaticas === 1 ? '' : 's'}` : ''}
-                    ${r.saldo != null ? ` · saldo do banco ${dinheiro(r.saldo)} em ${dataFin(r.saldo_data)}${r.saldo_confere === true ? ' (confere com o já importado)' : r.saldo_confere === false ? ' · <b>não confere com o já importado: falta linha?</b>' : ''}` : ''}
+                    ${r.saldo != null ? ` · saldo do banco ${dinheiro(r.saldo)} em ${dataFin(r.saldo_data)}${r.saldo_confere === true ? ` (confere com o já importado${r.saldo_diferenca ? `; ${dinheiro(Math.abs(r.saldo_diferenca))} de rendimento ainda não listado pelo banco` : ''})` : r.saldo_confere === false ? ` · <b>não confere com o já importado: diferença de ${dinheiro(r.saldo_diferenca)}. Falta linha?</b>` : ''}` : ''}
                     ${r.falta ? ` · <b>faltam dias</b>: o extrato anterior terminou antes. Baixe de ${dataFin(r.falta.de)} a ${dataFin(r.falta.ate)} também.` : ''}</small>
                 <small class="cc-cinza">${escFin(r.arquivo)}</small>
             </div>`
