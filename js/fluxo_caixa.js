@@ -239,6 +239,8 @@ function desenharFluxoCaixa() {
             })}
         </section>
 
+        ${blocoInvestimentosCx(d, semSaldo)}
+
         <section class="cx-bloco">
             <div class="cx-bloco-topo">
                 <h3>Saldo dia a dia</h3>
@@ -341,6 +343,112 @@ function desenharFluxoCaixa() {
     estadoCx.graficos.forEach(g => g?.destroy())
     estadoCx.graficos = [graficoSaldoCx(d)]
     carregarEntreEmpresasCx()
+}
+
+// ---------------- investimentos (26/11/2026; gcs migrations/financeiro-aplicacoes.sql, financeiro_fluxo.js → investimentos)
+// Conta tipo Aplicação (CDB Itaú · IAC): aplicações e resgates entram pela conciliação (Transferência); a posição que
+// o banco mostra, informada de tempos em tempos, lança a diferença como rendimento do período.
+
+function blocoInvestimentosCx(d, semSaldo) {
+    const inv = d.investimentos
+    if (!inv || !inv.contas.length) return ''
+    const rend = inv.contas.reduce((a, c) => a + Number(c.rendimento || 0), 0)
+    const desde = inv.contas.map(c => c.rendimento_desde).filter(Boolean).sort()[0]
+    return `
+        <section class="cx-bloco">
+            <div class="cx-bloco-topo">
+                <h3>Investimentos</h3>
+                <small>Fora do "Temos caixa hoje?". Aplicações e resgates entram pela conciliação bancária (Transferência → conta do investimento); a posição que o banco mostra lança o rendimento do período.</small>
+                <span class="cx-inv-acoes">
+                    ${d.pode_planejar ? '<button type="button" class="fis-mini" onclick="posicaoInvestimentoCx()">Informar posição</button>' : ''}
+                    <button type="button" class="fis-mini" onclick="historicoInvestimentosCx()">Histórico</button>
+                </span>
+            </div>
+            <div class="cx-indicadores">
+                ${inv.contas.map(c => miniCx(c.nome, dinheiro(c.saldo),
+                    `Última posição: ${c.posicao_data ? `${dinheiro(c.posicao_saldo)} em ${diaAnoCx(c.posicao_data)}` : '—'} · no ano: aplicou ${dinheiro(c.aplicado_ano)}, resgatou ${dinheiro(c.resgatado_ano)}`)).join('')}
+                ${miniCx('Rendimento lançado', dinheiro(rend), desde ? `Pelas posições informadas desde ${diaAnoCx(desde)} (líquido do IR)` : '')}
+                ${miniCx('Caixa + investimentos', semSaldo ? '—' : dinheiro(Math.round((d.saldo_hoje + inv.total) * 100) / 100),
+                    semSaldo ? 'Sem saldo de caixa de partida.' : `${dinheiro(d.saldo_hoje)} em caixa + ${dinheiro(inv.total)} aplicados`)}
+            </div>
+        </section>`
+}
+
+function posicaoInvestimentoCx() {
+    const d = estadoCx.dados
+    popup({
+        titulo: 'Informar posição do investimento',
+        confirmarFechar: false,
+        linhas: [{ elemento: `
+            <div class="fis-form" data-cx-posicao>
+                <p class="cx-plan-nota">Digite o <b>saldo bruto</b> que o app do banco mostra na data. A diferença para o saldo do GCS
+                    (posição anterior + aplicações − resgates lançados na conciliação) vira o rendimento do período.
+                    Antes, importe o extrato e lance as aplicações e os resgates até essa data.</p>
+                <label>Conta <select class="fis-input" name="conta">${d.investimentos.contas.map(c => `<option value="${c.id}">${escFin(c.nome)} (GCS: ${dinheiro(c.saldo)})</option>`).join('')}</select></label>
+                <label>Data da posição <input class="fis-input" type="date" name="data" value="${d.hoje}" max="${d.hoje}"></label>
+                <label>Saldo no banco <input class="fis-input fis-num" type="number" step="0.01" min="0" name="saldo"></label>
+            </div>` }],
+        botoes: [{ texto: 'Salvar posição', img: 'salvo', funcao: 'salvarPosicaoInvestimentoCx(this)' }]
+    })
+}
+
+async function salvarPosicaoInvestimentoCx(botao) {
+    const f = document.querySelector('[data-cx-posicao]')
+    const saldo = f.querySelector('[name="saldo"]').value
+    if (saldo === '') return popup({ mensagem: 'Digite o saldo que o banco mostra.' })
+    try {
+        overlayAguarde()
+        const r = await apiFin('aplicacoes/posicao', { conta_id: Number(f.querySelector('[name="conta"]').value), data: f.querySelector('[name="data"]').value, saldo: Number(saldo) })
+        removerOverlay()
+        removerPopup(botao?.closest('.popup')?.id)
+        await carregarFluxoCaixa()
+        popup({ mensagem: r.rendimento > 0 ? `Rendimento do período: ${dinheiro(r.rendimento)}` : 'Posição igual ao saldo do GCS: nenhum rendimento lançado.' })
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
+}
+
+function historicoInvestimentosCx() {
+    const inv = estadoCx.dados.investimentos
+    const nome = new Map(inv.contas.map(c => [Number(c.id), c.nome]))
+    const ultima = new Map()
+    for (const p of inv.posicoes) if (!ultima.has(Number(p.conta_id))) ultima.set(Number(p.conta_id), Number(p.id))
+    popup({
+        titulo: 'Posições dos investimentos',
+        linhas: [{ elemento: `
+            <div class="fis-tabela-rolagem">
+                <table class="fis-tabela">
+                    <thead><tr><th>Data</th><th>Conta</th><th class="fis-num">Saldo no banco</th><th class="fis-num">GCS antes</th><th class="fis-num">Rendimento</th><th>Por</th><th></th></tr></thead>
+                    <tbody>${inv.posicoes.map(p => `
+                        <tr>
+                            <td>${escFin(dataFin(p.data))}</td>
+                            <td>${escFin(nome.get(Number(p.conta_id)) || '')}</td>
+                            <td class="fis-num">${dinheiro(p.saldo)}</td>
+                            <td class="fis-num">${p.saldo_gcs === null ? '—' : dinheiro(p.saldo_gcs)}</td>
+                            <td class="fis-num">${p.rendimento === null ? '<small>abertura</small>' : dinheiro(p.rendimento)}</td>
+                            <td><small>${escFin(p.criado_por || '')}</small></td>
+                            <td>${estadoCx.dados.pode_planejar && p.rendimento !== null && ultima.get(Number(p.conta_id)) === Number(p.id)
+                                ? `<button type="button" class="fis-mini" onclick="desfazerPosicaoCx(${p.id}, this)">desfazer</button>` : ''}</td>
+                        </tr>${p.observacao ? `<tr><td></td><td colspan="6"><small>${escFin(p.observacao)}</small></td></tr>` : ''}`).join('')}
+                    </tbody>
+                </table>
+            </div>` }]
+    })
+}
+
+async function desfazerPosicaoCx(id, botao) {
+    if (!await confirmarPopup({ titulo: 'Desfazer posição', mensagem: 'O rendimento lançado por esta posição é cancelado e a posição sai do histórico. Continuar?', textoConfirmar: 'Desfazer' })) return
+    try {
+        overlayAguarde()
+        await apiFin('aplicacoes/posicao/desfazer', { id })
+        removerOverlay()
+        removerPopup(botao?.closest('.popup')?.id)
+        await carregarFluxoCaixa()
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: mensagemErroEst(err) })
+    }
 }
 
 // ---------------- entre empresas (26/11/2026; gcs SCRIPTS/financeiro_fluxo.js → entreEmpresas)
@@ -843,7 +951,7 @@ async function conferirSaldosCx() {
     const d = estadoCx.dados
     const ontem = somarDiasCx(d.hoje, -1)
     const porApp = new Map()
-    for (const c of d.contas) { if (!porApp.has(c.app)) porApp.set(c.app, []); porApp.get(c.app).push(c) }
+    for (const c of d.contas.filter(c => c.tipo !== 'APLICACAO')) { if (!porApp.has(c.app)) porApp.set(c.app, []); porApp.get(c.app).push(c) }
     popup({
         titulo: 'Conferir saldos com o extrato',
         confirmarFechar: false,

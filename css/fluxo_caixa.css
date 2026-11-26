@@ -298,3 +298,6 @@
 .cx-entre td { vertical-align: top; }
 .cx-entre-nat { display: block; color: var(--cx-tinta-2, #6b6a66); font-size: 11px; font-weight: 400; white-space: nowrap; }
 .cx-entre-nota { margin: 8px 2px 0; color: var(--cx-tinta-2, #6b6a66); font-size: 12px; }
+
+/* Investimentos (26/11/2026): botões à direita do título */
+.cx-inv-acoes { margin-left: auto; display: inline-flex; gap: 6px; }
