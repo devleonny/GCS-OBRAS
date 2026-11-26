@@ -583,16 +583,15 @@ function itemConc({ nome, detalhe = '', tags = '', valor = null, depois = '', an
 const buscaListaConc = alvo => `
     <div class="cc-busca-faturas">
         <input class="fis-input" type="search" data-busca-lista placeholder="Buscar favorecido, nº, descrição, categoria ou valor…" oninput="filtrarListaConc(this, '${alvo}')">
-        <label class="cc-busca-data" title="Baixa a partir de"><span>Baixa de</span><input class="fis-input" type="date" data-de-lista onchange="filtrarListaConc(this, '${alvo}')"></label>
-        <label class="cc-busca-data" title="Baixa até"><span>até</span><input class="fis-input" type="date" data-ate-lista onchange="filtrarListaConc(this, '${alvo}')"></label>
+        <label class="cc-busca-data" title="Só as baixas deste dia"><span>Dia da baixa</span><input class="fis-input" type="date" data-dia-lista onchange="filtrarListaConc(this, '${alvo}')"></label>
         <button type="button" class="fis-mini" data-limpar-lista hidden onclick="this.parentElement.querySelectorAll('input').forEach(i => { i.value = '' }); filtrarListaConc(this, '${alvo}')">Limpar</button>
     </div>`
 
 function filtrarListaConc(el, alvo) {
     const caixa = el.closest('.cc-busca-faturas')
     const termos = normalFin(caixa.querySelector('[data-busca-lista]').value).split(/s+/).filter(Boolean)
-    const de = caixa.querySelector('[data-de-lista]').value, ate = caixa.querySelector('[data-ate-lista]').value
-    caixa.querySelector('[data-limpar-lista]').hidden = !(termos.length || de || ate)
+    const dia = caixa.querySelector('[data-dia-lista]').value
+    caixa.querySelector('[data-limpar-lista]').hidden = !(termos.length || dia)
     const lista = document.querySelector(alvo)
     if (!lista) return
     let visiveis = 0
@@ -600,12 +599,12 @@ function filtrarListaConc(el, alvo) {
         const texto = `${normalFin(it.textContent)} ${it.dataset.busca || ''}`
         const d = it.dataset.data || ''
         const mostra = Boolean(it.querySelector('input[type=checkbox]:checked'))
-            || (termos.every(t => texto.includes(t)) && (!de || (d && d >= de)) && (!ate || (d && d <= ate)))
+            || (termos.every(t => texto.includes(t)) && (!dia || d === dia))
         it.hidden = !mostra
         if (mostra) visiveis++
     })
     const vazio = lista.querySelector('[data-vazio-busca]')
-    if (!visiveis && (termos.length || de || ate)) { if (!vazio) lista.insertAdjacentHTML('beforeend', `<div data-vazio-busca>${vazioConc('baixa', 'Nada com essa busca.')}</div>`) }
+    if (!visiveis && (termos.length || dia)) { if (!vazio) lista.insertAdjacentHTML('beforeend', `<div data-vazio-busca>${vazioConc('baixa', 'Nada com essa busca.')}</div>`) }
     else vazio?.remove()
 }
 
