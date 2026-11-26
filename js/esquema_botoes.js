@@ -305,7 +305,7 @@ const esquemaBotoes = {
                 { nome: 'Faturas a Pagar', funcao: 'telaFaturasPagar', acesso: 'financeiro.faturas_pagar', img: 'pagar' },
                 { nome: 'Faturas a Receber', funcao: 'telaFaturasReceber', acesso: 'financeiro.faturas_receber', img: 'receber' },
                 { nome: 'Lote de Salários', funcao: 'telaLotesSalarios', acesso: 'financeiro.lote_salarios', img: 'dinheiro' },
-                { nome: 'Lote de Alimentação', funcao: 'telaLotesAlimentacao', acesso: 'financeiro.lote_alimentacao', img: 'alimentacao' },
+                { nome: 'Lote de Vale Refeição', funcao: 'telaLotesAlimentacao', acesso: 'financeiro.lote_alimentacao', img: 'alimentacao' },
                 { nome: 'Lote de Transporte', funcao: 'telaLotesTransporte', acesso: 'financeiro.lote_transporte', img: 'transporte' },
                 { nome: 'Faturas do Cartão', funcao: 'abrirFaturasCartaoFin', acesso: 'financeiro.cartoes', img: 'cartao' },
                 { nome: 'Conciliação Bancária', funcao: 'telaConciliacaoFin', acesso: 'financeiro.conciliacao', img: 'conciliacao' },

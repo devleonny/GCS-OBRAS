@@ -16,11 +16,33 @@ const estadoLoteSal = {
 const SITUACAO_LOTE_SAL = { RASCUNHO: 'Rascunho', LANCADO: 'Lançado' }
 const TIPOS_LOTE_FIN = {
     SALARIOS: { titulo: 'Lote de Salários', nome: 'Salários', rh: true, explica: 'Lance a folha de uma vez.' },
-    ALIMENTACAO: { titulo: 'Lote de Alimentação', nome: 'Alimentação', rh: false, explica: 'Lance o vale-refeição/alimentação de todos de uma vez.' },
-    TRANSPORTE: { titulo: 'Lote de Transporte', nome: 'Transporte', rh: false, explica: 'Lance o vale-transporte de todos de uma vez.' }
+    // diaria (26/11/2026): valor = valor diário × dias úteis (cabeçalho), e cada linha pode ter os seus.
+    ALIMENTACAO: { titulo: 'Lote de Vale Refeição', nome: 'Vale Refeição', rh: false, diaria: true, valorDia: 28, explica: 'Lance o vale refeição de todos de uma vez: valor diário × dias úteis.' },
+    TRANSPORTE: { titulo: 'Lote de Transporte', nome: 'Transporte', rh: false, diaria: true, valorDia: null, explica: 'Lance o vale-transporte de todos de uma vez: valor diário × dias úteis.' }
 }
 const tipoSal = () => TIPOS_LOTE_FIN[estadoLoteSal.tipo] || TIPOS_LOTE_FIN.SALARIOS
 const tituloPadraoSal = ym => `${tipoSal().nome} ${mesSal(ym)}`
+const diariaSal = () => Boolean(tipoSal().diaria)
+
+// Dias úteis do mês da competência (seg–sex, sem feriados nacionais).
+function diasUteisSal(ym) {
+    if (!/^\d{4}-\d{2}$/.test(ym || '')) return null
+    const [a, m] = ym.split('-').map(Number)
+    const feriados = feriadosFin(a)
+    let uteis = 0
+    for (const d = new Date(Date.UTC(a, m - 1, 1, 12)); d.getUTCMonth() === m - 1; d.setUTCDate(d.getUTCDate() + 1))
+        if (![0, 6].includes(d.getUTCDay()) && !feriados.has(d.toISOString().slice(0, 10))) uteis++
+    return uteis
+}
+const vazioSal = v => v === null || v === undefined || v === ''
+const valorDiaDaLinhaSal = i => vazioSal(i.valor_dia) ? estadoLoteSal.cabecalho.valor_dia : i.valor_dia
+const diasDaLinhaSal = i => vazioSal(i.dias) ? estadoLoteSal.cabecalho.dias : i.dias
+// Linha com valor diário e dias (dela ou do lote): o valor é a conta. Sem um dos dois, fica o valor digitado.
+const calculadaSal = i => diariaSal() && !vazioSal(valorDiaDaLinhaSal(i)) && !vazioSal(diasDaLinhaSal(i))
+function calcularLinhaSal(i) {
+    if (!calculadaSal(i) || pagaSal(i)) return
+    i.valor = Math.round(Number(valorDiaDaLinhaSal(i)) * Number(diasDaLinhaSal(i)) * 100) / 100
+}
 
 const novaChaveSal = () => crypto.randomUUID()
 const mesSal = ym => ym ? `${ym.slice(5, 7)}/${ym.slice(0, 4)}` : ''
@@ -104,7 +126,9 @@ async function telaLotesSalarios(tipo = 'SALARIOS') {
 function linhaDaPessoaSal(p, cab) {
     const valor = Number(p.ultimo_valor) || Number(p.salario_rh) || 0
     return {
-        chave: novaChaveSal(), incluir: valor > 0, cliente_id: p.cliente_id, nome: p.nome, documento: p.documento || '',
+        // Vale refeição / transporte: todos entram (o valor vem do valor diário × dias, que pode chegar depois).
+        chave: novaChaveSal(), incluir: diariaSal() || valor > 0, cliente_id: p.cliente_id, nome: p.nome, documento: p.documento || '',
+        valor_dia: null, dias: null,
         app: p.ultimo_app || cab.app, conta_id: p.ultima_conta || null, categoria_id: estadoLoteSal.categoriaSalario,
         valor, vencimento: null, departamento: p.ultimo_departamento || null, forma_pagamento: p.ultima_forma || cab.forma_pagamento || null,
         chave_pix: p.chave_pix || null, observacao: null
@@ -133,19 +157,33 @@ async function abrirLoteSalarios(id = null, copiarDe = null) {
                 titulo: fonte.titulo || l.titulo, competencia: fonte.competencia || l.competencia,
                 cabecalho: { ...(fonte.cabecalho || {}) }, itens: (fonte.itens || []).map(i => ({ ...i }))
             })
+            // Rascunho de antes do valor diário × dias (26/11/2026): já abre com o valor e os dias do mês.
+            const cab = estadoLoteSal.cabecalho
+            if (diariaSal() && l.situacao === 'RASCUNHO' && !('valor_dia' in cab)) {
+                cab.valor_dia = tipoSal().valorDia
+                cab.dias = diasUteisSal(estadoLoteSal.competencia)
+                estadoLoteSal.itens.forEach(i => { calcularLinhaSal(i); if (i.valor > 0) i.incluir = true })
+                estadoLoteSal.pendente = true
+            }
         } else {
             const hoje = hojeFin()
             const competencia = hoje.slice(0, 7)
             const cab = {
                 vencimento: quintoDiaUtilSal(competencia), app: modaSal(base.pessoas.map(p => p.ultimo_app)) || op.empresas[0]?.app || null,
-                conta_id: null, forma_pagamento: modaSal(base.pessoas.map(p => p.ultima_forma)), categoria_id: base.categoria_salario_id, observacao: null
+                conta_id: null, forma_pagamento: modaSal(base.pessoas.map(p => p.ultima_forma)), categoria_id: base.categoria_salario_id, observacao: null,
+                valor_dia: diariaSal() ? tipoSal().valorDia : null, dias: diariaSal() ? diasUteisSal(competencia) : null
             }
             let itens
             if (copiarDe) {
                 const l = atual.lote
                 const fonte = l.edicao || l
-                itens = (fonte.itens || []).map(i => ({ ...i, chave: novaChaveSal(), vencimento: null }))
+                // Mês novo: os dias próprios de cada linha voltam aos dias úteis do mês (o valor diário de cada um fica).
+                itens = (fonte.itens || []).map(i => ({ ...i, chave: novaChaveSal(), vencimento: null, ...(diariaSal() ? { dias: null } : {}) }))
                 Object.assign(cab, { ...(fonte.cabecalho || {}), vencimento: quintoDiaUtilSal(competencia) })
+                if (diariaSal()) {
+                    cab.dias = diasUteisSal(competencia)
+                    if (vazioSal(cab.valor_dia)) cab.valor_dia = tipoSal().valorDia
+                }
             } else {
                 itens = base.pessoas.map(p => linhaDaPessoaSal(p, cab))
             }
@@ -153,6 +191,7 @@ async function abrirLoteSalarios(id = null, copiarDe = null) {
                 id: null, versao: null, situacao: 'RASCUNHO', emEdicao: false, competencia,
                 titulo: tituloPadraoSal(competencia), cabecalho: cab, itens
             })
+            itens.forEach(calcularLinhaSal)
         }
         if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
         // Aberto pelo link de uma fatura: o popup dela sai da frente.
@@ -181,7 +220,7 @@ async function abrirLoteSalarios(id = null, copiarDe = null) {
         estadoLoteSal.observador.observe(document.body, { childList: true, subtree: true })
         desenharLoteSal()
         // Lote novo já nasce guardado.
-        if (!estadoLoteSal.id) agendarSalvarLoteSal(0)
+        if (!estadoLoteSal.id || estadoLoteSal.pendente) agendarSalvarLoteSal(0)
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
@@ -208,6 +247,11 @@ function desenharLoteSal() {
             <label class="fis-campo"><span>Competência</span><input class="fis-input" type="month" name="competencia" value="${escFin(e.competencia)}" onchange="editarCabLoteSal(this)"></label>
             <label class="fis-campo"><span>Vencimento</span><input class="fis-input" type="date" name="vencimento" value="${escFin(cab.vencimento || '')}" onchange="editarCabLoteSal(this)">
                 <small>Vale para as linhas sem data própria. Sugestão: 5º dia útil.</small></label>
+            ${diariaSal() ? `
+            <label class="fis-campo"><span>Valor diário</span><input class="fis-input fis-num" type="number" min="0" step="0.01" name="valor_dia" value="${escFin(cab.valor_dia ?? '')}" onchange="editarCabLoteSal(this)">
+                <small>Vale para quem não tem valor próprio na linha.</small></label>
+            <label class="fis-campo"><span>Dias úteis</span><input class="fis-input fis-num" type="number" min="0" max="31" step="1" name="dias" value="${escFin(cab.dias ?? '')}" onchange="editarCabLoteSal(this)">
+                <small>${e.competencia ? `${mesSal(e.competencia)} tem ${diasUteisSal(e.competencia)} (seg–sex, sem feriados).` : ''} Vale para quem não tem dias próprios.</small></label>` : ''}
             <label class="fis-campo"><span>Forma de pagamento</span>
                 <select class="fis-input" name="forma_pagamento" onchange="editarCabLoteSal(this)">
                     <option value="">—</option>${FORMAS_FIN.map(([v, n]) => `<option value="${v}" ${cab.forma_pagamento === v ? 'selected' : ''}>${n}</option>`).join('')}
@@ -222,7 +266,9 @@ function desenharLoteSal() {
             <button type="button" class="fis-mini" onclick="marcarTodasLoteSal(true)">Marcar todas</button>
             <button type="button" class="fis-mini" onclick="marcarTodasLoteSal(false)">Desmarcar todas</button>
             ${tipoSal().rh ? `<button type="button" class="fis-mini" title="Nas linhas marcadas, valor = salário cadastrado no RH" onclick="valoresLoteSal('rh')">Valor = salário do RH</button>` : ''}
-            <button type="button" class="fis-mini" title="Nas linhas marcadas, valor = último valor lançado para a pessoa" onclick="valoresLoteSal('ultimo')">Valor = último pago</button>
+            ${diariaSal()
+            ? `<button type="button" class="fis-mini" title="Nas linhas marcadas, apaga o valor diário e os dias próprios: voltam aos do lote" onclick="voltarAoLoteSal()">Todos com o valor e os dias do lote</button>`
+            : `<button type="button" class="fis-mini" title="Nas linhas marcadas, valor = último valor lançado para a pessoa" onclick="valoresLoteSal('ultimo')">Valor = último pago</button>`}
             <div class="fin-escolha cx-lote-busca">
                 <input class="fis-input" placeholder="+ Adicionar pessoa (nome ou CPF)…" autocomplete="off" oninput="buscarPessoaLoteSal(this)" onblur="setTimeout(() => { const l = this.nextElementSibling; if (l) l.hidden = true }, 200)">
                 <div class="fin-escolha-lista" hidden></div>
@@ -232,7 +278,7 @@ function desenharLoteSal() {
         <div class="fis-tabela-rolagem cx-lote-rolagem">
             <table class="fis-tabela cx-lote-tabela">
                 <thead><tr>
-                    <th></th><th>Pessoa</th>${tipoSal().rh ? '<th class="fis-num">Salário RH</th>' : ''}<th class="fis-num">Último pago</th><th class="fis-num">Valor</th>
+                    <th></th><th>Pessoa</th>${tipoSal().rh ? '<th class="fis-num">Salário RH</th>' : ''}<th class="fis-num">Último pago</th>${diariaSal() ? '<th class="fis-num">Valor diário</th><th class="fis-num">Dias</th>' : ''}<th class="fis-num">Valor</th>
                     <th>Empresa</th><th>Categoria</th><th>Departamento</th><th>Vencimento</th><th>Fatura</th><th></th>
                 </tr></thead>
                 <tbody data-linhas-lote>${e.itens.map(linhaLoteSal).join('')}</tbody>
@@ -261,7 +307,10 @@ function linhaLoteSal(i) {
             <td class="cx-lote-pessoa"><b>${escFin(i.nome || '—')}</b><small>${escFin([p.cargo, cpf ? `CPF ${cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}` : ''].filter(Boolean).join(' · '))}</small></td>
             ${tipoSal().rh ? `<td class="fis-num">${p.salario_rh != null ? dinheiro(p.salario_rh) : '—'}</td>` : ''}
             <td class="fis-num">${p.ultimo_valor != null ? `${dinheiro(p.ultimo_valor)}<small>${escFin(dataFin(p.ultimo_vencimento))}</small>` : '—'}</td>
-            <td class="fis-num"><input class="fis-input fis-num" type="number" min="0" step="0.01" name="valor" value="${Number(i.valor) || ''}" ${trava} oninput="editarLinhaLoteSal(this)"></td>
+            ${diariaSal() ? `
+            <td class="fis-num"><input class="fis-input fis-num" type="number" min="0" step="0.01" name="valor_dia" value="${escFin(i.valor_dia ?? '')}" placeholder="${escFin(e.cabecalho.valor_dia ?? '')}" title="Em branco: o valor diário do lote" ${trava} oninput="editarLinhaLoteSal(this)"></td>
+            <td class="fis-num"><input class="fis-input fis-num cx-lote-dias" type="number" min="0" max="31" step="1" name="dias" value="${escFin(i.dias ?? '')}" placeholder="${escFin(e.cabecalho.dias ?? '')}" title="Em branco: os dias úteis do lote" ${trava} oninput="editarLinhaLoteSal(this)"></td>` : ''}
+            <td class="fis-num"><input class="fis-input fis-num" type="number" min="0" step="0.01" name="valor" value="${Number(i.valor) || ''}" ${trava} ${calculadaSal(i) ? 'readonly title="Valor diário × dias"' : ''} oninput="editarLinhaLoteSal(this)"></td>
             <td><select class="fis-input" name="app" ${trava} onchange="editarLinhaLoteSal(this)">${(e.op.empresas || []).filter(x => x.tipo !== 'SOCIO').map(x => `<option value="${escFin(x.app)}" ${x.app === i.app ? 'selected' : ''}>${escFin(x.app)}</option>`).join('')}</select></td>
             <td><select class="fis-input cx-lote-cat" name="categoria_id" ${trava} onchange="editarLinhaLoteSal(this)">${opcoesCategoriasFin(e.op.categorias || [], 'PAGAR', i.categoria_id)}</select></td>
             <td><input class="fis-input" name="departamento" list="lote-sal-deps" value="${escFin(i.departamento || '')}" placeholder="sem" onchange="editarLinhaLoteSal(this)"></td>
@@ -371,6 +420,16 @@ function editarCabLoteSal(input) {
             const t = document.querySelector('[data-lote-sal] [name="titulo"]')
             if (t) t.value = e.titulo
         }
+        // Dias ainda os úteis do mês anterior: acompanham a competência.
+        if (diariaSal() && v && (vazioSal(e.cabecalho.dias) || Number(e.cabecalho.dias) === diasUteisSal(antes || v))) {
+            e.cabecalho.dias = diasUteisSal(v)
+            e.itens.forEach(calcularLinhaSal)
+            desenharLoteSal()
+        }
+    } else if (input.name === 'valor_dia' || input.name === 'dias') {
+        e.cabecalho[input.name] = vazioSal(v) ? null : input.name === 'dias' ? Math.round(Number(v)) : Number(v)
+        e.itens.forEach(calcularLinhaSal)
+        desenharLoteSal()
     } else if (input.name === 'forma_pagamento') {
         e.cabecalho.forma_pagamento = v || null
         e.itens.filter(i => !pagaSal(i)).forEach(i => { i.forma_pagamento = v || null })
@@ -392,6 +451,14 @@ function editarLinhaLoteSal(input) {
     if (campo === 'incluir') { i.incluir = input.checked; tr.classList.toggle('cx-lote-fora', !input.checked) }
     else if (campo === 'valor') {
         i.valor = Math.max(0, Number(input.value) || 0)
+        if (i.valor > 0 && !i.incluir) { i.incluir = true; tr.querySelector('[name="incluir"]').checked = true; tr.classList.remove('cx-lote-fora') }
+    } else if (campo === 'valor_dia' || campo === 'dias') {
+        // Valor diário / dias só desta pessoa (em branco: os do lote).
+        i[campo] = vazioSal(input.value) ? null : campo === 'dias' ? Math.round(Number(input.value)) : Number(input.value)
+        calcularLinhaSal(i)
+        const campoValor = tr.querySelector('[name="valor"]')
+        campoValor.value = Number(i.valor) || ''
+        campoValor.readOnly = calculadaSal(i)
         if (i.valor > 0 && !i.incluir) { i.incluir = true; tr.querySelector('[name="incluir"]').checked = true; tr.classList.remove('cx-lote-fora') }
     } else if (campo === 'categoria_id') i.categoria_id = Number(input.value) || null
     else if (campo === 'app') {
@@ -426,10 +493,21 @@ function valoresLoteSal(fonte) {
     if (sem) popup({ mensagem: `${sem} linha(s) marcada(s) sem ${fonte === 'rh' ? 'salário no RH' : 'valor lançado antes'}: ficaram com o valor que já tinham.` })
 }
 
+function voltarAoLoteSal() {
+    for (const i of estadoLoteSal.itens.filter(x => x.incluir && !pagaSal(x))) {
+        i.valor_dia = null
+        i.dias = null
+        calcularLinhaSal(i)
+    }
+    desenharLoteSal()
+    agendarSalvarLoteSal()
+}
+
 function duplicarLinhaLoteSal(chave) {
     const i = itemSal(chave)
     if (!i) return
-    const nova = { ...i, chave: novaChaveSal(), valor: 0, incluir: true, categoria_id: null, vencimento: null, observacao: null }
+    // Vale refeição / transporte: a linha extra nasce com 0 dias (ex.: dias a mais de um mês anterior).
+    const nova = { ...i, chave: novaChaveSal(), valor: 0, incluir: true, categoria_id: null, vencimento: null, observacao: null, ...(diariaSal() ? { dias: 0 } : {}) }
     estadoLoteSal.itens.splice(estadoLoteSal.itens.indexOf(i) + 1, 0, nova)
     desenharLoteSal()
     agendarSalvarLoteSal()
@@ -468,6 +546,7 @@ function adicionarPessoaLoteSal(p, botao) {
     const base = e.base.get(String(p.id)) || { cliente_id: String(p.id), nome: p.nome || p.razao_social, documento: p.cnpj, chave_pix: p.chave_pix }
     const linha = linhaDaPessoaSal(base, e.cabecalho)
     linha.incluir = true
+    calcularLinhaSal(linha)
     e.itens.push(linha)
     const caixa = botao.closest('.fin-escolha')
     caixa.querySelector('input').value = ''

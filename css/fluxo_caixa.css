@@ -140,6 +140,9 @@
 .cx-lote-tabela td { vertical-align: middle; padding-top: 3px; padding-bottom: 3px; }
 .cx-lote-tabela .fis-input { height: 28px; min-width: 0; font-size: 12.5px; }
 .cx-lote-tabela [name="valor"] { width: 110px; }
+.cx-lote-tabela [name="valor_dia"] { width: 90px; }
+.cx-lote-tabela [name="dias"] { width: 58px; }
+.cx-lote-tabela [name="valor"][readonly] { background: #f3f6f4; color: #1f3a2b; font-weight: 600; }
 .cx-lote-tabela [name="app"] { width: 72px; }
 .cx-lote-tabela .cx-lote-cat { width: 200px; }
 .cx-lote-tabela [name="departamento"] { width: 130px; }
