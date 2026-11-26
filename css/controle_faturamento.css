@@ -1,0 +1,19 @@
+/* Controle de Faturamento (js/controle_faturamento.js): layout financeiro (.fin-tela) com os totais no topo. */
+.ctf-tela .fin-janela { display: flex; flex-direction: column; }
+.ctf-tela .fin-barra select { height: 30px; border: 1px solid #cfd8d3; border-radius: 6px; padding: 0 8px; background: #fff; }
+.ctf-resumo { margin: 8px 12px 0; grid-template-columns: repeat(4, minmax(160px, 1fr)); }
+.ctf-resumo b { font-size: 1.05rem; }
+.ctf-resumo b small { display: block; font-size: 0.68rem; color: #6b7a72; }
+.ctf-verde { color: #1f7a3d !important; }
+.ctf-vermelho { color: #c62828 !important; }
+.ctf-area { padding: 8px 12px 12px; min-height: 0; }
+.ctf-sub { display: block; font-size: 0.68rem; color: #6b7a72; }
+.ctf-atraso { color: #c62828; }
+.ctf-setor {
+    border: 1px solid #cfd8d3; background: #f6f8f7; border-radius: 999px; padding: 1px 8px;
+    font-size: 0.72rem; color: #24332b; cursor: pointer; white-space: nowrap;
+}
+.ctf-setor:hover:not(:disabled) { background: #e5f3ff; border-color: #99d1ff; }
+.ctf-setor.vazio { color: #8a8f98; border-style: dashed; }
+.ctf-setor:disabled { cursor: default; opacity: 0.7; }
+@media (max-width: 760px) { .ctf-resumo { grid-template-columns: repeat(2, 1fr); } }
