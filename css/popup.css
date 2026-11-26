@@ -943,7 +943,7 @@
 /* Com a barra do rodapé aberta, a área das telas (e o menu lateral) termina acima dela:
    o fim das telas não fica escondido atrás da barra (--barra-janelas-altura, js/janelas.js). */
 .janelas-independentes .layout {
-    height: calc(94vh - var(--barra-janelas-altura, 0px));
+    height: calc(100vh - var(--toolbar-altura, 6vh) - var(--barra-janelas-altura, 0px));
 }
 
 @media (max-width: 760px) {

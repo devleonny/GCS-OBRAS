@@ -1,23 +1,26 @@
-// ---------------- Financeiro → Fluxo de Caixa (21/11/2026) ----------------
-// Dados: POST financeiro/fluxo (gcs SCRIPTS/financeiro_fluxo.js). Responde, nesta ordem:
-//   quanto dá para gastar (livre = menor saldo previsto no horizonte − reserva mínima; por dia útil),
-//   se há dinheiro na semana que vem, quando o saldo fica abaixo da reserva, e de onde vem / para onde vai.
-// Duas linhas para frente: "Lançado" (faturas em aberto + reembolsos pedidos) e "Com previsões" (+ o que costuma
-// acontecer todo mês e ainda não foi lançado). O livre usa o pior das duas.
-// Passado = extrato do banco (Conciliação bancária): saldo e realizado dos bancos com OFX vêm das linhas do extrato
-// (d.bancos); contas sem extrato, da conferência manual (Conferir saldos). O GCS fica com o que vem pela frente;
-// d.ja_no_extrato = faturas em aberto já vistas no extrato, fora da previsão. Planejamento = reserva, regras dos
-// atrasados e a trava dos pedidos de pagamento (só quem tem financeiro.planejamento).
-// Cores (dataviz): entradas azul, saídas laranja, previsões violeta tracejado, reserva vermelho; um eixo por gráfico.
+// ---------------- Financeiro → Fluxo de Caixa (21/11/2026; período e empresas combináveis em 25/11/2026) ----------------
+// Dados: POST financeiro/fluxo { apps, de, ate } (gcs SCRIPTS/financeiro_fluxo.js). A tela responde, nesta ordem:
+//   temos caixa hoje? tivemos caixa no período (ficamos no vermelho algum dia)? teremos caixa (pelo que está lançado)?
+//   e como fica o saldo dia a dia, mês a mês e semana a semana no período escolhido.
+// Período: um mês (‹ mês ›) ou de/até livre (passado, futuro ou os dois). Empresas: caixinhas combináveis; todas
+// marcadas = consolidado (os mútuos entre elas se anulam).
+// Passado = extrato do banco (Conciliação bancária); contas sem extrato, pela conferência manual (Conferir saldos).
+// Para frente = o que está lançado no GCS (faturas em aberto + reembolsos pedidos); "com previsões" soma a média do
+// que costuma acontecer e ainda não foi lançado. O bloco "Daqui para frente" (livre para gastar, semana que vem,
+// indicadores) é sempre a partir de hoje, qualquer que seja o período.
+// Cores (dataviz): saldo azul; acima do zero fundo verde claro, abaixo vermelho claro (status); previsões violeta
+// tracejado; reserva vermelho; um eixo por gráfico; zero marcado.
 
 const CORES_CX = {
     entrada: '#2a78d6', entradaClara: '#9ec5f4',
     saida: '#eb6834', saidaClara: '#f6b899',
     saldo: '#2a78d6', previsao: '#6250d6', reserva: '#e34948',
-    texto: '#52514e', grade: '#ecebe7'
+    positivo: 'rgba(31, 122, 58, 0.12)', negativo: 'rgba(198, 40, 40, 0.20)',
+    texto: '#52514e', grade: '#ecebe7', zero: '#52514e'
 }
-const estadoCx = { app: '', futuro: 90, passado: 90, dados: null, graficos: [] }
+const estadoCx = { apps: null, modo: 'MES', mes: '', de: '', ate: '', empresas: [], dados: null, graficos: [] }
 const MESES_CX = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+const MESES_LONGOS_CX = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 const ROTULO_ATRASO_CX = { NAO: 'Não entram', 30: 'Só os de até 30 dias', TODOS: 'Todos' }
 const ROTULO_TRAVA_CX = {
     DESLIGADA: 'Desligada: todos pedem pagamento normalmente',
@@ -26,10 +29,15 @@ const ROTULO_TRAVA_CX = {
 }
 
 const diaCx = iso => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : ''
+const diaAnoCx = iso => iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : ''
 const mesCx = ym => `${MESES_CX[Number(ym.slice(5, 7)) - 1]}/${ym.slice(2, 4)}`
+const mesLongoCx = ym => `${MESES_LONGOS_CX[Number(ym.slice(5, 7)) - 1]} de ${ym.slice(0, 4)}`
 const semanaCx = iso => ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(`${iso}T12:00:00Z`).getUTCDay()]
 const somarDiasCx = (iso, n) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10) }
 const segundaCx = iso => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return d.toISOString().slice(0, 10) }
+const somarMesesCx = (ym, n) => { const d = new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 1 + n, 1)); return d.toISOString().slice(0, 7) }
+const fimDoMesCx = ym => somarDiasCx(`${somarMesesCx(ym, 1)}-01`, -1)
+const hojeCx = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
 // R$ curto para eixos e cartões pequenos: R$ 1,2 mi / R$ 350 mil / R$ 980.
 function curtoCx(v) {
     const n = Number(v) || 0, a = Math.abs(n), s = n < 0 ? '−' : ''
@@ -39,42 +47,106 @@ function curtoCx(v) {
 }
 const sinalCx = v => Number(v) < 0 ? 'cx-neg' : ''
 
+// Saldo do dia: até ontem, o real (extrato); de hoje em diante, o lançado no GCS.
+const saldoDiaCx = (x, hoje) => x.dia < hoje ? x.saldo ?? null : x.saldo_lancado ?? x.saldo ?? null
+// Entrou/saiu do dia: real no passado; hoje = real + o que vence hoje; futuro = lançado.
+function movDiaCx(x, hoje) {
+    const real = { e: x.entradas || 0, s: x.saidas || 0 }
+    const lanc = { e: x.entradas_previstas || 0, s: (x.saidas_previstas || 0) + (x.reembolsos || 0) }
+    return x.dia < hoje ? real : x.dia === hoje ? { e: real.e + lanc.e, s: real.s + lanc.s } : lanc
+}
+
+function periodoCx() {
+    if (estadoCx.modo === 'MES') return { de: `${estadoCx.mes}-01`, ate: fimDoMesCx(estadoCx.mes) }
+    return { de: estadoCx.de, ate: estadoCx.ate }
+}
+
 async function telaFluxoCaixa() {
     if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
     // Overlay desde o clique no menu: a consulta leva alguns segundos e a tela parecia travada.
     overlayAguarde()
     let op = { empresas: [] }
     try { op = await carregarOpcoesFin() } catch { }
+    const hoje = hojeCx()
+    if (!estadoCx.mes) estadoCx.mes = hoje.slice(0, 7)
+    if (!estadoCx.de) estadoCx.de = `${somarMesesCx(hoje.slice(0, 7), -2)}-01`
+    if (!estadoCx.ate) estadoCx.ate = fimDoMesCx(somarMesesCx(hoje.slice(0, 7), 2))
+    estadoCx.empresas = (op.empresas || []).filter(e => e.tipo !== 'SOCIO').map(e => e.app).sort()
     tela.innerHTML = `
         <div class="fis-pagina cx-pagina">
             <header class="cx-topo">
-                <div>
-                    <h2>Fluxo de Caixa</h2>
-                    <small>Quanto dá para gastar, se há dinheiro na semana que vem e o que está por vir.</small>
-                </div>
-                <div class="cx-filtros" role="group" aria-label="Filtros">
-                    <label>Empresa
-                        <select onchange="estadoCx.app = this.value; carregarFluxoCaixa()">
-                            <option value="">Todas (consolidado)</option>
-                            ${(op.empresas || []).filter(e => e.tipo !== 'SOCIO').map(e => `<option value="${escFin(e.app)}" ${estadoCx.app === e.app ? 'selected' : ''}>${escFin(e.app)}</option>`).join('')}
-                        </select>
-                    </label>
-                    <label>Olhar para frente
-                        <select onchange="estadoCx.futuro = Number(this.value); carregarFluxoCaixa()">
-                            ${[30, 60, 90, 180].map(n => `<option value="${n}" ${estadoCx.futuro === n ? 'selected' : ''}>${n} dias</option>`).join('')}
-                        </select>
-                    </label>
-                    <label>Histórico
-                        <select onchange="estadoCx.passado = Number(this.value); carregarFluxoCaixa()">
-                            ${[30, 90, 180].map(n => `<option value="${n}" ${estadoCx.passado === n ? 'selected' : ''}>${n} dias</option>`).join('')}
-                        </select>
-                    </label>
+                <div class="cx-topo-titulo">
+                    <div>
+                        <h2>Fluxo de Caixa</h2>
+                        <small>Temos caixa? Tivemos? Vamos ter? Escolha as empresas e o período.</small>
+                    </div>
                     <div class="cx-acoes" data-cx-acoes></div>
                 </div>
+                <div class="cx-filtros" data-cx-filtros></div>
             </header>
             <div data-cx-corpo><div class="cx-carregando">Calculando o fluxo…</div></div>
         </div>`
+    desenharFiltrosCx()
     await carregarFluxoCaixa()
+}
+
+function desenharFiltrosCx() {
+    const caixa = document.querySelector('[data-cx-filtros]')
+    if (!caixa) return
+    const marcadas = estadoCx.apps || estadoCx.empresas
+    const hoje = hojeCx()
+    const atalho = (rotulo, de, ate) => `<button type="button" class="cx-atalho ${estadoCx.de === de && estadoCx.ate === ate ? 'ativo' : ''}" onclick="estadoCx.de = '${de}'; estadoCx.ate = '${ate}'; desenharFiltrosCx(); carregarFluxoCaixa()">${rotulo}</button>`
+    const mesAtual = hoje.slice(0, 7)
+    caixa.innerHTML = `
+        <div class="cx-filtro">
+            <span class="cx-filtro-rotulo">Empresas</span>
+            <div class="cx-chips" role="group" aria-label="Empresas">
+                ${estadoCx.empresas.map(a => `
+                    <label class="cx-chip ${marcadas.includes(a) ? 'ativo' : ''}">
+                        <input type="checkbox" value="${escFin(a)}" ${marcadas.includes(a) ? 'checked' : ''} onchange="mudarEmpresasCx(this)">
+                        <span>${escFin(a)}</span>
+                    </label>`).join('')}
+                <button type="button" class="cx-atalho ${estadoCx.apps ? '' : 'ativo'}" onclick="estadoCx.apps = null; desenharFiltrosCx(); carregarFluxoCaixa()" title="Todas juntas: os empréstimos (mútuo) entre elas se anulam">Todas</button>
+            </div>
+        </div>
+        <div class="cx-filtro">
+            <span class="cx-filtro-rotulo">Período</span>
+            <div class="cx-linha-filtro">
+                <div class="cx-segmento" role="group" aria-label="Tipo de período">
+                    <button type="button" aria-pressed="${estadoCx.modo === 'MES'}" class="${estadoCx.modo === 'MES' ? 'ativo' : ''}" onclick="estadoCx.modo = 'MES'; desenharFiltrosCx(); carregarFluxoCaixa()">Mês</button>
+                    <button type="button" aria-pressed="${estadoCx.modo === 'PERIODO'}" class="${estadoCx.modo === 'PERIODO' ? 'ativo' : ''}" onclick="estadoCx.modo = 'PERIODO'; desenharFiltrosCx(); carregarFluxoCaixa()">De / até</button>
+                </div>
+                ${estadoCx.modo === 'MES' ? `
+                    <div class="cx-mes-nav">
+                        <button type="button" class="cx-seta" title="Mês anterior" onclick="estadoCx.mes = somarMesesCx(estadoCx.mes, -1); desenharFiltrosCx(); carregarFluxoCaixa()">‹</button>
+                        <input type="month" value="${escFin(estadoCx.mes)}" onchange="if (this.value) { estadoCx.mes = this.value; desenharFiltrosCx(); carregarFluxoCaixa() }">
+                        <button type="button" class="cx-seta" title="Próximo mês" onclick="estadoCx.mes = somarMesesCx(estadoCx.mes, 1); desenharFiltrosCx(); carregarFluxoCaixa()">›</button>
+                        ${estadoCx.mes !== mesAtual ? `<button type="button" class="cx-atalho" onclick="estadoCx.mes = '${mesAtual}'; desenharFiltrosCx(); carregarFluxoCaixa()">Este mês</button>` : ''}
+                    </div>` : `
+                    <div class="cx-datas">
+                        <label>de <input type="date" value="${escFin(estadoCx.de)}" onchange="if (this.value) { estadoCx.de = this.value; desenharFiltrosCx(); carregarFluxoCaixa() }"></label>
+                        <label>até <input type="date" value="${escFin(estadoCx.ate)}" onchange="if (this.value) { estadoCx.ate = this.value; desenharFiltrosCx(); carregarFluxoCaixa() }"></label>
+                    </div>
+                    <div class="cx-atalhos">
+                        ${atalho('Últimos 3 meses', `${somarMesesCx(mesAtual, -3)}-01`, hoje)}
+                        ${atalho('Próximos 3 meses', hoje, fimDoMesCx(somarMesesCx(mesAtual, 2)))}
+                        ${atalho('3 antes e 3 depois', `${somarMesesCx(mesAtual, -2)}-01`, fimDoMesCx(somarMesesCx(mesAtual, 2)))}
+                        ${atalho(`Ano de ${hoje.slice(0, 4)}`, `${hoje.slice(0, 4)}-01-01`, `${hoje.slice(0, 4)}-12-31`)}
+                    </div>`}
+            </div>
+        </div>`
+}
+
+// Caixinhas de empresa: todas marcadas = consolidado (null). Não deixa desmarcar a última.
+let esperaEmpresasCx = null
+function mudarEmpresasCx(caixinha) {
+    const marcadas = [...document.querySelectorAll('[data-cx-filtros] .cx-chip input:checked')].map(i => i.value)
+    if (!marcadas.length) { caixinha.checked = true; return }
+    estadoCx.apps = marcadas.length === estadoCx.empresas.length ? null : marcadas
+    caixinha.closest('.cx-chip').classList.toggle('ativo', caixinha.checked)
+    document.querySelector('[data-cx-filtros] .cx-chips > .cx-atalho')?.classList.toggle('ativo', !estadoCx.apps)
+    clearTimeout(esperaEmpresasCx)
+    esperaEmpresasCx = setTimeout(carregarFluxoCaixa, 450)
 }
 
 async function carregarFluxoCaixa() {
@@ -82,8 +154,9 @@ async function carregarFluxoCaixa() {
     if (!corpo) return removerOverlay()
     corpo.classList.add('cx-atualizando')
     overlayAguarde()
+    const { de, ate } = periodoCx()
     try {
-        estadoCx.dados = await apiFin('fluxo', { app: estadoCx.app || null, futuro: estadoCx.futuro, passado: estadoCx.passado })
+        estadoCx.dados = await apiFin('fluxo', { apps: estadoCx.apps, de, ate })
         desenharFluxoCaixa()
     } catch (err) {
         corpo.innerHTML = `<div class="fis-vazio">Não deu para calcular o fluxo: ${mensagemErroEst(err)}
@@ -91,6 +164,28 @@ async function carregarFluxoCaixa() {
     } finally {
         corpo.classList.remove('cx-atualizando')
         removerOverlay()
+    }
+}
+
+// Resumo do período a partir da série diária: dias passados (real) e daqui para frente (lançado).
+function resumoPeriodoCx(d) {
+    const hoje = d.hoje
+    const serie = d.serie
+    const valor = x => saldoDiaCx(x, hoje)
+    const pior = lista => lista.reduce((m, x) => { const v = valor(x); return v !== null && (!m || v < m.valor) ? { valor: v, dia: x.dia } : m }, null)
+    const passado = serie.filter(x => x.dia <= hoje)
+    const futuro = serie.filter(x => x.dia >= hoje)
+    const negPassado = passado.filter(x => x.dia < hoje && valor(x) !== null && valor(x) < 0)
+    const negFuturo = futuro.filter(x => valor(x) !== null && valor(x) < 0)
+    let entrou = 0, saiu = 0
+    for (const x of serie) { const m = movDiaCx(x, hoje); entrou += m.e; saiu += m.s }
+    const ultimo = serie[serie.length - 1]
+    const previsaoMin = futuro.reduce((m, x) => x.saldo_previsao !== undefined && (!m || x.saldo_previsao < m.valor) ? { valor: x.saldo_previsao, dia: x.dia } : m, null)
+    return {
+        passado, futuro, negPassado, negFuturo, entrou, saiu,
+        piorPassado: pior(passado.filter(x => x.dia < hoje).concat(passado.filter(x => x.dia === hoje).map(x => ({ ...x, saldo_lancado: x.saldo })))),
+        piorFuturo: pior(futuro), previsaoMin,
+        fim: ultimo ? { valor: valor(ultimo), dia: ultimo.dia } : null
     }
 }
 
@@ -104,66 +199,92 @@ function desenharFluxoCaixa() {
         ${d.pode_planejar ? '<button type="button" class="fis-mini" onclick="planejamentoCx()">Planejamento e trava</button>' : ''}
         ${pode('financeiro.lote_salarios') ? '<button type="button" class="fis-mini" onclick="telaLotesSalarios()">Lote de salários</button>' : ''}`
 
+    const r = resumoPeriodoCx(d)
+    const { de, ate } = d.periodo
+    const nomePeriodo = estadoCx.modo === 'MES' ? mesLongoCx(de.slice(0, 7)) : `${diaAnoCx(de)} a ${diaAnoCx(ate)}`
+    const quem = d.apps ? d.apps.join(' + ') : 'todas as empresas'
+    const meses = mesesCx(d)
     const semanas = semanasCx(d)
+    const semSaldo = !d.tem_saldo
+
     corpo.innerHTML = `
         ${avisosCx(d)}
+        <div class="cx-faixa-periodo"><b>${escFin(nomePeriodo)}</b> · ${escFin(quem)}</div>
         <section class="cx-respostas" aria-label="Respostas rápidas">
-            ${cartaoCx({
-                titulo: `Livre para gastar nos próximos ${k.horizonte} dias`, valor: d.tem_saldo ? k.livre : null, destaque: true,
-                nota: !d.tem_saldo ? 'Precisa do saldo das contas conferido com o extrato para calcular.' : k.livre > 0
-                    ? `Menor saldo previsto: ${dinheiro(k.menor_horizonte.valor)} em ${diaCx(k.menor_horizonte.dia)}${k.reserva ? `, menos a reserva de ${dinheiro(k.reserva)}` : ''}.`
-                    : `Sem folga: no dia ${diaCx(k.menor_horizonte.dia)} o saldo previsto fica em ${dinheiro(k.menor_horizonte.valor)}${k.reserva ? ` (reserva: ${dinheiro(k.reserva)})` : ''}.`
+            ${respostaCx({
+                titulo: 'Temos caixa hoje?', valor: semSaldo ? null : d.saldo_hoje,
+                selo: semSaldo ? null : d.saldo_hoje >= 0 ? ['ok', 'Sim'] : ['perigo', 'No vermelho'],
+                nota: semSaldo ? 'Nenhum extrato importado nem conta conferida ainda.' : notaSaldoCx(d)
             })}
-            ${cartaoCx({
-                titulo: 'Dá para gastar por dia útil', valor: d.tem_saldo ? k.por_dia : null,
-                nota: !d.tem_saldo ? 'Idem: depende do saldo de partida.' : k.por_dia > 0 ? `${dinheiro(k.por_semana)} por semana · ${k.dias_uteis} dias úteis no período` : 'Novos gastos só com nova entrada ou adiando contas.'
+            ${respostaCx({
+                titulo: `Tivemos caixa? ${r.passado.length ? `(${diaCx(r.passado[0].dia)} a ${diaCx(r.passado[r.passado.length - 1].dia)})` : ''}`,
+                valor: !r.passado.length || semSaldo || !r.piorPassado ? null : r.piorPassado.valor, rotuloValor: 'menor saldo',
+                selo: !r.passado.length || semSaldo ? null : r.negPassado.length ? ['perigo', `${r.negPassado.length} ${r.negPassado.length === 1 ? 'dia' : 'dias'} no vermelho`] : ['ok', 'Sempre positivo'],
+                nota: !r.passado.length ? 'O período escolhido ainda não começou.'
+                    : semSaldo ? 'Sem saldo de partida.'
+                    : r.negPassado.length ? `Pior dia: ${diaCx(r.piorPassado.dia)} (${semanaCx(r.piorPassado.dia)}). Primeiro dia no vermelho: ${diaCx(r.negPassado[0].dia)}.`
+                    : `Menor saldo em ${diaCx(r.piorPassado.dia)} (${semanaCx(r.piorPassado.dia)}).`
             })}
-            ${cartaoCx({
-                titulo: `Semana que vem (${diaCx(k.proxima_semana.de)} a ${diaCx(k.proxima_semana.ate)})`, valor: k.proxima_semana.saldo_fim,
-                nota: `Entra ${dinheiro(k.proxima_semana.entradas)} · sai ${dinheiro(k.proxima_semana.saidas)}${k.proxima_semana.saidas_provaveis ? ` · mais ${dinheiro(k.proxima_semana.saidas_provaveis)} previstos` : ''}`
+            ${respostaCx({
+                titulo: `Teremos caixa? ${r.futuro.length ? `(até ${diaCx(r.futuro[r.futuro.length - 1].dia)})` : ''}`,
+                valor: !r.futuro.length || semSaldo || !r.piorFuturo ? null : r.piorFuturo.valor, rotuloValor: 'menor saldo previsto',
+                selo: !r.futuro.length || semSaldo ? null : r.negFuturo.length ? ['perigo', `Vermelho a partir de ${diaCx(r.negFuturo[0].dia)}`] : ['ok', 'Positivo no período'],
+                nota: !r.futuro.length ? 'O período escolhido já passou.'
+                    : semSaldo ? 'Sem saldo de partida.'
+                    : `Pelo que está lançado, o pior dia é ${diaCx(r.piorFuturo.dia)} (${semanaCx(r.piorFuturo.dia)}).${r.previsaoMin && Math.abs(r.previsaoMin.valor - r.piorFuturo.valor) > 1 ? ` Somando as previsões pela média: ${dinheiro(r.previsaoMin.valor)}.` : ''}`
             })}
-            ${cartaoCx({
-                titulo: 'Saldo hoje (pelo extrato do banco)', valor: k.saldo_hoje,
-                nota: d.tem_saldo
-                    ? `${notaSaldoCx(d)}${k.folego_dias !== null ? ` · dá para ${k.folego_dias} dias no ritmo atual` : ''}`
-                    : 'Nenhum extrato importado nem conta conferida ainda.'
+            ${respostaCx({
+                titulo: `Saldo no fim (${r.fim ? diaCx(r.fim.dia) : '—'})`, valor: semSaldo || !r.fim ? null : r.fim.valor,
+                nota: `No período: entrou ${dinheiro(r.entrou)} e saiu ${dinheiro(r.saiu)} (${r.entrou - r.saiu >= 0 ? 'sobrou' : 'faltou'} ${dinheiro(Math.abs(r.entrou - r.saiu))}).`
             })}
-        </section>
-
-        <section class="cx-indicadores" aria-label="Indicadores">
-            ${miniCx('Gasto médio por dia (30 dias)', dinheiro(k.gasto_dia_30), comparacaoCx(k.gasto_dia_30, k.gasto_dia_90, 'que a média de 90 dias', true))}
-            ${miniCx('Entrada média por dia (90 dias)', dinheiro(k.entrada_dia_90), k.gasto_dia_90 ? `${k.entrada_dia_90 >= k.gasto_dia_90 ? 'Acima' : 'Abaixo'} do gasto médio (${dinheiro(k.gasto_dia_90)})` : '')}
-            ${miniCx('Cobertura dos próximos 30 dias', k.cobertura_30 === null ? '—' : `${k.cobertura_30.toLocaleString('pt-BR')}×`, `Entra ${dinheiro(k.entradas_30)} para ${dinheiro(k.saidas_30)} lançados`, k.cobertura_30 !== null && k.cobertura_30 < 1)}
-            ${miniCx('Tendência das saídas', tendenciaCx(k.tendencia_saidas), 'Ritmo dos últimos 12 meses fechados', k.tendencia_saidas?.por_mes > 0)}
-            ${miniCx('Tendência das entradas', tendenciaCx(k.tendencia_entradas), 'Ritmo dos últimos 12 meses fechados', k.tendencia_entradas?.por_mes < 0)}
-            ${miniCx('A receber em atraso', dinheiro(d.atrasados.RECEBER.valor), `${d.atrasados.RECEBER.n} faturas · ${d.atrasados.RECEBER.incluido ? `${dinheiro(d.atrasados.RECEBER.incluido)} contados hoje` : 'fora do saldo previsto'}`, d.atrasados.RECEBER.valor > 0)}
-            ${miniCx('A pagar em atraso', dinheiro(d.atrasados.PAGAR.valor), `${d.atrasados.PAGAR.n} faturas · ${dinheiro(d.atrasados.PAGAR.incluido)} contados hoje`, d.atrasados.PAGAR.valor > 0)}
-            ${miniCx('Reembolsos esperando aprovação', dinheiro(d.reembolsos_pendentes), 'Já entram no saldo lançado')}
         </section>
 
         <section class="cx-bloco">
             <div class="cx-bloco-topo">
                 <h3>Saldo dia a dia</h3>
-                <small>Linha cheia: real até hoje e o que já está lançado. Tracejada: com as previsões pela média.${k.reserva ? ' Vermelha: reserva mínima.' : ''}</small>
+                <small>Acima do zero (verde): com caixa. Abaixo (vermelho): no vermelho. Linha cheia: o que aconteceu (extrato). Tracejada: o que está lançado no GCS.${r.futuro.length ? ' Roxa: somando as previsões pela média.' : ''}${k.reserva ? ' Vermelha fina: reserva mínima.' : ''}</small>
             </div>
-            <div class="cx-grafico cx-grafico-alto"><canvas data-cx-saldo aria-label="Saldo diário" role="img"></canvas></div>
+            <div class="cx-grafico cx-grafico-alto"><canvas data-cx-saldo aria-label="Saldo diário no período" role="img"></canvas></div>
         </section>
 
+        ${meses.length > 1 || estadoCx.modo === 'PERIODO' ? `
         <section class="cx-bloco">
-            <div class="cx-bloco-topo">
-                <h3>Semana a semana</h3>
-                <small>Cada semana de segunda a domingo. A parte clara das barras é previsão pela média (ainda não lançada).</small>
-            </div>
-            <div class="cx-grafico"><canvas data-cx-semanas aria-label="Entradas e saídas por semana" role="img"></canvas></div>
+            <div class="cx-bloco-topo"><h3>Mês a mês</h3><small>Clique num mês para abrir só ele. Entrou/saiu não contam transferências entre contas, resgates e aplicações nem mútuo entre as empresas: por isso o saldo pode variar diferente do resultado.</small></div>
+            ${tabelaMesesCx(meses, k.reserva)}
+        </section>` : ''}
+
+        ${semanas.length ? `
+        <section class="cx-bloco">
+            <div class="cx-bloco-topo"><h3>Semana a semana</h3><small>De segunda a domingo, dentro do período (até uns 2 meses).</small></div>
             ${tabelaSemanasCx(semanas, k.reserva)}
-        </section>
+        </section>` : ''}
 
-        <section class="cx-bloco">
-            <div class="cx-bloco-topo">
-                <h3>Mês a mês e tendência</h3>
-                <small>Meses fechados: o que entrou e saiu de verdade. Mês atual e próximos: realizado + lançado + previsão (parte clara). Linhas tracejadas: tendência.</small>
+        <section class="cx-bloco cx-daqui">
+            <div class="cx-bloco-topo"><h3>Daqui para frente</h3><small>Sempre a partir de hoje, para planejar (não muda com o período).</small></div>
+            <div class="cx-respostas">
+                ${cartaoCx({
+                    titulo: `Livre para gastar nos próximos ${k.horizonte} dias`, valor: d.tem_saldo ? k.livre : null, destaque: true,
+                    nota: !d.tem_saldo ? 'Precisa do saldo das contas conferido com o extrato para calcular.' : k.livre > 0
+                        ? `Menor saldo previsto: ${dinheiro(k.menor_horizonte.valor)} em ${diaCx(k.menor_horizonte.dia)}${k.reserva ? `, menos a reserva de ${dinheiro(k.reserva)}` : ''}.`
+                        : `Sem folga: no dia ${diaCx(k.menor_horizonte.dia)} o saldo previsto fica em ${dinheiro(k.menor_horizonte.valor)}${k.reserva ? ` (reserva: ${dinheiro(k.reserva)})` : ''}.`
+                })}
+                ${cartaoCx({
+                    titulo: 'Dá para gastar por dia útil', valor: d.tem_saldo ? k.por_dia : null,
+                    nota: !d.tem_saldo ? 'Idem: depende do saldo de partida.' : k.por_dia > 0 ? `${dinheiro(k.por_semana)} por semana · ${k.dias_uteis} dias úteis no período` : 'Novos gastos só com nova entrada ou adiando contas.'
+                })}
+                ${cartaoCx({
+                    titulo: `Semana que vem (${diaCx(k.proxima_semana.de)} a ${diaCx(k.proxima_semana.ate)})`, valor: k.proxima_semana.saldo_fim,
+                    nota: `Entra ${dinheiro(k.proxima_semana.entradas)} · sai ${dinheiro(k.proxima_semana.saidas)}${k.proxima_semana.saidas_provaveis ? ` · mais ${dinheiro(k.proxima_semana.saidas_provaveis)} previstos` : ''}`
+                })}
             </div>
-            <div class="cx-grafico"><canvas data-cx-meses aria-label="Entradas e saídas por mês" role="img"></canvas></div>
+            <div class="cx-indicadores">
+                ${miniCx('Gasto médio por dia (30 dias)', dinheiro(k.gasto_dia_30), comparacaoCx(k.gasto_dia_30, k.gasto_dia_90, 'que a média de 90 dias', true))}
+                ${miniCx('Entrada média por dia (90 dias)', dinheiro(k.entrada_dia_90), k.gasto_dia_90 ? `${k.entrada_dia_90 >= k.gasto_dia_90 ? 'Acima' : 'Abaixo'} do gasto médio (${dinheiro(k.gasto_dia_90)})` : '')}
+                ${miniCx('Cobertura dos próximos 30 dias', k.cobertura_30 === null ? '—' : `${k.cobertura_30.toLocaleString('pt-BR')}×`, `Entra ${dinheiro(k.entradas_30)} para ${dinheiro(k.saidas_30)} lançados`, k.cobertura_30 !== null && k.cobertura_30 < 1)}
+                ${miniCx('A receber em atraso', dinheiro(d.atrasados.RECEBER.valor), `${d.atrasados.RECEBER.n} faturas · ${d.atrasados.RECEBER.incluido ? `${dinheiro(d.atrasados.RECEBER.incluido)} contados hoje` : 'fora do saldo previsto'}`, d.atrasados.RECEBER.valor > 0)}
+                ${miniCx('A pagar em atraso', dinheiro(d.atrasados.PAGAR.valor), `${d.atrasados.PAGAR.n} faturas · ${dinheiro(d.atrasados.PAGAR.incluido)} contados hoje`, d.atrasados.PAGAR.valor > 0)}
+                ${miniCx('Reembolsos esperando aprovação', dinheiro(d.reembolsos_pendentes), 'Já entram no saldo lançado')}
+            </div>
         </section>
 
         <div class="cx-duas">
@@ -199,11 +320,13 @@ function desenharFluxoCaixa() {
             <details>
                 <summary><b>Como ler este painel</b></summary>
                 <ul>
-                    <li><b>O que já aconteceu vem do banco</b>: nas contas com extrato importado na Conciliação bancária, o saldo de hoje é o saldo do banco no fim do extrato (mais os pagamentos e recebimentos registrados no GCS depois disso), e as entradas e saídas do histórico são as linhas do extrato. Transferências entre as empresas do grupo mexem no saldo, mas não contam como entrada nem saída.</li>
+                    <li><b>Empresas</b>: marque uma ou várias. Todas marcadas = o grupo inteiro: os empréstimos (mútuo) e transferências entre as empresas mexem no saldo de cada uma, mas não contam como entrada nem saída.</li>
+                    <li><b>Período</b>: um mês (setas ‹ ›) ou de/até livre. Pode ser só passado, só futuro ou os dois. O bloco <b>Daqui para frente</b> é sempre a partir de hoje.</li>
+                    <li><b>O que já aconteceu vem do banco</b>: nas contas com extrato importado na Conciliação bancária, o saldo é o do banco e as entradas e saídas são as linhas do extrato.${d.extrato_desde ? ` Há extrato desde ${diaAnoCx(d.extrato_desde)}; antes disso o saldo é estimado pelas baixas do GCS.` : ''}</li>
                     <li><b>Contas sem extrato</b>: entram pelo saldo conferido à mão (botão Conferir saldos) mais as baixas do GCS. Sem conferência ficam fora para não distorcer.</li>
-                    <li><b>O que vem pela frente vem do GCS</b>: saldo + tudo que está nas faturas a pagar e a receber, no dia do vencimento, mais os reembolsos pedidos que esperam aprovação. Fatura em aberto que já aparece no extrato com o mesmo valor (paga ou recebida sem baixa) fica fora, para não contar duas vezes.</li>
-                    <li><b>Com previsões</b>: soma o que acontece todo mês (categoria presente em 3 dos 4 últimos meses) e ainda falta lançar, no dia de costume, pela média dos 3 últimos meses.</li>
-                    <li><b>Livre para gastar</b>: o menor saldo do período, pelo pior das duas linhas, menos a reserva mínima. É o que dá para comprometer sem o caixa furar a reserva em nenhum dia.</li>
+                    <li><b>O que vem pela frente vem do GCS</b>: tudo que está nas faturas a pagar e a receber, no dia do vencimento, mais os reembolsos pedidos que esperam aprovação. Fatura em aberto que já aparece no extrato com o mesmo valor fica fora, para não contar duas vezes.</li>
+                    <li><b>Com previsões</b> (linha roxa): soma o que acontece todo mês (categoria presente em 3 dos 4 últimos meses) e ainda falta lançar, pela média dos 3 últimos meses.</li>
+                    <li><b>Livre para gastar</b>: o menor saldo dos próximos dias, pelo pior das duas linhas, menos a reserva mínima.</li>
                     <li><b>Atrasados</b>: hoje ${escFin(ROTULO_ATRASO_CX[d.plan.atrasados_pagar].toLowerCase())} os a pagar e ${escFin(ROTULO_ATRASO_CX[d.plan.atrasados_receber].toLowerCase())} os a receber (entram como se fossem pagos hoje). Muda em Planejamento e trava.</li>
                     <li><b>Trava</b>: com a trava ligada ou automática sem folga, o servidor recusa novos pedidos em Reembolsos → Solicitar Pagamento (menos para quem estiver liberado na Central de acessos).</li>
                 </ul>
@@ -211,7 +334,7 @@ function desenharFluxoCaixa() {
         </section>`
 
     estadoCx.graficos.forEach(g => g?.destroy())
-    estadoCx.graficos = [graficoSaldoCx(d), graficoSemanasCx(semanas), graficoMesesCx(d)]
+    estadoCx.graficos = [graficoSaldoCx(d)]
 }
 
 // ---------------- pedaços
@@ -228,6 +351,8 @@ function avisosCx(d) {
         if (faltam.length) avisos.push(['info', `${faltam.length} conta(s) com movimento sem extrato importado nem conferência ficaram fora do saldo.
             ${conciliar} ${d.pode_planejar ? '<button type="button" class="fis-mini" onclick="conferirSaldosCx()">Conferir</button>' : ''}`])
     }
+    if (d.extrato_desde && d.periodo.de < d.extrato_desde)
+        avisos.push(['info', `Antes de ${diaAnoCx(d.extrato_desde)} não há extrato importado: o saldo desses dias é estimado pelas baixas do GCS e pode não bater com o banco.`])
     for (const b of (d.bancos || []).filter(b => !b.fora && b.dias_sem_extrato > 3))
         avisos.push(['alerta', `O extrato de <b>${escFin(b.nome)}</b> vai só até ${diaCx(b.fim)} (${b.dias_sem_extrato} dias). Depois disso o saldo soma o que foi registrado no GCS. ${conciliar}`])
     const ja = d.ja_no_extrato
@@ -261,6 +386,17 @@ function notaSaldoCx(d) {
     return partes.join(' + ')
 }
 
+// Cartão de resposta: pergunta, valor grande, selo de situação (ícone + texto, nunca só cor) e a explicação.
+function respostaCx({ titulo, valor, selo = null, nota = '', rotuloValor = '' }) {
+    return `
+        <article class="cx-cartao cx-resposta ${selo ? `cx-resposta-${selo[0]}` : ''}">
+            <span class="cx-cartao-titulo">${escFin(titulo)}</span>
+            ${selo ? `<span class="cx-selo cx-selo-${selo[0]}">${selo[0] === 'ok' ? '●' : '▲'} ${escFin(selo[1])}</span>` : ''}
+            <b class="cx-cartao-valor ${sinalCx(valor)}">${valor === null ? '—' : dinheiro(valor)}${rotuloValor && valor !== null ? ` <small>${escFin(rotuloValor)}</small>` : ''}</b>
+            <small>${nota}</small>
+        </article>`
+}
+
 function cartaoCx({ titulo, valor, nota = '', destaque = false }) {
     return `
         <article class="cx-cartao ${destaque ? 'cx-cartao-destaque' : ''}">
@@ -282,48 +418,74 @@ function comparacaoCx(atual, base, texto, subirRuim) {
     return `<span class="${(pct > 0) === subirRuim ? 'cx-ruim' : 'cx-bom'}">${pct > 0 ? '▲' : '▼'} ${Math.abs(pct)}%</span> ${pct > 0 ? 'acima' : 'abaixo'} ${texto.replace(/^que /, 'da ')}`
 }
 
-const tendenciaCx = t => !t ? '—' : `${t.por_mes >= 0 ? '▲' : '▼'} ${curtoCx(Math.abs(t.por_mes))}/mês <small>(${t.pct > 0 ? '+' : ''}${t.pct.toLocaleString('pt-BR')}%)</small>`
-
-function semanasCx(d) {
-    const futuro = d.serie.filter(x => x.dia >= d.hoje)
-    const semanas = new Map()
-    for (const x of futuro) {
-        const seg = segundaCx(x.dia)
-        if (!semanas.has(seg)) semanas.set(seg, { de: seg, ate: somarDiasCx(seg, 6), entradas: 0, saidas: 0, entradas_prov: 0, saidas_prov: 0, menor: Infinity })
-        const s = semanas.get(seg)
-        s.entradas += x.entradas_previstas
-        s.saidas += x.saidas_previstas + x.reembolsos
-        s.entradas_prov += x.entradas_provaveis
-        s.saidas_prov += x.saidas_provaveis
-        s.fim = x.saldo_lancado
-        s.fim_prev = x.saldo_previsao
-        s.menor = Math.min(s.menor, x.saldo_lancado, x.saldo_previsao)
+// Agrupa a série do período (real no passado, lançado para frente) em blocos: mês ou semana.
+function agruparCx(d, chaveDe) {
+    const hoje = d.hoje
+    const grupos = new Map()
+    for (const x of d.serie) {
+        const ch = chaveDe(x.dia)
+        if (!grupos.has(ch)) grupos.set(ch, { chave: ch, de: x.dia, ate: x.dia, entradas: 0, saidas: 0, menor: null, menor_dia: null, negativos: 0, abaixo: 0, fim: null, passado: 0, futuro: 0 })
+        const g = grupos.get(ch)
+        const m = movDiaCx(x, hoje)
+        const v = saldoDiaCx(x, hoje)
+        g.ate = x.dia
+        g.entradas += m.e
+        g.saidas += m.s
+        if (v !== null) {
+            if (g.menor === null || v < g.menor) { g.menor = v; g.menor_dia = x.dia }
+            if (v < 0) g.negativos++
+            if (v < (d.kpis.reserva || 0)) g.abaixo++
+            g.fim = v
+        }
+        if (x.dia < hoje) g.passado++; else g.futuro++
     }
-    return [...semanas.values()]
+    return [...grupos.values()]
+}
+const mesesCx = d => agruparCx(d, dia => dia.slice(0, 7))
+const semanasCx = d => d.serie.length > 70 ? [] : agruparCx(d, segundaCx)
+
+function situacaoCx(g, reserva) {
+    if (g.menor === null) return ['', '—']
+    if (g.negativos) return ['perigo', `${g.negativos} ${g.negativos === 1 ? 'dia' : 'dias'} no vermelho`]
+    if (reserva && g.abaixo) return ['alerta', `${g.abaixo} ${g.abaixo === 1 ? 'dia' : 'dias'} abaixo da reserva`]
+    return ['ok', 'Sempre positivo']
+}
+
+function linhaGrupoCx(g, rotulo, reserva, clique = '') {
+    const res = g.entradas - g.saidas
+    const sit = situacaoCx(g, reserva)
+    const tempo = !g.futuro ? 'aconteceu' : !g.passado ? 'lançado' : 'real + lançado'
+    return `
+        <tr ${clique ? `class="cx-linha-clicavel" onclick="${clique}" title="Abrir só este mês"` : ''}>
+            <td>${rotulo} <small class="cx-tempo">${tempo}</small></td>
+            <td class="fis-num">${dinheiro(g.entradas)}</td>
+            <td class="fis-num">${dinheiro(g.saidas)}</td>
+            <td class="fis-num ${sinalCx(res)}">${dinheiro(res)}</td>
+            <td class="fis-num ${sinalCx(g.fim)}"><b>${g.fim === null ? '—' : dinheiro(g.fim)}</b></td>
+            <td class="fis-num ${sinalCx(g.menor)}">${g.menor === null ? '—' : `${dinheiro(g.menor)} <small>${diaCx(g.menor_dia)}</small>`}</td>
+            <td>${sit[0] ? `<span class="cx-selo cx-selo-${sit[0]}">${sit[0] === 'ok' ? '●' : '▲'} ${sit[1]}</span>` : sit[1]}</td>
+        </tr>`
+}
+
+const cabecaGruposCx = primeira => `<thead><tr><th>${primeira}</th><th class="fis-num">Entrou</th><th class="fis-num">Saiu</th><th class="fis-num">Resultado</th>
+    <th class="fis-num">Saldo no fim</th><th class="fis-num">Menor saldo</th><th>Situação</th></tr></thead>`
+
+function tabelaMesesCx(meses, reserva) {
+    return `
+        <div class="fis-tabela-rolagem cx-tabela-semanas">
+            <table class="fis-tabela">
+                ${cabecaGruposCx('Mês')}
+                <tbody>${meses.map(g => linhaGrupoCx(g, mesCx(g.chave), reserva, `estadoCx.modo = 'MES'; estadoCx.mes = '${g.chave}'; desenharFiltrosCx(); carregarFluxoCaixa()`)).join('')}</tbody>
+            </table>
+        </div>`
 }
 
 function tabelaSemanasCx(semanas, reserva) {
     return `
         <div class="fis-tabela-rolagem cx-tabela-semanas">
             <table class="fis-tabela">
-                <thead><tr><th>Semana</th><th class="fis-num">Entra (lançado)</th><th class="fis-num">Sai (lançado)</th><th class="fis-num">Resultado</th>
-                    <th class="fis-num">Previsão a mais</th><th class="fis-num">Saldo no fim</th><th class="fis-num">Com previsões</th><th>Situação</th></tr></thead>
-                <tbody>${semanas.map(s => {
-                    const res = s.entradas - s.saidas
-                    const prev = s.entradas_prov - s.saidas_prov
-                    const situacao = s.menor < 0 ? ['perigo', 'Caixa negativo'] : s.menor < reserva ? ['alerta', 'Abaixo da reserva'] : ['ok', 'Com folga']
-                    return `
-                    <tr>
-                        <td>${diaCx(s.de)} a ${diaCx(s.ate)}</td>
-                        <td class="fis-num">${dinheiro(s.entradas)}</td>
-                        <td class="fis-num">${dinheiro(s.saidas)}</td>
-                        <td class="fis-num ${sinalCx(res)}">${dinheiro(res)}</td>
-                        <td class="fis-num ${sinalCx(prev)}">${prev ? dinheiro(prev) : '—'}</td>
-                        <td class="fis-num ${sinalCx(s.fim)}"><b>${dinheiro(s.fim)}</b></td>
-                        <td class="fis-num ${sinalCx(s.fim_prev)}">${dinheiro(s.fim_prev)}</td>
-                        <td><span class="cx-selo cx-selo-${situacao[0]}">${situacao[0] === 'ok' ? '●' : '▲'} ${situacao[1]}</span></td>
-                    </tr>`
-                }).join('')}</tbody>
+                ${cabecaGruposCx('Semana')}
+                <tbody>${semanas.map(g => linhaGrupoCx(g, `${diaCx(g.de)} a ${diaCx(g.ate)}`, reserva)).join('')}</tbody>
             </table>
         </div>`
 }
@@ -385,7 +547,7 @@ function tabelaProvaveisCx(lista) {
         </div>`
 }
 
-// ---------------- gráficos (Chart.js, um eixo cada)
+// ---------------- gráfico do saldo (Chart.js, um eixo)
 
 const linhaHojeCx = hojeIdx => ({
     id: 'linhaHojeCx',
@@ -407,124 +569,64 @@ const linhaHojeCx = hojeIdx => ({
     }
 })
 
-function baseOpcoesCx({ empilhado = false } = {}) {
-    return {
+function graficoSaldoCx(d) {
+    const canvas = document.querySelector('[data-cx-saldo]')
+    if (!canvas || typeof Chart === 'undefined' || !d.serie.length) return null
+    const hoje = d.hoje
+    const serie = d.serie
+    const hojeIdx = serie.findIndex(x => x.dia === hoje)
+    const reserva = d.kpis.reserva
+    const temFuturo = serie.some(x => x.dia > hoje)
+    const saldos = serie.map(x => saldoDiaCx(x, hoje))
+    // Índice a partir do qual a linha é "lançado" (tracejada): hoje, ou o começo se o período é todo futuro.
+    const inicioFuturo = hojeIdx >= 0 ? hojeIdx : serie[0].dia > hoje ? 0 : serie.length
+    const datasets = [{
+        label: 'Saldo', data: saldos,
+        borderColor: CORES_CX.saldo, backgroundColor: CORES_CX.saldo, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4,
+        fill: { target: { value: 0 }, above: CORES_CX.positivo, below: CORES_CX.negativo },
+        segment: { borderDash: c => c.p0DataIndex >= inicioFuturo ? [6, 4] : undefined }
+    }]
+    const comPrev = serie.map(x => x.dia >= hoje && x.saldo_previsao !== undefined ? x.saldo_previsao : null)
+    if (temFuturo && comPrev.some((v, i) => v !== null && Math.abs(v - (saldos[i] ?? v)) > 1)) datasets.push({
+        label: 'Com previsões pela média', data: comPrev,
+        borderColor: CORES_CX.previsao, backgroundColor: CORES_CX.previsao, borderWidth: 1.5, borderDash: [2, 3], pointRadius: 0, pointHoverRadius: 3, fill: false
+    })
+    if (reserva > 0) datasets.push({
+        label: 'Reserva mínima', data: serie.map(() => reserva),
+        borderColor: CORES_CX.reserva, backgroundColor: CORES_CX.reserva, borderWidth: 1, borderDash: [2, 3], pointRadius: 0, pointHoverRadius: 0, fill: false
+    })
+    const opcoes = {
         responsive: true, maintainAspectRatio: false, animation: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
-            legend: { position: 'bottom', labels: { color: CORES_CX.texto, boxWidth: 12, boxHeight: 12, usePointStyle: false } },
+            legend: { display: datasets.length > 1, position: 'bottom', labels: { color: CORES_CX.texto, boxWidth: 12, boxHeight: 12 } },
             tooltip: {
                 callbacks: {
-                    label: c => c.raw === null || c.raw === undefined ? null : `${c.dataset.label}: ${dinheiroTexto(c.raw)}`
+                    title: itens => { const x = serie[itens[0].dataIndex]; return x ? `${semanaCx(x.dia)} ${diaAnoCx(x.dia)}${x.dia > hoje ? ' (lançado)' : x.dia === hoje ? ' (hoje)' : ''}` : '' },
+                    label: c => c.raw === null || c.raw === undefined ? null : `${c.dataset.label}: ${dinheiroTexto(c.raw)}`,
+                    afterBody: itens => {
+                        const x = serie[itens[0].dataIndex]
+                        if (!x) return ''
+                        const m = movDiaCx(x, hoje)
+                        return [`Entrou: ${dinheiroTexto(m.e)}`, `Saiu: ${dinheiroTexto(m.s)}`]
+                    }
                 }
             }
         },
         scales: {
-            x: { stacked: empilhado, grid: { display: false }, ticks: { color: CORES_CX.texto, maxRotation: 0, autoSkipPadding: 14 } },
-            y: { stacked: empilhado, grid: { color: CORES_CX.grade }, border: { display: false }, ticks: { color: CORES_CX.texto, callback: v => curtoCx(v) } }
+            x: {
+                grid: { display: false },
+                ticks: { color: CORES_CX.texto, maxRotation: 0, autoSkipPadding: 16, callback: v => serie[v] ? diaCx(serie[v].dia) : '' }
+            },
+            y: {
+                border: { display: false },
+                // A linha do zero marcada: acima tem caixa, abaixo está no vermelho.
+                grid: { color: c => c.tick.value === 0 ? CORES_CX.zero : CORES_CX.grade, lineWidth: c => c.tick.value === 0 ? 1.5 : 1 },
+                ticks: { color: CORES_CX.texto, callback: v => curtoCx(v) }
+            }
         }
     }
-}
-
-function graficoSaldoCx(d) {
-    const canvas = document.querySelector('[data-cx-saldo]')
-    if (!canvas || typeof Chart === 'undefined') return null
-    const serie = d.serie
-    const hojeIdx = serie.findIndex(x => x.dia === d.hoje)
-    const reserva = d.kpis.reserva
-    const datasets = [
-        {
-            label: 'Real (até hoje)', data: serie.map(x => x.dia <= d.hoje ? x.saldo ?? null : null),
-            borderColor: '#0b0b0b', backgroundColor: '#0b0b0b', borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, spanGaps: false
-        },
-        {
-            label: 'Lançado', data: serie.map(x => x.dia >= d.hoje ? x.saldo_lancado : null),
-            borderColor: CORES_CX.saldo, backgroundColor: CORES_CX.saldo, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4
-        },
-        {
-            label: 'Com previsões', data: serie.map(x => x.dia >= d.hoje ? x.saldo_previsao : null),
-            borderColor: CORES_CX.previsao, backgroundColor: CORES_CX.previsao, borderWidth: 2, borderDash: [6, 4], pointRadius: 0, pointHoverRadius: 4
-        }
-    ]
-    if (reserva > 0) datasets.push({
-        label: 'Reserva mínima', data: serie.map(() => reserva),
-        borderColor: CORES_CX.reserva, backgroundColor: CORES_CX.reserva, borderWidth: 1.5, borderDash: [2, 3], pointRadius: 0, pointHoverRadius: 0
-    })
-    const opcoes = baseOpcoesCx()
-    opcoes.scales.x.ticks.callback = function (v) { const dia = serie[v]?.dia; return dia ? diaCx(dia) : '' }
-    opcoes.plugins.tooltip.callbacks.title = itens => { const dia = serie[itens[0].dataIndex]?.dia; return dia ? `${semanaCx(dia)} ${diaCx(dia)}` : '' }
     return new Chart(canvas, { type: 'line', data: { labels: serie.map((_, i) => i), datasets }, options: opcoes, plugins: [linhaHojeCx(hojeIdx)] })
-}
-
-function graficoSemanasCx(semanas) {
-    const canvas = document.querySelector('[data-cx-semanas]')
-    if (!canvas || typeof Chart === 'undefined') return null
-    const barra = (label, data, cor, pilha) => ({
-        label, data, backgroundColor: cor, stack: pilha, borderRadius: 4, borderSkipped: 'bottom',
-        borderColor: '#fff', borderWidth: { top: 2 }, maxBarThickness: 26
-    })
-    return new Chart(canvas, {
-        type: 'bar',
-        data: {
-            labels: semanas.map(s => diaCx(s.de)),
-            datasets: [
-                barra('Entradas lançadas', semanas.map(s => s.entradas), CORES_CX.entrada, 'e'),
-                barra('Entradas previstas', semanas.map(s => s.entradas_prov), CORES_CX.entradaClara, 'e'),
-                barra('Saídas lançadas', semanas.map(s => s.saidas), CORES_CX.saida, 's'),
-                barra('Saídas previstas', semanas.map(s => s.saidas_prov), CORES_CX.saidaClara, 's')
-            ]
-        },
-        options: (() => {
-            const o = baseOpcoesCx({ empilhado: true })
-            o.plugins.tooltip.callbacks.title = itens => { const s = semanas[itens[0].dataIndex]; return `Semana ${diaCx(s.de)} a ${diaCx(s.ate)}` }
-            return o
-        })()
-    })
-}
-
-// Tendência: reta pelos meses fechados (mínimos quadrados), esticada até o último mês do gráfico.
-function retaCx(ys) {
-    const n = ys.length
-    if (n < 3) return null
-    const mx = (n - 1) / 2, my = ys.reduce((a, b) => a + b, 0) / n
-    let num = 0, den = 0
-    ys.forEach((y, i) => { num += (i - mx) * (y - my); den += (i - mx) ** 2 })
-    const b = den ? num / den : 0
-    return i => my + b * (i - mx)
-}
-
-function graficoMesesCx(d) {
-    const canvas = document.querySelector('[data-cx-meses]')
-    if (!canvas || typeof Chart === 'undefined') return null
-    const meses = d.mensal
-    const fechados = meses.filter(m => !m.atual && !m.futuro)
-    const retaE = retaCx(fechados.map(m => m.entradas))
-    const retaS = retaCx(fechados.map(m => m.saidas))
-    const barra = (label, data, cor, pilha) => ({
-        type: 'bar', label, data, backgroundColor: cor, stack: pilha, borderRadius: 4, borderSkipped: 'bottom',
-        borderColor: '#fff', borderWidth: { top: 2 }, maxBarThickness: 28, order: 2
-    })
-    const reta = (label, f, cor) => ({
-        type: 'line', label, data: f ? meses.map((_, i) => Math.max(0, f(i))) : [], borderColor: cor, backgroundColor: cor,
-        borderWidth: 2, borderDash: [5, 4], pointRadius: 0, pointHoverRadius: 3, stack: undefined, order: 1
-    })
-    const opcoes = baseOpcoesCx()
-    opcoes.scales.x.stacked = true
-    opcoes.scales.y.stacked = true // barras por pilha (entradas | saídas); cada reta tem pilha própria
-    return new Chart(canvas, {
-        data: {
-            labels: meses.map(m => mesCx(m.mes)),
-            datasets: [
-                barra('Entradas', meses.map(m => m.entradas + m.entradas_lancadas), CORES_CX.entrada, 'e'),
-                barra('Entradas previstas', meses.map(m => m.entradas_provaveis), CORES_CX.entradaClara, 'e'),
-                barra('Saídas', meses.map(m => m.saidas + m.saidas_lancadas), CORES_CX.saida, 's'),
-                barra('Saídas previstas', meses.map(m => m.saidas_provaveis), CORES_CX.saidaClara, 's'),
-                { ...reta('Tendência das entradas', retaE, '#184f95'), stack: 'te' },
-                { ...reta('Tendência das saídas', retaS, '#a8431b'), stack: 'ts' }
-            ]
-        },
-        options: opcoes
-    })
 }
 
 // ---------------- planejamento e trava

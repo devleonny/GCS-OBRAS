@@ -50,7 +50,7 @@ async function acaoConc(rota, corpo, depois = null, mensagemOk = null) {
         const r = await apiFin(`conciliacao/${rota}`, corpo)
         removerOverlay()
         if (depois) await depois(r)
-        if (mensagemOk) popup({ mensagem: typeof mensagemOk === 'function' ? mensagemOk(r) : mensagemOk, tempo: 3 })
+        if (mensagemOk) popup({ imagem: 'imagens/concluido.png', mensagem: typeof mensagemOk === 'function' ? mensagemOk(r) : mensagemOk, tempo: 3 })
         return r
     } catch (err) {
         removerOverlay()
@@ -803,7 +803,7 @@ function listaFaturasConc() {
             depois: `<span class="cc-item-campo"><input class="fis-input fis-num cc-valor" type="number" step="0.01" min="0.01" value="${marcada ? marcadas.get(String(f.id)) : f.saldo.toFixed(2)}" data-saldo="${f.saldo}" oninput="somarFaturasConc()" title="Valor a baixar (saldo ${escFin(dinheiro(f.saldo))})">
                 <button type="button" class="fis-mini" onclick="event.preventDefault(); abrirFaturaFin(${f.id})">Ver</button></span>`
         })
-    }).join('') || (res ? vazioConc('baixa', 'Nenhuma fatura em aberto com essa busca.')
+    }).join('') || (res ? vazioConc('baixa', 'Nenhuma fatura em aberto com essa busca. Se já foi paga no GCS, procure na aba "Baixas lançadas".')
         : vazioConc('baixa', 'Nenhuma fatura em aberto parecida. Busque acima ou use "Lançar" se não existir fatura.'))
 }
 

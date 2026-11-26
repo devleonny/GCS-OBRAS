@@ -283,9 +283,9 @@
 /* Coluna Departamentos de Ver Combustíveis: departamentos à esquerda (código e valor numa linha), botão
    Dividir ao lado. A origem da divisão fica na dica do botão. */
 .comb-deps { display: flex; align-items: center; gap: 8px; min-width: 260px; }
-.comb-deps-lista { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.comb-deps-lista > div { width: 100%; }
-.comb-deps .pagamento-balao-departamento { display: flex; justify-content: space-between; align-items: center; gap: 8px; white-space: nowrap; width: 100%; box-sizing: border-box; }
+.comb-deps-lista { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+.comb-deps-lista > div { margin-left: 0 !important; margin-right: auto !important; }
+.comb-deps .pagamento-balao-departamento { display: flex; justify-content: space-between; align-items: center; gap: 8px; white-space: nowrap; width: fit-content; max-width: 100%; box-sizing: border-box; }
 .comb-deps .pagamento-balao-departamento span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .comb-deps .comb-uso { white-space: nowrap; }
 .comb-deps .comb-dividir { flex-shrink: 0; }
