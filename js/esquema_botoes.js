@@ -309,7 +309,7 @@ const esquemaBotoes = {
                 { nome: 'Controle de Faturamento', funcao: 'abrirControleFaturamento', acesso: 'financeiro.controle_faturamento', img: 'dashboard' },
                 { nome: 'Lote de Salários', funcao: 'telaLotesSalarios', acesso: 'financeiro.lote_salarios', img: 'dinheiro' },
                 { nome: 'Lote de Vale Refeição', funcao: 'telaLotesAlimentacao', acesso: 'financeiro.lote_alimentacao', img: 'alimentacao' },
-                { nome: 'Lote de Transporte', funcao: 'telaLotesTransporte', acesso: 'financeiro.lote_transporte', img: 'transporte' },
+                { nome: 'Lote de Transporte', funcao: 'telaLotesTransporte', acesso: 'financeiro.lote_transporte', svg: 'onibus' },
                 { nome: 'Faturas do Cartão', funcao: 'abrirFaturasCartaoFin', acesso: 'financeiro.cartoes', img: 'cartao' },
                 { nome: 'Contas Correntes', funcao: 'telaContasFin', acesso: 'financeiro.contas', img: 'banco' },
                 { nome: 'Categorias', funcao: 'telaCategoriasFin', acesso: 'financeiro.categorias', img: 'prancheta' },

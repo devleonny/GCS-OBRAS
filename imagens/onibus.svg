@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- rodas atrás da carroceria, grandes e escuras, com calota clara -->
+  <circle cx="13.5" cy="39" r="6" fill="#263238"/>
+  <circle cx="34.5" cy="39" r="6" fill="#263238"/>
+  <circle cx="13.5" cy="39" r="2.4" fill="#cfd8dc"/>
+  <circle cx="34.5" cy="39" r="2.4" fill="#cfd8dc"/>
+  <!-- retrovisores -->
+  <rect x="2" y="15" width="3" height="8" rx="1.5" fill="#f9a825"/>
+  <rect x="43" y="15" width="3" height="8" rx="1.5" fill="#f9a825"/>
+  <!-- carroceria -->
+  <rect x="5" y="4" width="38" height="34" rx="6" fill="#ffb300"/>
+  <!-- letreiro -->
+  <rect x="18" y="7" width="12" height="3" rx="1.5" fill="#e65100"/>
+  <!-- para-brisa -->
+  <rect x="9" y="12" width="30" height="13" rx="2.5" fill="#81d4fa"/>
+  <!-- para-choque -->
+  <rect x="5" y="32" width="38" height="4" fill="#f57f17"/>
+  <!-- faróis -->
+  <circle cx="12" cy="29.5" r="2.3" fill="#fff"/>
+  <circle cx="36" cy="29.5" r="2.3" fill="#fff"/>
+</svg>
