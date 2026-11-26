@@ -116,8 +116,10 @@ function desenharContasConc(todas) {
     const contaDv = v => String(v || '').length > 1 ? `${String(v).slice(0, -1)}-${String(v).slice(-1)}` : String(v || '')
     const cartao = c => {
         const conferida = Boolean(c.conferida_ate)
-        const total = c.casadas + c.pendentes + c.ignoradas
-        const pct = n => total ? Math.round(n * 100 / total) : 0
+        // Mesma conta do % de dentro (mês): resolvidas sobre extrato + "só no GCS", arredondado para baixo
+        // (só mostra 100% com tudo resolvido). Aqui é o período aberto todo, desde o corte/último fechamento.
+        const total = c.casadas + c.pendentes + c.ignoradas + (c.so_gcs || 0)
+        const pct = n => total ? Math.floor(n * 100 / total) : 0
         const dif = Number(c.diferenca || 0)
         const principal = (c.contas.find(k => String(k.id) === String(c.conta_principal_id)) || c.contas[0] || {}).app || '?'
         const ult = c.ultima_importacao
@@ -161,8 +163,8 @@ function desenharContasConc(todas) {
                 </div>
                 <small class="cc-saldos-dia">Saldos no fim de ${dataFin(c.saldo_dia)}</small>
                 <div class="cc-progresso">
-                    <div class="cc-barra" title="Casadas / fora do Financeiro / pendentes"><span style="width:${pct(c.casadas)}%"></span><span class="cc-barra-ign" style="width:${pct(c.ignoradas)}%"></span></div>
-                    <small>${pct(c.casadas + c.ignoradas)}% resolvido</small>
+                    <div class="cc-barra" title="Desde ${dataFin(c.inicio)}: casadas / fora do Financeiro / pendentes e só no GCS"><span style="width:${pct(c.casadas)}%"></span><span class="cc-barra-ign" style="width:${pct(c.ignoradas)}%"></span></div>
+                    <small>${pct(c.casadas + c.ignoradas)}% resolvido desde ${dataFin(c.inicio)}</small>
                 </div>
                 <div class="cc-chips">
                     <span class="cc-chip cc-chip-casada">Casadas ${c.casadas}</span>
@@ -434,7 +436,7 @@ function desenharConciliarConc() {
     const resolvidas = conta('CASADA') + conta('IGNORADA')
     const pct = todas.length ? Math.floor(resolvidas / todas.length * 100) : 0
     const progresso = todas.length ? `
-        <div class="cc-progresso ${pct === 100 ? 'cc-progresso-ok' : ''}" title="${resolvidas} de ${todas.length} resolvidas (casadas ou fora do Financeiro)">
+        <div class="cc-progresso ${pct === 100 ? 'cc-progresso-ok' : ''}" title="${resolvidas} de ${todas.length} resolvidas em ${mesNomeConc(d.mes)} (casadas ou fora do Financeiro). O % do cartão da conta é do período aberto todo.">
             <b>${pct}%</b>
             <div class="cc-progresso-barra"><span style="width:${pct}%"></span></div>
         </div>` : ''
