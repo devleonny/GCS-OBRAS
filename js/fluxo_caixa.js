@@ -14,7 +14,7 @@
 const CORES_CX = {
     entrada: '#2a78d6', entradaClara: '#9ec5f4',
     saida: '#eb6834', saidaClara: '#f6b899',
-    saldo: '#2a78d6', previsao: '#6250d6', reserva: '#e34948',
+    saldo: '#2a78d6', previsao: '#6250d6', reserva: '#8a8984', tendencia: '#d62f2f',
     // Investimentos (26/11/2026): aplicação azul, resgate laranja, rendimento/saldo aplicado verde-água
     // (validados juntos: dataviz validate_palette, modo claro).
     aplicado: '#2a78d6', resgatado: '#eb6834', investido: '#1f9e89', investidoFundo: 'rgba(31, 158, 137, 0.12)',
@@ -254,7 +254,7 @@ function desenharFluxoCaixa() {
         <section class="cx-bloco">
             <div class="cx-bloco-topo">
                 <h3>Saldo dia a dia</h3>
-                <small>Acima do zero (verde): com caixa. Abaixo (vermelho): no vermelho. Linha cheia: o que aconteceu (extrato). Tracejada: o que está lançado no GCS.${r.futuro.length ? ' Roxa: somando as previsões pela média.' : ''}${k.reserva ? ' Vermelha fina: reserva mínima.' : ''}${d.com_investimentos ? ' O saldo inclui os investimentos; a linha verde-água fina é só o que está em conta.' : ''}</small>
+                <small>Acima do zero (verde): com caixa. Abaixo (vermelho): no vermelho. Linha cheia: o que aconteceu (extrato). Tracejada: o que está lançado no GCS.${r.futuro.length ? ' Roxa: somando as previsões pela média.' : ''}${k.tendencia_saldo ? ' Vermelha tracejada: tendência pelo ritmo dos últimos 30 dias.' : ''}${k.reserva ? ' Cinza pontilhada: reserva mínima.' : ''}${d.com_investimentos ? ' O saldo inclui os investimentos; a linha verde-água fina é só o que está em conta.' : ''}</small>
             </div>
             <div class="cx-grafico cx-grafico-alto"><canvas data-cx-saldo aria-label="Saldo diário no período" role="img"></canvas></div>
         </section>
@@ -290,8 +290,12 @@ function desenharFluxoCaixa() {
                         : `Sem folga: no dia ${diaCx(k.menor_horizonte.dia)} o saldo previsto fica em ${dinheiro(k.menor_horizonte.valor)}${k.reserva ? ` (reserva: ${dinheiro(k.reserva)})` : ''}.`
                 })}
                 ${cartaoCx({
-                    titulo: 'Dá para gastar por dia útil', valor: d.tem_saldo ? k.por_dia : null,
-                    nota: !d.tem_saldo ? 'Idem: depende do saldo de partida.' : k.por_dia > 0 ? `${dinheiro(k.por_semana)} por semana · ${k.dias_uteis} dias úteis no período` : 'Novos gastos só com nova entrada ou adiando contas.'
+                    // Teto (26/11/2026, servidor kpis.teto_dia): maior gasto novo por dia útil que mantém todos os dias do
+                    // horizonte acima da reserva; o dia que limita é o gargalo.
+                    titulo: 'Teto de gasto novo por dia útil', valor: d.tem_saldo ? (k.teto_dia ? k.teto_dia.valor : k.por_dia) : null,
+                    nota: !d.tem_saldo ? 'Idem: depende do saldo de partida.' : k.teto_dia?.valor > 0
+                        ? `Além do que já está lançado: ${dinheiro(k.teto_dia.valor * 5)} por semana. Gargalo em ${diaCx(k.teto_dia.dia)} (${semanaCx(k.teto_dia.dia)}), quando sobram ${dinheiro(k.teto_dia.folga)}${k.reserva ? ' acima da reserva' : ''}.`
+                        : 'Novos gastos só com nova entrada ou adiando contas.'
                 })}
                 ${cartaoCx({
                     titulo: `Semana que vem (${diaCx(k.proxima_semana.de)} a ${diaCx(k.proxima_semana.ate)})`, valor: k.proxima_semana.saldo_fim,
@@ -975,6 +979,17 @@ function graficoSaldoCx(d) {
         label: 'Com previsões pela média', data: comPrev,
         borderColor: CORES_CX.previsao, backgroundColor: CORES_CX.previsao, borderWidth: 1.5, borderDash: [2, 3], pointRadius: 0, pointHoverRadius: 3, fill: false
     })
+    // Tendência (26/11/2026): reta do saldo real dos últimos 30 dias (servidor, kpis.tendencia_saldo), desenhada do
+    // primeiro dia usado no cálculo até o fim do período. Vermelha tracejada, no mesmo eixo do saldo.
+    const tend = d.kpis.tendencia_saldo
+    if (tend && serie.some(x => x.dia >= tend.desde)) {
+        const diasAte = iso => Math.round((Date.parse(`${iso}T12:00:00Z`) - Date.parse(`${hoje}T12:00:00Z`)) / 864e5)
+        datasets.push({
+            label: `Tendência (${tend.por_dia >= 0 ? '+' : '−'}${curtoCx(Math.abs(tend.por_dia))}/dia)`,
+            data: serie.map(x => x.dia < tend.desde ? null : Math.round((tend.em_hoje + tend.por_dia * diasAte(x.dia)) * 100) / 100),
+            borderColor: CORES_CX.tendencia, backgroundColor: CORES_CX.tendencia, borderWidth: 2, borderDash: [8, 5], pointRadius: 0, pointHoverRadius: 3, fill: false
+        })
+    }
     if (reserva > 0) datasets.push({
         label: 'Reserva mínima', data: serie.map(() => reserva),
         borderColor: CORES_CX.reserva, backgroundColor: CORES_CX.reserva, borderWidth: 1, borderDash: [2, 3], pointRadius: 0, pointHoverRadius: 0, fill: false
@@ -1511,6 +1526,16 @@ function leituraSaldoCx(d, r, meses) {
         const pior = fechados.reduce((a, m) => res(m) < res(a) ? m : a)
         achados.push({ nivel: 'info', texto: `Melhor mês: <b>${mesCx(melhor.chave)}</b> (${curtoCx(res(melhor))}); pior: <b>${mesCx(pior.chave)}</b> (${curtoCx(res(pior))}).${res(pior) < 0 ? ' Olhe o que concentrou saídas nele (Distribuição dos custos, com o período desse mês).' : ''}` })
     }
+    const tend = k.tendencia_saldo
+    if (tend && d.tem_saldo) {
+        const sobe = tend.por_dia >= 0
+        achados.push({
+            nivel: sobe ? 'ok' : tend.zera_em && tend.zera_em <= somarDiasCx(d.hoje, 30) ? 'alerta' : 'atencao',
+            texto: sobe
+                ? `Linha vermelha: no ritmo dos últimos 30 dias o saldo <b>sobe ${curtoCx(tend.por_dia)} por dia</b> (${curtoCx(tend.por_mes)} por mês).`
+                : `Linha vermelha: no ritmo dos últimos 30 dias o saldo <b>cai ${curtoCx(-tend.por_dia)} por dia</b> (${curtoCx(-tend.por_mes)} por mês).${tend.zera_em ? ` Mantido esse ritmo, <b>zera em ${diaCx(tend.zera_em)}</b> (${semanaCx(tend.zera_em)})${tend.reserva_em && tend.reserva_em < tend.zera_em ? ` e passa da reserva em ${diaCx(tend.reserva_em)}` : ''}.` : ''} É o caminho se nada mudar: entradas novas ou cortes mudam a reta.`
+        })
+    }
     const te = k.tendencia_entradas, ts = k.tendencia_saidas
     if (te && ts) {
         const gap = ts.pct - te.pct
@@ -1540,16 +1565,86 @@ function leituraEntreCx(pares, fim) {
     return leituraCx(achados)
 }
 
+// ---- Daqui para frente: próximas 2 semanas e teto de gasto (26/11/2026; servidor kpis.pior_14_lancado e teto_dia)
+const quandoCx = (iso, hoje) => {
+    const domingo = somarDiasCx(segundaCx(hoje), 6)
+    if (iso === hoje) return 'hoje'
+    if (iso <= domingo) return `nesta semana, ${semanaCx(iso)} ${diaCx(iso)}`
+    if (iso <= somarDiasCx(domingo, 7)) return `na semana que vem, ${semanaCx(iso)} ${diaCx(iso)}`
+    return `em ${diaCx(iso)} (${semanaCx(iso)})`
+}
+
+// Escolhe as maiores contas da lista até somar o que falta (para sugerir o que adiar ou antecipar).
+function cobrirCx(lista, falta) {
+    const escolhidas = []
+    let soma = 0
+    for (const p of [...lista].sort((a, b) => b.valor - a.valor)) {
+        if (soma >= falta) break
+        escolhidas.push(p)
+        soma += Number(p.valor)
+    }
+    return { escolhidas, soma }
+}
+const nomeCurtoCx = n => { const t = !n || n === '—' ? 'fatura sem fornecedor' : String(n); return t.length > 34 ? `${t.slice(0, 32).trim()}…` : t }
+const listaContasCx = l => l.map(p => `${escFin(nomeCurtoCx(p.nome))} (${curtoCx(p.valor)}, ${diaCx(p.dia)})`).join('; ')
+
+function achadosCurtoPrazoCx(d) {
+    const k = d.kpis
+    const hoje = d.hoje
+    const achados = []
+    const limite = k.reserva || 0
+    const p = k.pior_14_lancado
+    if (p && p.valor < limite) {
+        const falta = limite - p.valor
+        // Folha não se adia: fica fora das sugestões.
+        const adiar = cobrirCx((d.proximos || []).filter(x => x.tipo === 'PAGAR' && x.dia <= p.dia && x.categoria !== 'Pessoal'), falta)
+        const antecipar = cobrirCx((d.proximos || []).filter(x => x.tipo === 'RECEBER' && x.dia > p.dia), falta)
+        const atrasado = d.atrasados.RECEBER.valor
+        const caminhos = [
+            adiar.escolhidas.length ? `<b>adiar</b> ${listaContasCx(adiar.escolhidas)}${adiar.soma < falta ? ` (cobre ${curtoCx(adiar.soma)} de ${curtoCx(falta)})` : ''}` : '',
+            antecipar.escolhidas.length ? `<b>antecipar</b> ${listaContasCx(antecipar.escolhidas)}` : '',
+            atrasado > 0 ? `<b>cobrar</b> parte dos ${curtoCx(atrasado)} a receber em atraso` : ''
+        ].filter(Boolean)
+        achados.push({
+            nivel: 'alerta',
+            texto: `Pelo que está lançado, o caixa ${p.valor < 0 ? 'fica <b>negativo</b>' : 'passa da reserva'} ${quandoCx(p.dia, hoje)}: chega a <b>${curtoCx(p.valor)}</b>, faltam <b>${curtoCx(falta)}</b>${limite ? ` para manter a reserva de ${curtoCx(limite)}` : ''}.${caminhos.length ? ` Para cobrir: ${caminhos.join('; ou ')}.` : ' Não há contas a pagar não-folha nem recebimentos lançados nesses dias para mexer: só nova entrada resolve.'}`,
+            acao: `<button type="button" class="fis-mini" onclick="telaFaturasFin('PAGAR')">Faturas a pagar</button> <button type="button" class="fis-mini" onclick="telaFaturasFin('RECEBER')">Faturas a receber</button>`
+        })
+    } else if (k.pior_14 && k.pior_14.valor < limite) {
+        achados.push({ nivel: 'atencao', texto: `O lançado fecha as próximas duas semanas, mas somando as despesas que costumam acontecer e ainda não foram lançadas o saldo chega a <b>${curtoCx(k.pior_14.valor)}</b> ${quandoCx(k.pior_14.dia, hoje)}. Lance o que já se sabe que vem para a previsão ficar firme.` })
+    } else if (p) {
+        achados.push({ nivel: 'ok', texto: `Próximas duas semanas cobertas: o menor saldo previsto é ${curtoCx(Math.min(p.valor, k.pior_14?.valor ?? p.valor))} ${quandoCx(k.pior_14?.dia || p.dia, hoje)}.` })
+    }
+    const t = k.teto_dia
+    if (t) {
+        if (t.valor <= 0) achados.push({ nivel: 'alerta', texto: `<b>Sem espaço para gasto novo</b>: ${quandoCx(t.dia, hoje)} o saldo previsto já fica ${curtoCx(Math.abs(t.folga))} ${t.folga < 0 ? 'abaixo' : 'em cima'} ${limite ? 'da reserva' : 'do zero'}. Qualquer pedido novo agora precisa de uma entrada nova ou de outra conta adiada.` })
+        else {
+            const media = k.gasto_dia_30 || 0
+            const apertado = media > 0 && t.valor < media * 0.05
+            achados.push({
+                nivel: apertado ? 'atencao' : 'info',
+                texto: `<b>Teto de gasto novo: ${curtoCx(t.valor)} por dia útil</b> (${curtoCx(t.valor * 5)} por semana), além do que já está lançado. Passando disso, ${quandoCx(t.dia, hoje)} o saldo ${limite ? 'fura a reserva' : 'fica negativo'} (é o dia mais apertado, com ${curtoCx(t.folga)} de folga).${apertado ? ` É pouco perto do gasto médio de ${curtoCx(media)}/dia: na prática, só o essencial.` : ''} O teto usa o pior entre o lançado e as previsões pela média; conta que ninguém lançou ainda não entra, então deixe margem.`
+            })
+        }
+    }
+    return achados
+}
+
 // ---- Daqui para frente
 function leituraFrenteCx(d) {
     const k = d.kpis
     const a = d.atrasados
-    const achados = []
+    const achados = d.tem_saldo ? achadosCurtoPrazoCx(d) : []
     if (k.cobertura_30 !== null && k.cobertura_30 !== undefined) achados.push(medirCx('cobertura_30', k.cobertura_30, {
-        ok: `Nos próximos 30 dias entram ${curtoCx(k.entradas_30)} para ${curtoCx(k.saidas_30)} lançados (${numCx(k.cobertura_30, 2)}×): as entradas pagam as contas com folga.`,
+        ok: k.pior_14_lancado?.valor < 0
+            ? `Nos próximos 30 dias entram ${curtoCx(k.entradas_30)} para ${curtoCx(k.saidas_30)} lançados (${numCx(k.cobertura_30, 2)}×): no total as entradas cobrem as contas, <b>mas chegam depois delas</b>. O aperto é de data, não de valor: antecipar um recebimento ou mover um vencimento resolve.`
+            : `Nos próximos 30 dias entram ${curtoCx(k.entradas_30)} para ${curtoCx(k.saidas_30)} lançados (${numCx(k.cobertura_30, 2)}×): as entradas pagam as contas com folga.`,
         atencao: `Nos próximos 30 dias entram ${curtoCx(k.entradas_30)} para ${curtoCx(k.saidas_30)} lançados (<b>${numCx(k.cobertura_30, 2)}×</b>): fica no zero a zero, qualquer atraso de cliente sai do caixa.`,
         alerta: `Nos próximos 30 dias entram só ${curtoCx(k.entradas_30)} para ${curtoCx(k.saidas_30)} lançados (<b>${numCx(k.cobertura_30, 2)}×</b>): faltam ${curtoCx(k.saidas_30 - k.entradas_30)} que vão sair do caixa. Confira se há faturamento ainda não lançado como fatura a receber.`
     }))
+    // Cobre no total mas chega depois das contas: é atenção, não "em ordem".
+    const cob = achados[achados.length - 1]
+    if (cob?.ref === 'cobertura_30' && cob.nivel === 'ok' && k.pior_14_lancado?.valor < 0) cob.nivel = 'atencao'
     if (k.gasto_dia_90 > 0) {
         const v = (k.gasto_dia_30 / k.gasto_dia_90 - 1) * 100
         achados.push(medirCx('gasto_variacao_pct', v, {
@@ -1581,7 +1676,7 @@ function leituraFrenteCx(d) {
     }
     if (d.tem_saldo && k.proxima_semana && k.proxima_semana.saldo_fim < 0)
         achados.push({ nivel: 'alerta', texto: `A <b>semana que vem</b> fecha com saldo de ${curtoCx(k.proxima_semana.saldo_fim)} pelo que está lançado.` })
-    else if (d.tem_saldo && k.livre <= 0)
+    else if (d.tem_saldo && k.livre <= 0 && !k.teto_dia)
         achados.push({ nivel: 'atencao', texto: `Sem folga para gastos novos nos próximos ${k.horizonte} dias: só com nova entrada ou adiando contas.` })
     const ja = d.ja_no_extrato
     if (ja && (ja.PAGAR.n + ja.RECEBER.n) > 0)
