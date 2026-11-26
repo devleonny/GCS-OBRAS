@@ -42,7 +42,7 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         base: 'pedidos',
         filtros: {
             'departamento': {
-                op: 'includes',
+                op: 'codigo',
                 value: ativo
             }
         },
@@ -501,7 +501,7 @@ async function calcularRequisicao() {
                     value: controles.requisicao.id
                 },
                 departamento: {
-                    op: 'includes',
+                    op: 'codigo',
                     value: ativo
                 }
             }

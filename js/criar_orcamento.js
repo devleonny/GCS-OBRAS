@@ -1573,7 +1573,7 @@ async function pesquisarRequisicoes() {
         const requisicoes = await pesquisarDB({
             base: 'requisicoes',
             filtros: {
-                departamento: { op: 'includes', value: contrato }
+                departamento: { op: 'codigo', value: contrato }
             }
         })
 

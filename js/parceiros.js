@@ -711,7 +711,7 @@ async function formularioParceiro(id = crypto.randomUUID()) {
         controlesCxOpcoes.pedido = {
             base: 'pedidos',
             filtros: {
-                departamento: { op: 'includes', value: ativo }
+                departamento: { op: 'codigo', value: ativo }
             },
             retornar: ['pedido'],
             colunas: {

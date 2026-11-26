@@ -821,7 +821,7 @@ async function auxAberturaChamado(id) {
         base: 'pedidos',
         filtros: {
             'departamento': {
-                op: 'includes',
+                op: 'codigo',
                 value: contrato
             }
         }
@@ -1198,7 +1198,7 @@ async function carregarSecoesHistorico(painel) {
                         nude: true,
                         filtros: {
                             departamento: {
-                                op: 'includes',
+                                op: 'codigo',
                                 value: contrato
                             }
                         },
