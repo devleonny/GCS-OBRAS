@@ -513,3 +513,12 @@
         padding: 10px;
     }
 }
+
+/* Onde o cartão arrastado vai entrar */
+#quadros tr.pit-soltar-antes > td {
+    box-shadow: inset 0 3px 0 #2e9e4a;
+}
+
+#quadros tbody.pit-soltar-fim > tr:last-child > td {
+    box-shadow: inset 0 -3px 0 #2e9e4a;
+}

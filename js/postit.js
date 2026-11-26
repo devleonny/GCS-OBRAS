@@ -77,6 +77,11 @@ async function criarQuadros() {
             pag,
             body: `body_${chave}`,
             criarLinha: 'linPostIT',
+            // Ordem fixa: só muda arrastando (salvar não faz o cartão subir).
+            ordenar: [
+                { path: 'ordem', direcao: 'asc', tipo: 'number' },
+                { path: 'timestamp', direcao: 'desc' }
+            ],
             filtros: {
                 usuario: {
                     op: '=',
@@ -108,6 +113,7 @@ async function criarQuadros() {
 
         body.dataset.quadro = q?.id || ''
         body.ondragover = permitirDropPIT
+        body.ondragleave = sairDropPIT
         body.ondrop = soltarPIT
     }
 
@@ -244,19 +250,72 @@ async function linPostIT(dados) {
 }
 
 let pitAutoScroll = null
+let pitArrastado = null
 
 function arrastarPIT(event, id) {
     event.dataTransfer.setData('text/plain', id)
+    pitArrastado = id
     iniciarAutoScrollPIT()
+    const cartao = event.currentTarget
+    requestAnimationFrame(() => cartao.classList.add('arrastando'))
+    cartao.addEventListener('dragend', () => {
+        cartao.classList.remove('arrastando')
+        pitArrastado = null
+        limparMarcaDropPIT()
+    }, { once: true })
+}
+
+function ordemPIT(linha) {
+    const valor = postitsPIT.get(linha?.dataset.pit)?.ordem
+    return valor === null || valor === undefined || valor === '' ? null : Number(valor)
+}
+
+// Linha antes da qual o cartão entra, pela altura do cursor (null = fim do quadro).
+function referenciaDropPIT(tbody, y) {
+    const linhas = [...tbody.querySelectorAll(':scope > tr[data-pit]')]
+        .filter(linha => linha.dataset.pit !== pitArrastado)
+    return linhas.find(linha => {
+        const rect = linha.getBoundingClientRect()
+        return y < rect.top + rect.height / 2
+    }) || null
+}
+
+function limparMarcaDropPIT() {
+    document.querySelectorAll('#quadros .pit-soltar-antes').forEach(el => el.classList.remove('pit-soltar-antes'))
+    document.querySelectorAll('#quadros .pit-soltar-fim').forEach(el => el.classList.remove('pit-soltar-fim'))
 }
 
 function permitirDropPIT(event) {
     event.preventDefault()
+    if (!pitArrastado) return
+
+    // Linha que mostra onde o cartão vai entrar.
+    const tbody = event.currentTarget
+    const referencia = referenciaDropPIT(tbody, event.clientY)
+    limparMarcaDropPIT()
+    if (referencia) referencia.classList.add('pit-soltar-antes')
+    else tbody.classList.add('pit-soltar-fim')
+}
+
+function sairDropPIT(event) {
+    if (!event.currentTarget.contains(event.relatedTarget))
+        limparMarcaDropPIT()
+}
+
+// Ordem entre os vizinhos; um número só para o cartão movido, os outros não mudam.
+function ordemEntrePIT(anterior, proxima) {
+    const a = ordemPIT(anterior)
+    const p = ordemPIT(proxima)
+    if (a !== null && p !== null) return (a + p) / 2
+    if (a !== null) return a + 1
+    if (p !== null) return p - 1
+    return 1
 }
 
 async function soltarPIT(event) {
     event.preventDefault()
     pararAutoScrollPIT()
+    limparMarcaDropPIT()
 
     const id = event.dataTransfer.getData('text/plain')
     const linha = id && linhaPIT(id)
@@ -264,21 +323,40 @@ async function soltarPIT(event) {
 
     const destino = event.currentTarget
     const quadro = destino.dataset.quadro || null
-    if ((linha.parentElement.dataset.quadro || null) == quadro)
+    const quadroAntes = linha.parentElement.dataset.quadro || null
+    const referencia = referenciaDropPIT(destino, event.clientY)
+
+    // Soltou no mesmo lugar.
+    if (quadroAntes == quadro && (referencia === linha.nextElementSibling || referencia === linha))
         return
 
+    const dados = postitsPIT.get(id)
+    const ordemAntes = dados?.ordem ?? null
     const voltar = posicaoPIT(linha)
-    destino.prepend(linha)
+    destino.insertBefore(linha, referencia)
 
-    const resposta = await enviar(`postit/${id}/quadro`, quadro)
-    if (resposta?.success) {
-        const dados = postitsPIT.get(id)
-        if (dados) dados.quadro = quadro
-        return
+    const ordem = ordemEntrePIT(linha.previousElementSibling?.matches('tr[data-pit]') ? linha.previousElementSibling : null, referencia)
+    if (dados) {
+        dados.quadro = quadro
+        dados.ordem = ordem
     }
 
-    voltar()
-    falhaPIT('mover o post-it', resposta)
+    const desfazer = resposta => {
+        voltar()
+        if (dados) {
+            dados.quadro = quadroAntes
+            dados.ordem = ordemAntes
+        }
+        falhaPIT('mover o post-it', resposta)
+    }
+
+    if (quadroAntes != quadro) {
+        const resposta = await enviar(`postit/${id}/quadro`, quadro)
+        if (!resposta?.success) return desfazer(resposta)
+    }
+
+    const resposta = await enviar(`postit/${id}/ordem`, ordem)
+    if (!resposta?.success) desfazer(resposta)
 }
 
 let quadroArrastadoPIT = null
@@ -578,6 +656,12 @@ async function mostrarPIT(dados, anterior) {
     }
 }
 
+function topoNovosPIT() {
+    const primeira = document.querySelector("#body_Novos > tr[data-pit]")
+    const ordem = ordemPIT(primeira)
+    return ordem === null ? 1 : ordem - 1
+}
+
 async function salvarPIT(id) {
 
     const novo = !id
@@ -613,7 +697,9 @@ async function salvarPIT(id) {
         id,
         ...campos,
         anexos: { ...anterior?.anexos, ...anexos },
-        quadro: anterior?.quadro || null
+        quadro: anterior?.quadro || null,
+        // Novo entra no topo de "Novos"; editar não mexe na posição.
+        ordem: novo ? topoNovosPIT() : anterior?.ordem ?? null
     }
 
     removerPopup()
@@ -625,7 +711,8 @@ async function salvarPIT(id) {
         const atualizado = {
             ...local,
             anexos: { ...gravado.anexos, ...local.anexos },
-            quadro: gravado.quadro ?? local.quadro
+            quadro: gravado.quadro ?? local.quadro,
+            ordem: gravado.ordem ?? local.ordem
         }
 
         const resposta = await enviar(`postit/${id}`, atualizado)
@@ -670,7 +757,8 @@ async function alternarConcluidoPIT(id) {
             comentario: origem.comentario || '',
             prazo: origem.prazo || '',
             anexos: origem.anexos || {},
-            quadro: origem.quadro ?? null
+            quadro: origem.quadro ?? null,
+            ordem: origem.ordem ?? null
         }
         const resposta = await enviar(`postit/${id}`, atualizado)
         if (!resposta?.success) throw resposta
