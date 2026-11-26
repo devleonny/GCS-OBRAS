@@ -2332,8 +2332,16 @@ async function executarLoteDocsFis(lista, chave) {
 
 // Excel no padrão do relatório de faturas (logo, título, quem/quando gerou, filtros; cabeçalho verde,
 // autofiltro, moeda/data formatadas, total por SUBTOTAL e linhas zebradas). Serve para qualquer listagem:
-// colunas = [{ titulo, largura, tipo: 'moeda'|'data', soma, centro, quebra, valor: linha => valor }].
-async function baixarExcelRelatorioGCS({ titulo, resumo = '', filtrosTexto = '', colunas, linhas, nomeArquivo = null }) {
+// colunas = [{ id?, titulo, largura, tipo: 'moeda'|'data', soma, centro, quebra, cor: linha => argb, valor: linha => valor }].
+// Antes de montar, abre a escolha de colunas/ordem/layout salvo (js/excel_layout.js); tela = chave dos layouts
+// (padrão: o título). escolherColunas: false baixa direto. Cancelar = não baixa nada.
+async function baixarExcelRelatorioGCS({ titulo, resumo = '', filtrosTexto = '', colunas, linhas, nomeArquivo = null, tela = null, escolherColunas = true }) {
+    if (escolherColunas && typeof escolherColunasExcel === 'function') {
+        const escolhidas = await escolherColunasExcel({ tela: tela || titulo, titulo, colunas, quantidade: linhas.length })
+        if (!escolhidas) return removerOverlay()
+        colunas = escolhidas
+        overlayAguarde()
+    }
     const n = colunas.length
     const letra = i => { let s = ''; for (let x = i + 1; x > 0; x = Math.floor((x - 1) / 26)) s = String.fromCharCode(65 + ((x - 1) % 26)) + s; return s }
     const ultima = letra(n - 1)
@@ -2357,12 +2365,13 @@ async function baixarExcelRelatorioGCS({ titulo, resumo = '', filtrosTexto = '',
         ws.addImage(livro.addImage({ base64, extension: 'png' }), { tl: { col: 0.2, row: 0.05 }, ext: { width: 88, height: 88 } })
     } catch { }
     ;[30, 20, 20].forEach((h, i) => { ws.getRow(i + 1).height = h })
+    // Com poucas colunas escolhidas não há o que mesclar depois da C (o texto só transborda).
     const linhaTopo = (numero, texto, fonte) => {
-        ws.mergeCells(`C${numero}:${ultima}${numero}`)
+        if (n > 3) ws.mergeCells(`C${numero}:${ultima}${numero}`)
         const cel = ws.getCell(`C${numero}`)
         cel.value = texto
         cel.font = fonte
-        cel.alignment = { vertical: 'middle', wrapText: true }
+        cel.alignment = { vertical: 'middle', wrapText: n > 3 }
     }
     const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })
     linhaTopo(1, `Relatório · ${titulo}`, { size: 18, bold: true, color: { argb: VERDE } })
@@ -2391,6 +2400,7 @@ async function baixarExcelRelatorioGCS({ titulo, resumo = '', filtrosTexto = '',
             cel.alignment = { vertical: 'middle', wrapText: !!c.quebra, ...(c.tipo === 'data' || c.centro ? { horizontal: 'center' } : {}) }
             if (k % 2) cel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_CLARO } }
             cel.border = { bottom: { style: 'hair', color: { argb: BORDA } } }
+            if (c.cor) cel.font = { bold: true, color: { argb: c.cor(d) || CINZA } }
         })
     })
     const fim = LINHA_CAB + linhas.length
@@ -2398,7 +2408,7 @@ async function baixarExcelRelatorioGCS({ titulo, resumo = '', filtrosTexto = '',
     tot.height = 22
     colunas.forEach((c, i) => {
         const cel = tot.getCell(i + 1)
-        if (i === 0) cel.value = 'Total'
+        if (i === 0 && !c.soma) cel.value = 'Total'
         if (c.soma && linhas.length)
             cel.value = { formula: `SUBTOTAL(9,${letra(i)}${LINHA_CAB + 1}:${letra(i)}${fim})`, result: Math.round(linhas.reduce((s, d) => s + (Number(c.valor(d)) || 0), 0) * 100) / 100 }
         if (c.tipo === 'moeda') cel.numFmt = MOEDA

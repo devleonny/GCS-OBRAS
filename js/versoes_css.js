@@ -19,6 +19,7 @@ const VERSOES_CSS = {
     "enderecos": "1165f40a",
     "estilo": "a421515f",
     "estoque": "ff848a67",
+    "excel_layout": "de02bfa0",
     "festas": "81ec7e62",
     "financeiro": "1a74f152",
     "fiscal": "607b3df5",

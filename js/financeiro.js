@@ -657,8 +657,9 @@ async function baixarExcelFaturasFin() {
         const data = v => v ? new Date(`${String(v).slice(0, 10)}T12:00:00Z`) : null
         const textoSituacao = s => s === 'PAGO' ? termoFin('Pago', tipo) : (SITUACOES_FIN[s]?.texto || s || '')
 
+        const corSituacao = { ATRASADO: 'FFB91C1C', PAGO: 'FF15803D', 'VENCE HOJE': 'FFD97706', 'A VENCER': 'FF2563EB', CANCELADO: 'FF64748B' }
         const colunas = [
-            { titulo: 'Situação', largura: 13, valor: d => textoSituacao(d.situacao) },
+            { titulo: 'Situação', largura: 13, cor: d => corSituacao[d.situacao], valor: d => textoSituacao(d.situacao) },
             { titulo: 'Vencimento', largura: 12, tipo: 'data', valor: d => data(d.vencimento) },
             { titulo: pagar ? 'Pago em' : 'Recebido em', largura: 12, tipo: 'data', valor: d => data(d.dia_pagamento) },
             { titulo: 'Inclusão', largura: 12, tipo: 'data', valor: d => data(diaInclusaoFin(d.criado_em)) },
@@ -684,102 +685,13 @@ async function baixarExcelFaturasFin() {
             { titulo: 'Criado por', largura: 18, valor: d => d.criado_por || '' },
             { titulo: 'Saldo', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.saldo) || 0 }
         ]
-        const n = colunas.length
-        const letra = i => { let s = ''; for (let x = i + 1; x > 0; x = Math.floor((x - 1) / 26)) s = String.fromCharCode(65 + ((x - 1) % 26)) + s; return s }
-        const ultima = letra(n - 1)
-        const VERDE = 'FF1F6B3A', VERDE_CLARO = 'FFF1F7F3', CINZA = 'FF5F6B64', BORDA = 'FFD5DED8'
-        const MOEDA = '"R$" #,##0.00;[Red]-"R$" #,##0.00'
-        const titulo = `Faturas a ${pagar ? 'pagar' : 'receber'}`
-
-        const livro = new ExcelJS.Workbook()
-        livro.creator = 'GCS'
-        const ws = livro.addWorksheet(titulo, {
-            pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 },
-            views: [{ state: 'frozen', ySplit: 6, showGridLines: false }]
+        await baixarExcelRelatorioGCS({
+            titulo: `Faturas a ${pagar ? 'pagar' : 'receber'}`,
+            resumo: `${linhas.length} fatura(s)`,
+            filtrosTexto: marcadas.length ? `Faturas marcadas na tela: ${marcadas.length}` : `Filtros: ${descreverFiltrosFin(ctrl)}`,
+            colunas,
+            linhas
         })
-        colunas.forEach((c, i) => { ws.getColumn(i + 1).width = c.largura })
-
-        // Cabeçalho: logo nas colunas A-B + título, geração e filtros.
-        const blob = await (await fetch('imagens/logo-gcs-quadrado.png')).blob()
-        const base64 = await new Promise((ok, falha) => {
-            const leitor = new FileReader()
-            leitor.onloadend = () => ok(String(leitor.result).split(',')[1])
-            leitor.onerror = falha
-            leitor.readAsDataURL(blob)
-        })
-        ws.addImage(livro.addImage({ base64, extension: 'png' }), { tl: { col: 0.2, row: 0.05 }, ext: { width: 88, height: 88 } })
-        ;[30, 20, 20].forEach((h, i) => { ws.getRow(i + 1).height = h })
-
-        const linhaTopo = (numero, texto, fonte) => {
-            ws.mergeCells(`C${numero}:${ultima}${numero}`)
-            const cel = ws.getCell(`C${numero}`)
-            cel.value = texto
-            cel.font = fonte
-            cel.alignment = { vertical: 'middle', wrapText: true }
-        }
-        const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })
-        linhaTopo(1, `Relatório · ${titulo}`, { size: 18, bold: true, color: { argb: VERDE } })
-        linhaTopo(2, `Gerado em ${agora}${acesso?.usuario ? ` por ${acesso.usuario}` : ''} · ${linhas.length} fatura(s)`, { size: 10, color: { argb: CINZA } })
-        linhaTopo(3, marcadas.length ? `Faturas marcadas na tela: ${marcadas.length}` : `Filtros: ${descreverFiltrosFin(ctrl)}`, { size: 10, color: { argb: CINZA } })
-        // Faixa verde fina embaixo do cabeçalho e um respiro.
-        ws.getRow(4).height = 5
-        for (let i = 1; i <= n; i++) ws.getCell(4, i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE } }
-        ws.getRow(5).height = 8
-
-        // Tabela.
-        const LINHA_CAB = 6
-        const cab = ws.getRow(LINHA_CAB)
-        cab.values = colunas.map(c => c.titulo)
-        cab.height = 24
-        cab.eachCell(cel => {
-            cel.font = { bold: true, color: { argb: 'FFFFFFFF' } }
-            cel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE } }
-            cel.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
-        })
-
-        const corSituacao = { ATRASADO: 'FFB91C1C', PAGO: 'FF15803D', 'VENCE HOJE': 'FFD97706', 'A VENCER': 'FF2563EB', CANCELADO: 'FF64748B' }
-        linhas.forEach((d, k) => {
-            const row = ws.getRow(LINHA_CAB + 1 + k)
-            row.values = colunas.map(c => c.valor(d))
-            colunas.forEach((c, i) => {
-                const cel = row.getCell(i + 1)
-                if (c.tipo === 'moeda') cel.numFmt = MOEDA
-                if (c.tipo === 'data') cel.numFmt = 'dd/mm/yyyy'
-                cel.alignment = { vertical: 'middle', wrapText: !!c.quebra, ...(c.tipo === 'data' || c.centro ? { horizontal: 'center' } : {}) }
-                if (k % 2) cel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_CLARO } }
-                cel.border = { bottom: { style: 'hair', color: { argb: BORDA } } }
-            })
-            row.getCell(1).font = { bold: true, color: { argb: corSituacao[d.situacao] || CINZA } }
-        })
-
-        // Totais.
-        const fim = LINHA_CAB + linhas.length
-        const tot = ws.getRow(fim + 1)
-        tot.height = 22
-        colunas.forEach((c, i) => {
-            const cel = tot.getCell(i + 1)
-            if (i === 0) cel.value = 'Total'
-            if (c.soma && linhas.length)
-                cel.value = { formula: `SUBTOTAL(9,${letra(i)}${LINHA_CAB + 1}:${letra(i)}${fim})`, result: Math.round(linhas.reduce((s, d) => s + c.valor(d), 0) * 100) / 100 }
-            if (c.tipo === 'moeda') cel.numFmt = MOEDA
-            cel.font = { bold: true, color: { argb: VERDE } }
-            cel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCEBE0' } }
-            cel.border = { top: { style: 'medium', color: { argb: VERDE } } }
-            cel.alignment = { vertical: 'middle' }
-        })
-
-        ws.autoFilter = { from: { row: LINHA_CAB, column: 1 }, to: { row: Math.max(fim, LINHA_CAB), column: n } }
-        ws.pageSetup.printTitlesRow = `${LINHA_CAB}:${LINHA_CAB}`
-
-        const buffer = await livro.xlsx.writeBuffer()
-        const arquivo = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-        const a = document.createElement('a')
-        a.href = URL.createObjectURL(arquivo)
-        a.download = `${titulo} ${hojeFin().split('-').reverse().join('-')}.xlsx`
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
-        setTimeout(() => URL.revokeObjectURL(a.href), 2000)
     } catch (err) {
         console.error(err)
         popup({ mensagem: `Falha ao gerar o Excel: ${escFin(err.message)}` })
