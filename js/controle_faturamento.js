@@ -29,6 +29,7 @@ const filtrosFixosControleFat = () => estadoControleFat.ano === 'todos' ? null :
 
 function abrirControleFaturamento() {
     recolherMenuPrincipalFin()
+    selecaoControleFat.clear()
     return telaControleFaturamento()
 }
 
@@ -46,7 +47,7 @@ async function telaControleFaturamento() {
                         <select aria-label="Ano da emissão" onchange="estadoControleFat.ano = this.value; telaControleFaturamento()">
                             ${[...anos, 'todos'].map(a => `<option value="${a}" ${a === estadoControleFat.ano ? 'selected' : ''}>${a === 'todos' ? 'Todos os anos' : `Emitidas em ${a}`}</option>`).join('')}
                         </select>
-                        <button type="button" onclick="baixarExcelControleFat()" title="Baixa todas as notas dos filtros aplicados">${iconeFin('excel')} Excel</button>
+                        <button type="button" onclick="baixarExcelControleFat()" title="Com notas marcadas, baixa só as marcadas; sem marcação, todas as notas dos filtros aplicados">${iconeFin('excel')} Excel</button>
                     </div>
                 </header>
                 <div class="fin-corpo${estadoControleFat.painel ? '' : ' recolhido'}" data-corpo-ctf>
@@ -74,6 +75,7 @@ async function telaControleFaturamento() {
             filtrosFixos: filtrosFixosControleFat(),
             ordenar: [{ path: 'emissao', direcao: 'desc' }],
             colunas: {
+                '': {},
                 // opcoes fixas: sem elas o modTab conta a view inteira por coluna antes de desenhar a tela.
                 'Setor': { chave: 'setor', tipoPesquisa: 'select', opcoes: [...SETORES_PADRAO_RH, 'SEM SETOR'] },
                 'Responsável': { chave: 'responsavel' },
@@ -99,6 +101,8 @@ async function telaControleFaturamento() {
         })
         // Paginação no rodapé, como nas Faturas (no layout financeiro a do modTab fica escondida no topo).
         area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-ctf></div>')
+        // Faixa "selecionar todos do filtro", colada no topo da tabela (como nas Faturas).
+        area.querySelector('.modtab')?.insertAdjacentHTML('afterbegin', '<div class="fin-aviso-selecao" data-aviso-selecao-ctf hidden></div>')
         await paginacao('controleFat')
         removerOverlay()
     } catch (err) {
@@ -109,9 +113,23 @@ async function telaControleFaturamento() {
 }
 
 // Bandeja da direita (como a das Faturas): totais do filtro e ações; recolhida, ficam só os ícones.
-function painelControleFat(t = null) {
+function painelControleFat(t = estadoControleFat.totais) {
     const v = n => t == null ? '…' : n == null ? '—' : dinheiro(n)
-    return `
+    const n = selecaoControleFat.size
+    const somaMarcadas = chave => [...selecaoControleFat.values()].reduce((s, d) => s + (Number(d[chave]) || 0), 0)
+    const marcadas = n ? `
+        <div class="fin-painel-cabeca" title="Notas marcadas na tabela">
+            <span class="fin-avatar">${n}</span>
+            <div class="fin-painel-texto"><b>${n.toLocaleString('pt-BR')} nota(s) marcada(s)</b><small>O Excel baixa só as marcadas.</small></div>
+        </div>
+        <div class="cf-infos">
+            <div class="cf-info"><small>Valor das marcadas</small><b>${dinheiro(somaMarcadas('valor'))}</b></div>
+            <div class="cf-info cf-ok"><small>Recebido</small><b>${dinheiro(somaMarcadas('recebido'))}</b></div>
+            <div class="cf-info cf-falta"><small>Saldo</small><b>${dinheiro(somaMarcadas('saldo'))}</b></div>
+        </div>
+        <button type="button" class="fin-acao" title="Desmarcar todas" onclick="limparSelecaoControleFat()">${iconeFin('fechar')}<span>Desmarcar todas</span></button>
+        <hr>` : ''
+    return `${marcadas}
         <div class="fin-painel-cabeca" title="Totais com os filtros da tabela">
             <span class="fin-avatar">R$</span>
             <div class="fin-painel-texto"><b>Totais do filtro</b>
@@ -125,7 +143,89 @@ function painelControleFat(t = null) {
                 <small>Sem canceladas, substituídas, devolvidas e remessas</small></div>
         </div>
         <hr>
-        <button type="button" class="fin-acao" title="Baixar em Excel todas as notas dos filtros" onclick="baixarExcelControleFat()">${iconeFin('excel')}<span>Baixar Excel</span></button>`
+        <button type="button" class="fin-acao" title="${n ? 'Baixar em Excel só as notas marcadas' : 'Baixar em Excel todas as notas dos filtros'}" onclick="baixarExcelControleFat()">${iconeFin('excel')}<span>Baixar Excel${n ? ' (marcadas)' : ''}</span></button>`
+}
+
+// ------------------------------------------------------------ seleção (caixinhas), como nas Faturas
+// Vale entre páginas: id → linha (para somar as marcadas sem voltar ao banco). "Marcar todas" (cabeçalho)
+// marca a página; a faixa acima da tabela oferece marcar todas as do filtro ou limpar.
+const selecaoControleFat = new Map()
+
+function prepararSelecaoControleFat() {
+    const tabela = document.getElementById('bodyControleFat')?.closest('table')
+    const th = tabela?.querySelector('thead tr:first-child th:first-child')
+    if (th && !th.querySelector('[data-marcar-todas-ctf]'))
+        th.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todas-ctf title="Marcar todas desta página" onclick="event.stopPropagation(); marcarTodasControleFat(this)">'
+    const filtro = tabela?.querySelector('thead tr:nth-child(2) th:first-child')
+    if (filtro?.querySelector('img')) filtro.innerHTML = ''
+    document.querySelectorAll('#bodyControleFat [data-marcar-ctf]').forEach(c => { c.checked = selecaoControleFat.has(c.value) })
+    desenharSelecaoControleFat()
+}
+
+function marcarNotaControleFat(caixa) {
+    if (caixa.checked) selecaoControleFat.set(caixa.value, dadosControleFat.get(caixa.value) || {})
+    else selecaoControleFat.delete(caixa.value)
+    desenharSelecaoControleFat()
+}
+
+function marcarTodasControleFat(caixa) {
+    document.querySelectorAll('#bodyControleFat [data-marcar-ctf]').forEach(c => {
+        c.checked = caixa.checked
+        if (caixa.checked) selecaoControleFat.set(c.value, dadosControleFat.get(c.value) || {})
+        else selecaoControleFat.delete(c.value)
+    })
+    desenharSelecaoControleFat()
+}
+
+function limparSelecaoControleFat() {
+    selecaoControleFat.clear()
+    prepararSelecaoControleFat()
+}
+
+// Todas as notas do filtro aplicado (todas as páginas).
+async function selecionarTodasFiltroControleFat() {
+    const ctrl = controles.controleFat
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_controle_faturamento', filtros, ordenar: ctrl.ordenar, pagina, limite: 2000 })
+            ;(r?.resultados || []).forEach(d => selecaoControleFat.set(String(d.id), d))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        removerOverlay()
+        prepararSelecaoControleFat()
+    } catch (err) {
+        removerOverlay()
+        popup({ mensagem: `Falha ao marcar as notas do filtro: ${escFin(err.message)}` })
+    }
+}
+
+function desenharSelecaoControleFat() {
+    const pagina = [...document.querySelectorAll('#bodyControleFat [data-marcar-ctf]')]
+    const todas = document.querySelector('[data-marcar-todas-ctf]')
+    const marcadasPagina = pagina.filter(c => c.checked).length
+    const paginaToda = pagina.length > 0 && marcadasPagina === pagina.length
+    if (todas) {
+        todas.checked = paginaToda
+        todas.indeterminate = marcadasPagina > 0 && marcadasPagina < pagina.length
+    }
+    const aviso = document.querySelector('[data-aviso-selecao-ctf]')
+    if (aviso) {
+        const n = selecaoControleFat.size, total = Number(document.getElementById('resultados_controleFat')?.textContent) || 0
+        const plural = q => `${q.toLocaleString('pt-BR')} ${q === 1 ? 'nota' : 'notas'}`
+        const limpar = '<a href="#" onclick="event.preventDefault(); limparSelecaoControleFat()">limpar a seleção</a>'
+        aviso.hidden = !(n && paginaToda)
+        aviso.innerHTML = aviso.hidden ? '' : n < total
+            ? `Você marcou ${plural(n)}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodasFiltroControleFat()">marcar todas as ${plural(total)} deste filtro</a>`
+            : `Você marcou ${n === total ? 'todas as ' : ''}${plural(n)}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
+    }
+    const caixa = document.querySelector('[data-totais-ctf]')
+    if (caixa) caixa.innerHTML = painelControleFat()
+    if (selecaoControleFat.size && !estadoControleFat.painel) alternarPainelControleFat()
 }
 
 function alternarPainelControleFat() {
@@ -151,6 +251,10 @@ function criarLinhaControleFat(d) {
     const corta = (texto, classe = '') => `<td class="ctf-corta ${classe}" title="${escFin(texto || '')}"><span>${escFin(texto || '')}</span></td>`
     return `
         <tr class="fin-linha ctf-linha" title="${escFin(titulo)}" ${primeiraFatura ? `ondblclick="abrirFaturaFin('${escFin(primeiraFatura)}')"` : ''}>
+            <td class="fin-col-marcar">
+                <input type="checkbox" class="fin-marcar" data-marcar-ctf value="${id}" ${selecaoControleFat.has(String(d.id)) ? 'checked' : ''}
+                    onclick="event.stopPropagation(); marcarNotaControleFat(this)" ondblclick="event.stopPropagation()" aria-label="Marcar nota">
+            </td>
             <td class="ctf-corta"><button type="button" class="ctf-setor ${d.setor === 'SEM SETOR' ? 'vazio' : ''}" title="${escFin(d.setor)} · ${d.responsavel_id ? 'clique para corrigir o setor de quem pediu (vale para todas as notas dele)' : 'responsável sem cadastro: o setor não se corrige por aqui'}"
                 ${d.responsavel_id ? `onclick="event.stopPropagation(); escolherSetorControleFat('${id}')"` : 'disabled'}>${escFin(d.setor)}</button></td>
             ${corta(d.responsavel)}
@@ -177,6 +281,7 @@ function criarLinhaControleFat(d) {
 
 async function aposCarregarControleFat() {
     await cabecalhoAvancadoTabela('controleFat', { prefKey: 'controle_faturamento' })
+    prepararSelecaoControleFat()
     desenharRodapeControleFat()
     totaisControleFat()
 }
@@ -230,6 +335,7 @@ async function totaisControleFat() {
         try { return await contarPorCampo({ base: 'vw_controle_faturamento', path, modo: 'soma', filtros: extra ? comFiltro(extra) : base }) } catch { return null }
     }
     const cobravel = { cobravel: { op: '=', value: 'S' } }
+    estadoControleFat.totais = null
     caixa.innerHTML = painelControleFat()
     const [recebido, atrasado, aVencer, total, todas] = await Promise.all([
         somar('recebido', cobravel),
@@ -240,10 +346,12 @@ async function totaisControleFat() {
     ])
     if (assinatura !== assinaturaTotaisControleFat || !document.body.contains(caixa)) return
     const n = r => r == null ? null : Number(r.total || 0)
-    caixa.innerHTML = painelControleFat({
+    // Guardados para a bandeja se redesenhar ao marcar/desmarcar notas sem recalcular.
+    estadoControleFat.totais = {
         recebido: n(recebido), atrasado: n(atrasado), aVencer: n(aVencer), total: n(total),
         notas: todas?.todos != null ? Number(todas.todos).toLocaleString('pt-BR') : '—'
-    })
+    }
+    caixa.innerHTML = painelControleFat()
 }
 
 // ------------------------------------------------------------ setor do responsável (rh_funcionarios.setor)
@@ -279,29 +387,36 @@ async function salvarSetorControleFat(botao, idPessoa) {
     await paginacao('controleFat')
 }
 
-// ------------------------------------------------------------ Excel (todas as linhas dos filtros)
+// ------------------------------------------------------------ Excel
+// Com notas marcadas: só elas (de qualquer página). Sem marcação: todas as notas dos filtros aplicados.
 
 async function baixarExcelControleFat() {
     const ctrl = controles.controleFat
     if (!ctrl) return
     overlayAguarde()
     try {
-        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const marcadas = [...selecaoControleFat.values()].filter(d => d && d.id != null)
         const linhas = []
-        let pagina = 1, paginas = 1
-        do {
-            const r = await pesquisarDB({ base: 'vw_controle_faturamento', filtros, ordenar: ctrl.ordenar, pagina, limite: 2000 })
-            linhas.push(...(r?.resultados || []))
-            paginas = Number(r?.paginas) || 1
-            pagina++
-        } while (pagina <= paginas)
+        if (marcadas.length) linhas.push(...marcadas.sort((a, b) => String(b.dia_emissao || '').localeCompare(String(a.dia_emissao || ''))))
+        else {
+            const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+            let pagina = 1, paginas = 1
+            do {
+                const r = await pesquisarDB({ base: 'vw_controle_faturamento', filtros, ordenar: ctrl.ordenar, pagina, limite: 2000 })
+                linhas.push(...(r?.resultados || []))
+                paginas = Number(r?.paginas) || 1
+                pagina++
+            } while (pagina <= paginas)
+        }
         const data = v => v ? new Date(`${String(v).slice(0, 10)}T12:00:00Z`) : null
         const texto = k => d => d[k] ?? ''
         const moeda = (titulo, k) => ({ titulo, largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d[k]) || 0 })
         await baixarExcelRelatorioGCS({
             titulo: 'Controle de Faturamento',
             resumo: `${linhas.length} nota(s)`,
-            filtrosTexto: `${estadoControleFat.ano === 'todos' ? 'Todos os anos' : `Emitidas em ${estadoControleFat.ano}`} · Filtros: ${descreverFiltrosFin(ctrl)}`,
+            filtrosTexto: marcadas.length
+                ? `Notas marcadas na tela: ${marcadas.length}`
+                : `${estadoControleFat.ano === 'todos' ? 'Todos os anos' : `Emitidas em ${estadoControleFat.ano}`} · Filtros: ${descreverFiltrosFin(ctrl)}`,
             colunas: [
                 { titulo: 'Setor', largura: 20, valor: texto('setor') },
                 { titulo: 'Responsável', largura: 16, valor: texto('responsavel') },
