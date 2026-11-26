@@ -275,6 +275,9 @@ async function salvarContaBancoConc(botao) {
 // ------------------------------------------------------------ importar OFX
 
 function importarOfxConc() {
+    // Já aberta (mesmo minimizada): só traz para a frente, sem abrir outra nem perder o que foi importado.
+    const aberta = document.querySelector('[data-importar-conc]')
+    if (aberta) return trazerJanelaParaFrente(aberta)
     arquivosConc = []
     popup({
         titulo: 'Importar extrato (OFX)',
