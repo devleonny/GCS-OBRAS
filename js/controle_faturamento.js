@@ -2,7 +2,7 @@
 // A planilha "CONTROLE FATURAMENTO 2026" dentro do GCS: uma linha por nota de saída (Omie, avulsas e as emitidas
 // pelo GCS), lida da vw_controle_faturamento (gcs migrations/controle-faturamento.sql).
 //
-// Grupo  = empresa do cadastro do cliente (sem ela, a do cliente do orçamento).
+// Empresa = empresa do cadastro do cliente (coluna grupo da view; sem ela, a do cliente do orçamento). Emissora = AC/HNK/IAC/HNW.
 // Setor  = setor do responsável do orçamento na ficha do RH (rh_funcionarios.setor); corrige-se clicando nele.
 // Situação: Recebida, Recebida parcial, A vencer, Atrasada (pelas faturas a receber ligadas à nota),
 //           Sem fatura, Fatura cancelada, Cancelada, Substituída, Devolvida e Sem cobrança (remessa/devolução).
@@ -77,14 +77,13 @@ async function telaControleFaturamento() {
                 // opcoes fixas: sem elas o modTab conta a view inteira por coluna antes de desenhar a tela.
                 'Setor': { chave: 'setor', tipoPesquisa: 'select', opcoes: [...SETORES_PADRAO_RH, 'SEM SETOR'] },
                 'Responsável': { chave: 'responsavel' },
-                'Grupo': { chave: 'grupo', tipoPesquisa: 'select' },
+                'Empresa': { chave: 'grupo', tipoPesquisa: 'select' },
                 'Cliente': { chave: 'cliente', principal: true },
-                'Loja (orçamento)': { chave: 'loja' },
                 'Orçamento': { chave: 'orcamento' },
                 'Valor': { chave: 'valor', tipoOrdenacao: 'numero' },
                 'Nota': { chave: 'numero' },
                 'Tipo': { chave: 'tipo', tipoPesquisa: 'select', opcoes: ['VENDA', 'SERVIÇO', 'REMESSA', 'DEVOLUÇÃO', 'COMISSÃO VENDA DIRETA'] },
-                'Empresa': { chave: 'app', tipoPesquisa: 'select', opcoes: ['AC', 'HNK', 'IAC', 'HNW'] },
+                'Emissora': { chave: 'app', tipoPesquisa: 'select', opcoes: ['AC', 'HNK', 'IAC', 'HNW'] },
                 'Emissão': { chave: 'dia_emissao', tipoPesquisa: 'data' },
                 'Vencimento': { chave: 'dia_vencimento', tipoPesquisa: 'data' },
                 'Recebido em': { chave: 'dia_recebimento', tipoPesquisa: 'data' },
@@ -146,30 +145,31 @@ function criarLinhaControleFat(d) {
         Number(d.faturas) ? `${d.faturas} fatura(s) a receber · duplo clique abre` : 'Sem fatura a receber ligada',
         d.orc_venda_direta ? 'Orçamento de venda direta' : ''
     ].filter(Boolean).join(' · ')
+    // Uma linha de texto por nota: o que não cabe termina em "..." (texto inteiro no título, ao passar o mouse).
+    const corta = (texto, classe = '') => `<td class="ctf-corta ${classe}" title="${escFin(texto || '')}"><span>${escFin(texto || '')}</span></td>`
     return `
         <tr class="fin-linha ctf-linha" title="${escFin(titulo)}" ${primeiraFatura ? `ondblclick="abrirFaturaFin('${escFin(primeiraFatura)}')"` : ''}>
-            <td><button type="button" class="ctf-setor ${d.setor === 'SEM SETOR' ? 'vazio' : ''}" title="${d.responsavel_id ? 'Clique para corrigir o setor de quem pediu (vale para todas as notas dele)' : 'Responsável sem cadastro: o setor não se corrige por aqui'}"
+            <td class="ctf-corta"><button type="button" class="ctf-setor ${d.setor === 'SEM SETOR' ? 'vazio' : ''}" title="${escFin(d.setor)} · ${d.responsavel_id ? 'clique para corrigir o setor de quem pediu (vale para todas as notas dele)' : 'responsável sem cadastro: o setor não se corrige por aqui'}"
                 ${d.responsavel_id ? `onclick="event.stopPropagation(); escolherSetorControleFat('${id}')"` : 'disabled'}>${escFin(d.setor)}</button></td>
-            <td>${escFin(d.responsavel || '')}</td>
-            <td>${escFin(d.grupo)}</td>
-            <td class="fin-obs fin-nome" title="${escFin(d.cliente || '')}"><span class="fin-obs-txt">${escFin(d.cliente || '')}</span></td>
-            <td class="fin-obs fin-nome" title="${escFin(d.loja || '')}"><span class="fin-obs-txt">${escFin(d.loja || '')}</span></td>
+            ${corta(d.responsavel)}
+            ${corta(d.grupo)}
+            ${corta(d.cliente, 'ctf-largo')}
             <td class="fin-centro">${escFin(d.orcamento || '')}</td>
             <td class="fis-num">${dinheiro(d.valor)}</td>
-            <td class="fin-centro fin-doc">${escFin(d.numero || '')}<small class="ctf-sub">${escFin(d.modelo)}</small></td>
-            <td><small>${escFin(d.tipo)}</small></td>
-            <td>${escFin(d.app || '')}</td>
+            <td class="fin-centro fin-doc" title="${escFin(d.modelo)}"><span class="ctf-modelo">${escFin(d.modelo)}</span> ${escFin(d.numero || '')}</td>
+            ${corta(d.tipo)}
+            <td class="fin-centro">${escFin(d.app || '')}</td>
             <td class="fin-centro">${dataFin(d.dia_emissao)}</td>
             <td class="fin-centro">${dataFin(d.dia_vencimento)}</td>
             <td class="fin-centro">${dataFin(d.dia_recebimento)}</td>
-            <td>${situacaoControleFat(d.situacao)}${d.substituta ? `<small class="ctf-sub">por ${escFin(d.substituta)}</small>` : ''}</td>
+            <td class="ctf-corta" title="${escFin(d.substituta ? `${d.situacao} pela ${d.substituta}` : d.situacao)}">${situacaoControleFat(d.situacao)}</td>
             <td class="fis-num">${Number(d.recebido) ? dinheiro(d.recebido) : '—'}</td>
             <td class="fis-num">${Number(d.saldo) ? dinheiro(d.saldo) : '—'}</td>
             <td class="fin-centro">${d.dias_atraso ? `<b class="ctf-atraso">${d.dias_atraso}</b>` : ''}</td>
-            <td class="fin-centro">${escFin(d.pedido_cliente || '')}</td>
+            ${corta(d.pedido_cliente)}
             <td class="fin-centro fin-doc">${d.cliente_documento ? docFormatadoFis(d.cliente_documento) : ''}</td>
-            <td><small>${escFin(d.lpu_ativa || '')}</small></td>
-            <td><small>${d.fonte === 'GCS' ? 'GCS' : 'Omie / avulsa'}</small></td>
+            ${corta(d.lpu_ativa)}
+            <td>${d.fonte === 'GCS' ? 'GCS' : 'Omie / avulsa'}</td>
         </tr>`
 }
 
@@ -268,15 +268,14 @@ async function baixarExcelControleFat() {
             colunas: [
                 { titulo: 'Setor', largura: 20, valor: texto('setor') },
                 { titulo: 'Responsável', largura: 16, valor: texto('responsavel') },
-                { titulo: 'Grupo', largura: 16, valor: texto('grupo') },
+                { titulo: 'Empresa', largura: 16, valor: texto('grupo') },
                 { titulo: 'Cliente', largura: 34, quebra: true, valor: texto('cliente') },
-                { titulo: 'Loja (orçamento)', largura: 30, quebra: true, valor: texto('loja') },
                 { titulo: 'Orçamento', largura: 12, valor: texto('orcamento') },
                 moeda('Valor', 'valor'),
                 { titulo: 'Nota', largura: 12, centro: true, valor: texto('numero') },
                 { titulo: 'Modelo', largura: 9, centro: true, valor: texto('modelo') },
                 { titulo: 'Tipo', largura: 16, valor: texto('tipo') },
-                { titulo: 'Empresa', largura: 9, centro: true, valor: texto('app') },
+                { titulo: 'Emissora', largura: 9, centro: true, valor: texto('app') },
                 { titulo: 'Emissão', largura: 12, tipo: 'data', valor: d => data(d.dia_emissao) },
                 { titulo: 'Vencimento', largura: 12, tipo: 'data', valor: d => data(d.dia_vencimento) },
                 { titulo: 'Recebido em', largura: 12, tipo: 'data', valor: d => data(d.dia_recebimento) },

@@ -1,7 +1,16 @@
 /* Controle de Faturamento (js/controle_faturamento.js): layout financeiro (.fin-tela) com os totais na bandeja da direita (classes cf-* das Faturas do Cartão). */
 .ctf-tela .fin-barra select { height: 30px; border: 1px solid #cfd8d3; border-radius: 6px; padding: 0 8px; background: #fff; }
 .ctf-area { padding: 8px 12px 12px; min-height: 0; }
-.ctf-sub { display: block; font-size: 0.68rem; color: #6b7a72; }
+/* Uma linha de texto por nota: nada quebra nem empilha; o que não cabe termina em "..." (texto inteiro no título). */
+.ctf-tela .tabela > tbody td { white-space: nowrap; line-height: 1.25; }
+.ctf-tela .tabela > tbody td.ctf-corta { max-width: 150px; overflow: hidden; }
+.ctf-tela .tabela > tbody td.ctf-corta.ctf-largo { max-width: 260px; }
+.ctf-tela .tabela > tbody td.ctf-corta > span,
+.ctf-tela .tabela > tbody td.ctf-corta > .ctf-setor,
+.ctf-tela .tabela > tbody td.ctf-corta > .fin-sit { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctf-tela .tabela > tbody td.ctf-corta > .ctf-setor { display: inline-block; box-sizing: border-box; }
+.ctf-tela .tabela > tbody td.ctf-corta > .fin-sit { display: inline-flex; }
+.ctf-modelo { font-size: 0.68rem; color: #6b7a72; }
 .ctf-atraso { color: #c62828; }
 .ctf-setor {
     border: 1px solid #cfd8d3; background: #f6f8f7; border-radius: 999px; padding: 1px 8px;
