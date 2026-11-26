@@ -312,7 +312,7 @@ const esquemaBotoes = {
                 { nome: 'Lote de Transporte', funcao: 'telaLotesTransporte', acesso: 'financeiro.lote_transporte', svg: 'onibus' },
                 { nome: 'Faturas do Cartão', funcao: 'abrirFaturasCartaoFin', acesso: 'financeiro.cartoes', img: 'cartao' },
                 { nome: 'Contas Correntes', funcao: 'telaContasFin', acesso: 'financeiro.contas', img: 'banco' },
-                { nome: 'Categorias', funcao: 'telaCategoriasFin', acesso: 'financeiro.categorias', img: 'prancheta' },
+                { nome: 'Categorias', funcao: 'telaCategoriasFin', acesso: 'financeiro.categorias', svg: 'pizza' },
                 // Relatórios (antes num menu próprio, com as mesmas permissões). O Dashboard (que veio de Reembolsos) e os
                 // Custos de Pessoal saíram em 26/11/2026: os gráficos estão no Fluxo de Caixa + e o rateio de pessoal nos lotes.
                 { nome: 'Custos por Departamento', funcao: 'telaCustosDepartamentos', acesso: 'financeiro.custos_departamento', svg: 'custos_departamentos' }
