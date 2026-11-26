@@ -1153,13 +1153,11 @@ function roscaCx(chave, fatias, total, clicavel = false) {
 function graficoRoscaCx(chave, fatias, total) {
     const canvas = document.querySelector(`[data-cx-rosca="${chave}"]`)
     if (!canvas || typeof Chart === 'undefined' || !fatias.length) return null
-    // Categorias em pizza (círculo cheio, só as fatias), a pedido do dono; as demais seguem em rosca.
-    const pizza = chave === 'categorias'
     return new Chart(canvas, {
-        type: pizza ? 'pie' : 'doughnut',
+        type: 'doughnut',
         data: { labels: fatias.map(f => f.nome), datasets: [{ data: fatias.map(f => Number(f.valor)), backgroundColor: fatias.map(f => f.cor), borderColor: '#fff', borderWidth: 2, hoverOffset: 6 }] },
         options: {
-            responsive: true, maintainAspectRatio: false, animation: false, cutout: pizza ? 0 : '58%',
+            responsive: true, maintainAspectRatio: false, animation: false, cutout: '58%',
             plugins: {
                 legend: { display: false },
                 tooltip: { callbacks: { label: c => `${c.label}: ${dinheiroTexto(c.raw)} (${pctCx(c.raw, total)})` } }
