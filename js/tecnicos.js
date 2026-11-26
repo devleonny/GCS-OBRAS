@@ -987,17 +987,22 @@ async function abrirDiaTecnicos(iso) {
 
     const linhas = (lista, classe, extra = () => '') => lista.map(l => `
         <tr class="cal-tec-linha ${classe}">
-            <td>${classe.split(' ').includes('indisponivel') ? '<img src="imagens/cadeado.png" alt="Indisponível">' : ''}<span data-rastreio-usuario="${escaparAtributo(l.usuario)}" data-rastreio-de="${iso}">${escaparAtributo(l.nome || l.usuario)}</span></td>
-            <td>${local(l)}</td>
-            <td>${extra(l)}</td>
+            <td><div class="cal-tec-nome">${classe.split(' ').includes('indisponivel') ? '<img src="imagens/cadeado.png" alt="Indisponível">' : ''}<span data-rastreio-usuario="${escaparAtributo(l.usuario)}" data-rastreio-de="${iso}">${escaparAtributo(l.nome || l.usuario)}</span></div></td>
+            <td class="cal-tec-cidade">${local(l)}</td>
+            <td class="cal-tec-extra">${extra(l)}</td>
         </tr>`).join('')
 
-    const motivo = l => `
-        <b>${escaparAtributo(l.motivo || 'Indisponível')}</b> · ${brDiaTecnicos(l.indisponivel_de)} a ${brDiaTecnicos(l.indisponivel_ate)}
-        ${l.observacao ? `<br><small>${escaparAtributo(l.observacao)}</small>` : ''}
-        ${l.chamados?.length ? `<br><small class="cal-tec-conflito">Tem correção agendada: ${etiquetasChamadosTecnicos(l.chamados)}</small>` : ''}
+    // Texto à esquerda (motivo em cima, período inteiro embaixo) e o ✕ à direita, centralizado.
+    const motivo = l => `<div class="cal-tec-motivo">
+        <div class="cal-tec-motivo-texto">
+            <b>${escaparAtributo(l.motivo || 'Indisponível')}</b>
+            <span class="cal-tec-periodo">${brDiaTecnicos(l.indisponivel_de)} a ${brDiaTecnicos(l.indisponivel_ate)}</span>
+            ${l.observacao ? `<small>${escaparAtributo(l.observacao)}</small>` : ''}
+            ${l.chamados?.length ? `<small class="cal-tec-conflito">Tem correção agendada: ${etiquetasChamadosTecnicos(l.chamados)}</small>` : ''}
+        </div>
         ${podeMarcar ? `<button type="button" class="cal-tec-remover" title="Remover indisponibilidade"
-            onclick="confirmarRemoverIndisponibilidade('${escaparAtributo(l.usuario)}', '${escaparAtributo(l.indisponibilidade_id)}', '${iso}')">✕</button>` : ''}`
+            onclick="confirmarRemoverIndisponibilidade('${escaparAtributo(l.usuario)}', '${escaparAtributo(l.indisponibilidade_id)}', '${iso}')">✕</button>` : ''}
+    </div>`
 
     const secao = (titulo, classe, lista, extra, cabecalho) => lista.length ? `
         <h4 class="cal-tec-titulo ${classe}">${titulo} <span>${lista.length}</span></h4>
