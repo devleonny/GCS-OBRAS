@@ -35,7 +35,7 @@ function colunasCab(pag) {
     const desloc = controles[pag]?.detalhes ? 1 : 0
     const cols = Object.entries(controles[pag]?.colunas || {}).map(([titulo, c], i) => ({
         idx: i + desloc, titulo, chave: c.chave || '',
-        tipo: c.filtro || (c.tipoPesquisa === 'data' ? 'data' : c.tipoPesquisa === 'select' ? 'lista' : c.tipoOrdenacao === 'numero' ? 'numero' : 'texto'),
+        tipo: c.filtro || (c.tipoPesquisa === 'data' ? 'data' : c.tipoPesquisa === 'select' ? 'lista' : (c.tipoOrdenacao === 'numero' || c.tipoPesquisa === 'valor') ? 'numero' : 'texto'),
         rotulos: c.rotulos || {}
     }))
     return desloc ? [{ idx: 0, titulo: '', chave: '', tipo: 'texto', rotulos: {} }, ...cols] : cols

@@ -660,7 +660,7 @@ async function formularioParceiro(id = crypto.randomUUID()) {
             'Descrição': { chave: 'descricao' },
             'Unidade': { chave: 'unidade' },
             'Quantidade': { chave: 'qtde' },
-            'Valor Orçamento': { chave: 'custo' },
+            'Valor Orçamento': { chave: 'custo', tipoPesquisa: 'valor' },
             'Valor Total Orçado': {},
             'Impostos (20%)': {},
             'Margem Unitária': {},
@@ -717,7 +717,7 @@ async function formularioParceiro(id = crypto.randomUUID()) {
             colunas: {
                 'Pedido': { chave: 'pedido' },
                 'Tipo': { chave: 'tipo' },
-                'Valor': { chave: 'valor' },
+                'Valor': { chave: 'valor', tipoPesquisa: 'valor' },
             }
         }
 

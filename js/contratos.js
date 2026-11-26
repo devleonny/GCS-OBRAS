@@ -12,7 +12,7 @@ async function telaContratos() {
             'Cidade': { chave: 'snpahots.cidade' },
             'CNPJ': { chave: 'snpahots.cnpj' },
             'Endereço': { chave: 'snpahots.endereco' },
-            'Valor': { chave: 'valor_total' },
+            'Valor': { chave: 'valor_total', tipoPesquisa: 'valor' },
             'Data vencimento': { chave: 'data_vencimento', tipoPesquisa: 'data' },
             'Contratos': {},
             'Usuário': { chave: 'usuario' },

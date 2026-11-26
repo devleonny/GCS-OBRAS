@@ -658,7 +658,7 @@ async function verAprovacoes() {
                 'Contrato': { chave: 'contrato' },
                 'Cliente': { chave: 'cliente' },
                 'Total Original <br>[s/desc ou acres]': {},
-                'Total Geral': { chave: 'total_geral' },
+                'Total Geral': { chave: 'total_geral', tipoPesquisa: 'valor' },
                 '%': '',
                 'Localização': { chave: 'cidade' },
                 'Usuário': { chave: 'responsaveis' },

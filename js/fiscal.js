@@ -143,7 +143,7 @@ async function abrirTabelaRecebidas(filtroExtra = null) {
                 'Nº': { chave: 'numero' },
                 'Fornecedor': { chave: 'participante_nome' },
                 'CPF/CNPJ': { chave: 'participante_documento' },
-                'Valor': { chave: 'valor_total', op: '>=', tipoOrdenacao: 'numero' },
+                'Valor': { chave: 'valor_total', tipoPesquisa: 'valor' },
                 'Itens': { chave: 'itens_pendentes', tipoOrdenacao: 'numero' },
                 'Estoque': { chave: 'estoque_status', tipoPesquisa: 'select' },
                 'Manifestação': { chave: 'manifestacao', tipoPesquisa: 'select' },
@@ -608,7 +608,7 @@ async function abrirTabelaCtesFis(filtroExtra = null) {
                 'Quem paga': { chave: 'paga_frete', tipoPesquisa: 'select', opcoes: ['GRUPO', 'TERCEIRO'], rotulos: { GRUPO: 'Empresa do grupo', TERCEIRO: 'Terceiro' } },
                 'Tomador': { chave: 'tomador_nome' },
                 'NF-e': { chave: 'notas_numeros' },
-                'Valor': { chave: 'valor_total', op: '>=', tipoOrdenacao: 'numero' },
+                'Valor': { chave: 'valor_total', tipoPesquisa: 'valor' },
                 'XML': { chave: 'status', tipoPesquisa: 'select', opcoes: ['COMPLETO', 'RESUMO'], rotulos: { COMPLETO: 'XML completo', RESUMO: 'Só resumo' } },
                 'Situação': { chave: 'situacao', tipoPesquisa: 'select', opcoes: ['AUTORIZADO', 'CANCELADO', 'DENEGADO'], rotulos: { AUTORIZADO: 'Autorizado', CANCELADO: 'Cancelado', DENEGADO: 'Denegado' } }
             }
@@ -2043,7 +2043,7 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
                 'CPF/CNPJ': { chave: 'participante_documento' },
                 ...(nfse ? {} : { 'Operação': { chave: 'natureza_operacao' } }),
                 'Orçamento': { chave: 'orcamento' },
-                'Valor': { chave: 'valor_total', op: '>=', tipoOrdenacao: 'numero' },
+                'Valor': { chave: 'valor_total', tipoPesquisa: 'valor' },
                 'Situação': { chave: 'status', tipoPesquisa: 'select' },
                 ...(nfse ? {} : { 'Estoque': { chave: 'estoque_status', tipoPesquisa: 'select' } }),
                 'Origem': { chave: 'ambiente', tipoPesquisa: 'select' }

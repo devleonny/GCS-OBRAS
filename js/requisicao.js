@@ -417,7 +417,7 @@ async function criarLinhaRequisicao(item) {
                 'Modelo': { chave: 'modelo' },
                 'Fabricante': { chave: 'fabricante' },
                 ...(
-                    lpu ? { 'Valor': { chave: `snapshots.${lpu}.1` } } : {}
+                    lpu ? { 'Valor': { chave: `snapshots.${lpu}.1`, tipoPesquisa: 'valor' } } : {}
                 )
             }
         }

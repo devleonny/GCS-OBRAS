@@ -132,7 +132,7 @@ async function telaEstoque(filtroExtra = null) {
                 'Descrição': { chave: 'descricao' },
                 'Un.': { chave: 'unidade' },
                 'Tipo': { chave: 'tipo', tipoPesquisa: 'select' },
-                'Saldo': { chave: 'saldo', op: '>=', tipoOrdenacao: 'numero' },
+                'Saldo': { chave: 'saldo', tipoPesquisa: 'valor' },
                 'Custo médio': { chave: 'custo_medio', tipoOrdenacao: 'numero' },
                 'Valor': { chave: 'valor_estoque', tipoOrdenacao: 'numero' },
                 'Situação': { chave: 'situacao', tipoPesquisa: 'select' },

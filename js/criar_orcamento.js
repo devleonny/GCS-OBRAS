@@ -380,7 +380,7 @@ function clonarOrcamento() {
             retornar: ['dados_orcam.contrato'],
             colunas: {
                 'Número do Orçamento': { chave: 'dados_orcam.contrato' },
-                'Valor': { chave: 'total_geral' },
+                'Valor': { chave: 'total_geral', tipoPesquisa: 'valor' },
                 'Cidade': { chave: 'cidade' },
                 'Cliente': { chave: 'cliente' }
             }
@@ -1249,7 +1249,7 @@ async function tabelaProdutosOrcamentos() {
         'Modelo': { chave: 'modelo' },
         'Unidade': { chave: 'unidade' },
         'Quantidade': {},
-        'Valor': { chave: `snapshots.${lpu}` },
+        'Valor': { chave: `snapshots.${lpu}`, tipoPesquisa: 'valor' },
         'Imagem': {}
     }
 

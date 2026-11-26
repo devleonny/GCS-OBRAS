@@ -1,5 +1,12 @@
 let controles = {}
 
+// Coluna de valor: tipoPesquisa 'valor' (ou só tipoOrdenacao 'numero'). Pesquisa pelo número e ordena pelo número.
+const DICA_PESQUISA_VALOR = 'Valor: 123,52 (exato) · 123 (123,00 a 123,99) · >1000 · <=500 · 100 a 200'
+
+function ehColunaValor(coluna) {
+    return coluna?.tipoPesquisa === 'valor' || (!coluna?.tipoPesquisa && coluna?.tipoOrdenacao === 'numero')
+}
+
 function campoBloq() {
     popup({ mensagem: 'O campo não permite pesquisas' })
 }
@@ -118,11 +125,15 @@ async function modTab(configuracoes) {
                         </div>
                     </th>`
 
+            // Valor (dinheiro/quantidade): o servidor entende "123,52", "123", ">1000", "100 a 200".
+            const opTexto = query.op || (ehColunaValor(query) ? 'valor' : 'includes')
+
             return `
                 <th style="background-color: white; text-align: left;"
                 data-chave="${query.chave}"
-                data-op="${query.op || 'includes'}"
-                onkeydown="confirmarPesquisa({ event, chave: '${query.chave}', op: '${query.op || 'includes'}', elemento: this, pag: '${pag}'})"
+                data-op="${opTexto}"
+                ${opTexto === 'valor' ? `title="${DICA_PESQUISA_VALOR}"` : ''}
+                onkeydown="confirmarPesquisa({ event, chave: '${query.chave}', op: '${opTexto}', elemento: this, pag: '${pag}'})"
                 onpaste="colarTextoPuro(event)"
                 contentEditable="true">
                 </th>
@@ -922,7 +933,8 @@ function ordenarColuna({ pag, path }) {
         ctrl.ordenar.direcao = atual.direcao === 'asc' ? 'desc' : 'asc'
     } else {
         // Sem tipo o servidor ordena como texto ("100" antes de "20"); a coluna pode informar o seu.
-        const { tipoOrdenacao } = Object.values(ctrl.colunas || {}).find(c => c.chave === path) || {}
+        const coluna = Object.values(ctrl.colunas || {}).find(c => c.chave === path) || {}
+        const tipoOrdenacao = coluna.tipoPesquisa === 'valor' ? 'valor' : coluna.tipoOrdenacao
         ctrl.ordenar = {
             path,
             direcao: 'asc',

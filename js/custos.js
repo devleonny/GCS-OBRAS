@@ -274,7 +274,7 @@ async function tabPagamentosCusto(contrato) {
             colunas: {
                 ...(podeMover ? { '': {} } : {}),
                 'Data': { chave: 'vencimento', tipoPesquisa: 'data' },
-                'Valor': { chave: 'valor' },
+                'Valor': { chave: 'valor', tipoPesquisa: 'valor' },
                 'Categoria': { chave: 'categoria' },
                 'Status': { chave: 'status' },
                 'Solicitante': { chave: 'criado' },

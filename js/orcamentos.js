@@ -37,7 +37,7 @@ async function telaOrcamentos() {
             //'Vinculações': { chave: 'vinculados' },
             'Responsaveis': { chave: 'responsaveis' },
             //'Custos': {},
-            'Total do Orçamento': { chave: 'total_geral' },
+            'Total do Orçamento': { chave: 'total_geral', tipoPesquisa: 'valor' },
             'Ações': {}
         },
         base: 'mvw_dados_orcamentos',

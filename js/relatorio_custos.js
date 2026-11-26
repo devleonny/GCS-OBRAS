@@ -54,9 +54,9 @@ const ABAS_CUSTOS_DEP = {
         colunas: {
             'Centro de custo': {},
             'Departamento': { chave: 'departamento' },
-            'Custo / Orçado': { chave: 'percentual', op: '>=', tipoOrdenacao: 'numero' },
-            'Orçado': { chave: 'orcado', op: '>=', tipoOrdenacao: 'numero' },
-            'Custo': { chave: 'custo', op: '>=', tipoOrdenacao: 'numero' },
+            'Custo / Orçado': { chave: 'percentual', tipoPesquisa: 'valor' },
+            'Orçado': { chave: 'orcado', tipoPesquisa: 'valor' },
+            'Custo': { chave: 'custo', tipoPesquisa: 'valor' },
             'Responsável': { chave: 'responsavel' },
             'Cliente': { chave: 'cliente' },
             'Cidade': { chave: 'cidade' }
@@ -75,9 +75,9 @@ const ABAS_CUSTOS_DEP = {
         ],
         colunas: {
             'Orçamentos': {},
-            'Custo / Orçado': { chave: 'percentual', op: '>=', tipoOrdenacao: 'numero' },
-            'Orçado': { chave: 'orcado', op: '>=', tipoOrdenacao: 'numero' },
-            'Custo': { chave: 'custo', op: '>=', tipoOrdenacao: 'numero' },
+            'Custo / Orçado': { chave: 'percentual', tipoPesquisa: 'valor' },
+            'Orçado': { chave: 'orcado', tipoPesquisa: 'valor' },
+            'Custo': { chave: 'custo', tipoPesquisa: 'valor' },
             'Responsável': { chave: 'responsavel' },
             'Qtd. orçamentos': { chave: 'orcamentos', op: '>=', tipoOrdenacao: 'numero' },
             [`Acima de ${LIMITE_CUSTO_ORCADO}%`]: { chave: 'acima_limite', op: '>=', tipoOrdenacao: 'numero' },

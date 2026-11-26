@@ -106,7 +106,7 @@ async function telaPagamentos() {
             'Data de Vencimento': { chave: 'param_estavel.data_vencimento', tipoPesquisa: 'data' },
             // Opções fixas: contar por app na vw_reembolsos segurava a abertura da tela.
             'APP': { chave: 'app', op: '=', tipoPesquisa: 'select', opcoes: ['AC', 'IAC', 'HNK', 'HNW', ...APPS_SOCIOS_PAG] },
-            'Valor': { chave: 'snapshots.valor' },
+            'Valor': { chave: 'snapshots.valor', tipoPesquisa: 'valor' },
             'Status': { chave: 'status' },
             'Solicitante': { chave: 'criado' },
             'Recebedor': { chave: 'snapshots.cliente' },
