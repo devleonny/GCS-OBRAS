@@ -271,3 +271,28 @@ label.cc-item { cursor: pointer; }
 .cc-favorecido-modo .fin-icone { width: 14px; height: 14px; }
 .cc-favorecido-modo.ativo { background: #e6f2ea; border-color: #2f7d47; color: #2f7d47; }
 .cc-favorecido .fin-opcoes { max-width: none; min-height: 32px; margin: 0; box-sizing: border-box; display: block; line-height: 22px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- calendário do mês ao lado da busca (filtro por dia) ---- */
+.cc-busca-linha { display: flex; gap: 6px; align-items: stretch; }
+.cc-busca-linha .cc-busca { flex: 1; min-width: 0; }
+.cc-cal { position: relative; display: flex; gap: 4px; flex: none; }
+.cc-cal-botao { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.cc-cal-botao svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.cc-cal-botao.ativo { background: #356443; border-color: #356443; color: #fff; }
+.cc-cal-limpar { padding-left: 8px; padding-right: 8px; }
+.cc-cal-pop { position: absolute; top: calc(100% + 6px); right: 0; z-index: 50; width: 290px; padding: 10px; background: #fff; border: 1px solid var(--fin-borda, #d6e0da); border-radius: 10px; box-shadow: 0 10px 28px rgba(0, 0, 0, .16); display: flex; flex-direction: column; gap: 6px; }
+.cc-cal-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.cc-cal-topo b { text-transform: capitalize; font-size: 14px; }
+.cc-cal-topo small { color: #7a877f; font-size: 11px; }
+.cc-cal-semana, .cc-cal-grade { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cc-cal-semana span { text-align: center; font-size: 11px; color: #7a877f; font-weight: 600; }
+.cc-cal-dia { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; height: 38px; padding: 0; border: 1px solid #e0e8e3; border-radius: 6px; background: #fafcfb; cursor: pointer; font: inherit; color: #1e2b23; }
+.cc-cal-dia b { font-size: 13px; line-height: 1.1; }
+.cc-cal-dia small { font-size: 10px; color: #4f5d55; line-height: 1.1; }
+.cc-cal-dia i { position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: #d97706; }
+.cc-cal-dia:hover { border-color: #356443; }
+.cc-cal-vazio { background: #fff; color: #b3bdb7; }
+.cc-cal-hoje { border-color: #356443; border-width: 2px; }
+.cc-cal-sel { background: #356443; border-color: #356443; color: #fff; }
+.cc-cal-sel small { color: #e3efe7; }
+.cc-cal-todos { align-self: stretch; }

@@ -8,7 +8,7 @@
 // o saldo do banco vira o saldo conferido (Fluxo de Caixa) e as baixas até a data travam.
 
 // multi: chaves das linhas juntadas com Ctrl + clique (grupo N × N); com 2 ou mais, o detalhe trabalha com a soma.
-const estadoConc = { painel: false, conta: null, mes: null, filtro: 'TODAS', busca: '', sel: null, aba: null, multi: [] }
+const estadoConc = { painel: false, conta: null, mes: null, filtro: 'TODAS', busca: '', dias: null, sel: null, aba: null, multi: [] }
 let contasConcCache = null
 let dadosConc = null
 let detalheConc = null
@@ -372,6 +372,7 @@ function abrirConciliarConc(id, mes = null) {
     estadoConc.mes = mes
     estadoConc.filtro = 'TODAS'
     estadoConc.busca = ''
+    estadoConc.dias = null
     estadoConc.sel = null
     estadoConc.multi = []
     return telaConciliarConc()
@@ -418,10 +419,13 @@ function linhasConc() {
     return [...ext, ...gcs].sort((a, b) => a.data.localeCompare(b.data) || (a.gcs - b.gcs))
 }
 
+// Dia (ou intervalo de dias) escolhido no calendário ao lado da busca.
+const noDiaConc = l => !estadoConc.dias || (l.data >= estadoConc.dias.de && l.data <= estadoConc.dias.ate)
+
 function filtrarLinhasConc(linhas) {
     const f = estadoConc.filtro
     const termo = normalFin(estadoConc.busca)
-    return linhas.filter(l => (f === 'TODAS' || l.sit === f)
+    return linhas.filter(l => (f === 'TODAS' || l.sit === f) && noDiaConc(l)
         && (!termo || normalFin(`${l.descricao} ${l.documento || ''} ${Math.abs(l.valor).toFixed(2).replace('.', ',')} ${Math.abs(l.valor).toFixed(2)}`).includes(termo)))
 }
 
@@ -429,7 +433,7 @@ function desenharConciliarConc() {
     const d = dadosConc
     const c = d.conta
     const todas = linhasConc()
-    const conta = s => todas.filter(l => s === 'TODAS' || l.sit === s).length
+    const conta = s => todas.filter(l => (s === 'TODAS' || l.sit === s) && noDiaConc(l)).length
     const unicas = d.linhas.filter(l => l.unica && !l.fechada).length
     const falta = Number(d.falta_explicar || 0)
     const meses = [...new Set([d.mes, ...d.meses, hojeFin().slice(0, 7)])].sort().reverse()
@@ -447,7 +451,7 @@ function desenharConciliarConc() {
         ${cabecaPainelCartaoFin((c.contas.find(k => String(k.id) === String(c.conta_principal_id)) || c.contas[0] || {}).app || '?', `${c.nome} · ${mesNomeConc(d.mes)}`,
             `<small>${c.conferida_ate ? `conferida até ${dataFin(c.conferida_ate)}` : `ainda não fechada · corte ${dataFin(c.corte)}`}</small>`)}
         <label class="cc-mes cc-so-aberto">Mês
-            <select class="fis-input" onchange="estadoConc.mes = this.value; telaConciliarConc(false)">
+            <select class="fis-input" onchange="estadoConc.mes = this.value; estadoConc.dias = null; telaConciliarConc(false)">
                 ${meses.map(m => `<option value="${m}" ${m === d.mes ? 'selected' : ''}>${mesNomeConc(m)}</option>`).join('')}
             </select>
         </label>
@@ -484,8 +488,11 @@ function desenharConciliarConc() {
             ${d.linhas.length || d.so_gcs.length ? '' : `<div class="cf-faixa">Nenhuma linha de extrato em ${mesNomeConc(d.mes)}. <span class="fis-link" onclick="importarOfxConc()">Importar OFX</span></div>`}
             <div class="cc-area" data-area-conc>
                 <div class="cc-coluna-lista">
-                    <input class="fis-input cc-busca" type="search" placeholder="Buscar descrição, CPF/CNPJ ou valor…" value="${escFin(estadoConc.busca)}"
-                        oninput="estadoConc.busca = this.value; desenharTabelaConc()">
+                    <div class="cc-busca-linha">
+                        <input class="fis-input cc-busca" type="search" placeholder="Buscar descrição, CPF/CNPJ ou valor…" value="${escFin(estadoConc.busca)}"
+                            oninput="estadoConc.busca = this.value; desenharTabelaConc()">
+                        <div class="cc-cal" data-cal-conc>${botaoCalConc()}</div>
+                    </div>
                     <div class="cc-rolagem" data-tabela-conc></div>
                 </div>
                 <section class="cc-detalhe" data-detalhe-conc><p class="cc-explica cc-escolha">Escolha uma linha à esquerda para ver as opções.</p></section>
@@ -493,6 +500,88 @@ function desenharConciliarConc() {
         </div>`, painel, 'cc-tela-conciliar')
     desenharTabelaConc()
     ajustarAlturaConc()
+}
+
+// ---- calendário do mês (filtro por dia)
+
+function rotuloDiasConc() {
+    const d = estadoConc.dias
+    if (!d) return 'Dia'
+    return d.de === d.ate ? dataFin(d.de).slice(0, 5) : `${dataFin(d.de).slice(0, 5)} a ${dataFin(d.ate).slice(0, 5)}`
+}
+
+function botaoCalConc() {
+    const ativo = Boolean(estadoConc.dias)
+    return `
+        <button type="button" class="fis-mini cc-cal-botao ${ativo ? 'ativo' : ''}" title="Filtrar por dia do mês (Shift + clique escolhe um intervalo)" aria-haspopup="dialog"
+            onclick="alternarCalConc(event)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>
+            <span>${rotuloDiasConc()}</span>
+        </button>
+        ${ativo ? `<button type="button" class="fis-mini cc-cal-limpar" title="Todos os dias" aria-label="Todos os dias" onclick="escolherDiaConc(event, null)">✕</button>` : ''}`
+}
+
+function alternarCalConc(ev) {
+    ev.stopPropagation()
+    const caixa = document.querySelector('[data-cal-conc]')
+    if (!caixa) return
+    if (caixa.querySelector('.cc-cal-pop')) return fecharCalConc()
+    caixa.insertAdjacentHTML('beforeend', `<div class="cc-cal-pop" role="dialog" aria-label="Escolher dia" onclick="event.stopPropagation()">${gradeCalConc()}</div>`)
+    setTimeout(() => document.addEventListener('click', fecharCalConc, { once: true }))
+}
+
+function fecharCalConc() {
+    document.querySelector('[data-cal-conc] .cc-cal-pop')?.remove()
+}
+
+// Grade do mês da conciliação: cada dia mostra quantas linhas tem (no filtro de situação e na busca)
+// e um ponto laranja quando ainda há linha a resolver.
+function gradeCalConc() {
+    const [a, m] = dadosConc.mes.split('-').map(Number)
+    const primeiro = new Date(a, m - 1, 1).getDay()
+    const total = new Date(a, m, 0).getDate()
+    const salvo = estadoConc.dias
+    estadoConc.dias = null
+    const linhas = filtrarLinhasConc(linhasConc())
+    estadoConc.dias = salvo
+    const porDia = {}
+    linhas.forEach(l => {
+        const k = l.data.slice(0, 10)
+        porDia[k] = porDia[k] || { n: 0, pend: false }
+        porDia[k].n++
+        if (['SUGESTAO', 'SEM_PAR', 'SO_GCS'].includes(l.sit)) porDia[k].pend = true
+    })
+    const hoje = hojeFin()
+    const celulas = Array.from({ length: primeiro }, () => '<span></span>')
+    for (let i = 1; i <= total; i++) {
+        const dia = `${dadosConc.mes}-${String(i).padStart(2, '0')}`
+        const info = porDia[dia]
+        const sel = salvo && dia >= salvo.de && dia <= salvo.ate
+        celulas.push(`<button type="button" class="cc-cal-dia ${info ? '' : 'cc-cal-vazio'} ${sel ? 'cc-cal-sel' : ''} ${dia === hoje ? 'cc-cal-hoje' : ''}"
+            title="${dataFin(dia)}${info ? ` · ${info.n} linha${info.n === 1 ? '' : 's'}${info.pend ? ' · com pendência' : ''}` : ' · nada'}"
+            onclick="escolherDiaConc(event, '${dia}')"><b>${i}</b>${info ? `<small>${info.n}</small>` : '<small>&nbsp;</small>'}${info?.pend ? '<i aria-hidden="true"></i>' : ''}</button>`)
+    }
+    return `
+        <div class="cc-cal-topo"><b>${mesNomeConc(dadosConc.mes)}</b><small>Shift + clique: intervalo</small></div>
+        <div class="cc-cal-semana">${['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(x => `<span>${x}</span>`).join('')}</div>
+        <div class="cc-cal-grade">${celulas.join('')}</div>
+        <button type="button" class="fis-mini cc-cal-todos" onclick="escolherDiaConc(event, null)">Todos os dias</button>`
+}
+
+// Clique = só aquele dia (clicar de novo no mesmo dia solta); Shift + clique = do dia já escolhido até este
+// (o calendário fica aberto para ajustar o intervalo).
+function escolherDiaConc(ev, dia) {
+    ev.stopPropagation()
+    const d = estadoConc.dias
+    const intervalo = Boolean(ev.shiftKey && dia && d)
+    if (!dia) estadoConc.dias = null
+    else if (intervalo) estadoConc.dias = dia < d.de ? { de: dia, ate: d.ate } : { de: d.de, ate: dia }
+    else estadoConc.dias = d && d.de === dia && d.ate === dia ? null : { de: dia, ate: dia }
+    fecharCalConc()
+    document.removeEventListener('click', fecharCalConc)
+    desenharConciliarConc()
+    reabrirSelecaoConc()
+    if (intervalo) alternarCalConc(ev)
 }
 
 // Lista, detalhe e painel ocupam a altura visível só pelo CSS (.cc-tela-conciliar): a área do sistema (.tela)
