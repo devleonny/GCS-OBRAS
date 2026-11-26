@@ -357,8 +357,8 @@ function avisosCx(d) {
         avisos.push(['alerta', `O extrato de <b>${escFin(b.nome)}</b> vai só até ${diaCx(b.fim)} (${b.dias_sem_extrato} dias). Depois disso o saldo soma o que foi registrado no GCS. ${conciliar}`])
     const ja = d.ja_no_extrato
     if (ja && (ja.PAGAR.n || ja.RECEBER.n)) avisos.push(['info', `${[
-        ja.RECEBER.n ? `${ja.RECEBER.n} fatura(s) a receber (${dinheiro(ja.RECEBER.valor)})` : '',
-        ja.PAGAR.n ? `${ja.PAGAR.n} a pagar (${dinheiro(ja.PAGAR.valor)})` : ''].filter(Boolean).join(' e ')}
+        ja.RECEBER.n ? `${ja.RECEBER.n} fatura(s) a receber <b>${dinheiroTexto(ja.RECEBER.valor)}</b>` : '',
+        ja.PAGAR.n ? `${ja.PAGAR.n} a pagar <b>${dinheiroTexto(ja.PAGAR.valor)}</b>` : ''].filter(Boolean).join(' e ')}
         já aparecem no extrato com o mesmo valor, mas sem baixa no GCS: ficaram fora da previsão para não contar duas vezes. Concilie para dar a baixa. ${conciliar}`])
     if (d.tem_saldo && k.negativo_em) avisos.push(['perigo', `<b>Caixa negativo em ${diaCx(k.negativo_em)} (${semanaCx(k.negativo_em)})</b> pelo que já está lançado.`])
     else if (d.tem_saldo && k.abaixo_reserva_em && k.reserva) avisos.push(['alerta', `<b>Abaixo da reserva em ${diaCx(k.abaixo_reserva_em)}</b> (${semanaCx(k.abaixo_reserva_em)}).`])

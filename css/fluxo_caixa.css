@@ -35,14 +35,15 @@
 /* avisos */
 .cx-avisos { display: flex; flex-direction: column; gap: 6px; }
 .cx-aviso {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-    padding: 8px 12px; border-radius: 8px; border: 1px solid; font-size: 13px; line-height: 1.4;
+    display: block;
+    padding: 8px 12px; border-radius: 8px; border: 1px solid; font-size: 13px; line-height: 1.6;
 }
-.cx-aviso button { margin: 0; }
+.cx-aviso button { margin: 0 0 0 6px; vertical-align: middle; }
+.cx-aviso b { white-space: nowrap; }
 .cx-aviso-info { background: #eef4fc; border-color: #c4d8f2; color: #1c3f6e; }
 .cx-aviso-alerta { background: #fff6e5; border-color: #f0d49a; color: #6b4300; }
 .cx-aviso-perigo { background: #fdecec; border-color: #f2b8b8; color: #8a1c1c; }
-.cx-aviso-perigo::before { content: '▲'; font-size: 11px; }
+.cx-aviso-perigo::before { content: '▲'; font-size: 11px; margin-right: 6px; }
 
 /* respostas (cartões grandes) */
 .cx-respostas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
@@ -232,11 +233,22 @@
 .cx-chips, .cx-linha-filtro, .cx-mes-nav, .cx-datas, .cx-atalhos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .cx-linha-filtro { gap: 10px; }
 .cx-chip {
-    display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 8px; border: 1px solid #c9d4cd;
-    border-radius: 999px; background: #fff; font-size: 13px; font-weight: 600; color: var(--cx-tinta-2); cursor: pointer; user-select: none;
+    position: relative; display: inline-flex; flex-direction: row; align-items: center;
+    height: 30px; padding: 0 12px 0 10px; margin: 0; border: 1px solid #c9d4cd; border-radius: 999px; background: #fff;
+    font-size: 13px; font-weight: 600; color: var(--cx-tinta-2); cursor: pointer; user-select: none; white-space: nowrap;
 }
-.cx-chip input { margin: 0; width: 15px; height: 15px; accent-color: #356443; cursor: pointer; }
+/* caixinha nativa escondida (o estilo global de input a deformava); o quadrado é desenhado no span */
+.cx-chip input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; padding: 0; pointer-events: none; }
+.cx-chip span { display: inline-flex; align-items: center; gap: 7px; }
+.cx-chip span::before {
+    content: ''; display: inline-block; width: 14px; height: 14px; box-sizing: border-box;
+    border: 1.5px solid #9aaba0; border-radius: 4px; background: #fff;
+    font-size: 11px; line-height: 11px; text-align: center; color: #fff;
+}
+.cx-chip:hover { border-color: #9cc4a6; }
 .cx-chip.ativo { background: #e4f2dc; border-color: #9cc4a6; color: #1f4d2c; }
+.cx-chip.ativo span::before { content: '✓'; border-color: #356443; background: #356443; }
+.cx-chip input:focus-visible + span::before { outline: 2px solid #356443; outline-offset: 2px; }
 .cx-atalho {
     height: 30px; padding: 0 12px; border: 1px dashed #c9d4cd; border-radius: 999px; background: #fff;
     font-size: 12.5px; color: var(--cx-tinta-2); cursor: pointer; margin: 0;
