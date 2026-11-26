@@ -225,6 +225,7 @@ function desenharSelecaoControleFat() {
     }
     const caixa = document.querySelector('[data-totais-ctf]')
     if (caixa) caixa.innerHTML = painelControleFat()
+    escreverTotaisRodapeControleFat()
     if (selecaoControleFat.size && !estadoControleFat.painel) alternarPainelControleFat()
 }
 
@@ -280,6 +281,7 @@ function criarLinhaControleFat(d) {
 }
 
 async function aposCarregarControleFat() {
+    prepararTotaisControleFat()
     await cabecalhoAvancadoTabela('controleFat', { prefKey: 'controle_faturamento' })
     prepararSelecaoControleFat()
     desenharRodapeControleFat()
@@ -337,12 +339,16 @@ async function totaisControleFat() {
     const cobravel = { cobravel: { op: '=', value: 'S' } }
     estadoControleFat.totais = null
     caixa.innerHTML = painelControleFat()
-    const [recebido, atrasado, aVencer, total, todas] = await Promise.all([
+    estadoControleFat.somasRodape = null
+    escreverTotaisRodapeControleFat()
+    const [recebido, atrasado, aVencer, total, todas, recebidoTodas, saldoTodas] = await Promise.all([
         somar('recebido', cobravel),
         somar('saldo', { situacao: { op: '=', value: 'ATRASADA' } }),
         somar('saldo', { situacao: { modo: 'OR', regras: [{ op: '=', value: 'A VENCER' }, { op: '=', value: 'RECEBIDA PARCIAL' }] } }),
         somar('valor', cobravel),
-        somar('valor', null)
+        somar('valor', null),
+        somar('recebido', null),
+        somar('saldo', null)
     ])
     if (assinatura !== assinaturaTotaisControleFat || !document.body.contains(caixa)) return
     const n = r => r == null ? null : Number(r.total || 0)
@@ -351,7 +357,54 @@ async function totaisControleFat() {
         recebido: n(recebido), atrasado: n(atrasado), aVencer: n(aVencer), total: n(total),
         notas: todas?.todos != null ? Number(todas.todos).toLocaleString('pt-BR') : '—'
     }
+    // Pé da tabela: soma simples de todas as notas do filtro (canceladas e remessas inclusive, como a lista).
+    estadoControleFat.somasRodape = { valor: n(todas), recebido: n(recebidoTodas), saldo: n(saldoTodas) }
     caixa.innerHTML = painelControleFat()
+    escreverTotaisRodapeControleFat()
+}
+
+// ------------------------------------------------------------ totais no pé da tabela (como nas Faturas)
+const COLUNAS_TOTAL_CTF = ['valor', 'recebido', 'saldo']
+
+// Linha de totais (tfoot) e a linha de enchimento que segura totais e paginação no pé da janela.
+// Montada antes do cabeçalho avançado, que reordena/recolhe as colunas também no rodapé.
+function prepararTotaisControleFat() {
+    const tabela = document.getElementById('bodyControleFat')?.closest('table')
+    if (!tabela || tabela.tFoot) return
+    const chaves = Object.values(controles.controleFat?.colunas || {}).map(c => c.chave || '')
+    const linha = tabela.createTFoot().insertRow()
+    linha.className = 'fin-totais'
+    chaves.forEach(chave => {
+        const td = linha.insertCell()
+        if (COLUNAS_TOTAL_CTF.includes(chave)) {
+            td.dataset.totalCtf = chave
+            td.className = 'fis-num'
+        }
+    })
+    const enchimento = document.createElement('tbody')
+    enchimento.className = 'fin-enchimento'
+    enchimento.innerHTML = `<tr><td colspan="${chaves.length}"></td></tr>`
+    tabela.insertBefore(enchimento, tabela.tFoot)
+}
+
+// Com notas marcadas: a soma delas; sem marcação: o total do filtro.
+function escreverTotaisRodapeControleFat() {
+    const marcadas = selecaoControleFat.size
+    COLUNAS_TOTAL_CTF.forEach((chave, i) => {
+        const td = document.querySelector(`[data-total-ctf="${chave}"]`)
+        if (!td) return
+        if (marcadas) {
+            const soma = [...selecaoControleFat.values()].reduce((s, d) => s + (Number(d?.[chave]) || 0), 0)
+            td.title = `Soma das ${marcadas} nota(s) marcada(s). Desmarque todas para ver o total do filtro.`
+            td.innerHTML = `${i === 0 ? `<small class="fin-total-rotulo">${marcadas} marcada${marcadas === 1 ? '' : 's'}</small> ` : ''}<span class="fin-sigma">Σ</span> ${dinheiro(Math.round(soma * 100) / 100)}`
+            td.classList.add('fin-total-selecao')
+        } else {
+            const v = estadoControleFat.somasRodape?.[chave]
+            td.title = 'Total de todas as notas do filtro'
+            td.innerHTML = `<span class="fin-sigma">Σ</span> ${v == null ? '…' : dinheiro(v)}`
+            td.classList.remove('fin-total-selecao')
+        }
+    })
 }
 
 // ------------------------------------------------------------ setor do responsável (rh_funcionarios.setor)
