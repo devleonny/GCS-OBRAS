@@ -97,6 +97,8 @@ async function telaControleFaturamento() {
                 'Origem': { chave: 'fonte', tipoPesquisa: 'select', opcoes: ['OMIE', 'GCS'], rotulos: { OMIE: 'Omie / avulsa', GCS: 'GCS' } }
             }
         })
+        // Paginação no rodapé, como nas Faturas (no layout financeiro a do modTab fica escondida no topo).
+        area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-ctf></div>')
         await paginacao('controleFat')
         removerOverlay()
     } catch (err) {
@@ -175,7 +177,42 @@ function criarLinhaControleFat(d) {
 
 async function aposCarregarControleFat() {
     await cabecalhoAvancadoTabela('controleFat', { prefKey: 'controle_faturamento' })
+    desenharRodapeControleFat()
     totaisControleFat()
+}
+
+// Rodapé "1 - 50 de 3.318 registros · página N de M" (o mesmo das Faturas, para esta tabela).
+function desenharRodapeControleFat() {
+    const alvo = document.querySelector('[data-rodape-ctf]')
+    const ctrl = controles.controleFat
+    if (!alvo || !ctrl) return
+    const porPagina = Number(ctrl.limite) || 50
+    const total = Number(document.getElementById('resultados_controleFat')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const inicio = total ? (pagina - 1) * porPagina + 1 : 0
+    const fim = Math.min(total, pagina * porPagina)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaControleFat(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} nota${total === 1 ? '' : 's'}</span>${typeof filtrosAtivosRodapeCab === 'function' ? filtrosAtivosRodapeCab(ctrl.pag) : ''}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaControleFat(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
+        </div>`
+}
+
+async function irPaginaControleFat(n) {
+    const ctrl = controles.controleFat
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeControleFat()
+    ctrl.pagina = pagina
+    await paginacao('controleFat')
 }
 
 // Totais com os filtros da tabela: recebido e total só do que se cobra; atrasado e a vencer pelo saldo.
