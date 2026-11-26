@@ -48,7 +48,26 @@ const QUADROS_FLUXO = {
         titulo: 'Fluxo de Compras',
         colunas: [['sefaz', 'Emitida pelo Fornecedor'], ['conferir', 'Ciência / Conferir Itens'], ['pronta', 'Pronta para Lançar'], ['lancada', 'Lançada no Estoque']],
         finais: ['lancada']
+    },
+    // CT-e recebidos (26/11/2026, a pedido): a chave NF-e | CT-e no topo do Fluxo de Compras troca o quadro.
+    // Etapa pela fatura a pagar do frete (vw_fiscal_ctes.fatura/fatura_pago — gcs migrations/fiscal-ctes-fluxo.sql).
+    // O clique abre o CT-e (abrirCteFis), onde se responde "Gerar fatura a pagar?" e se abre a fatura.
+    compras_cte: {
+        titulo: 'Fluxo de Compras',
+        colunas: [['emitido', 'Emitido pela Transportadora'], ['a_pagar', 'Fatura a Pagar'], ['pago', 'Pago'], ['sem_cobranca', 'Sem Cobrança']],
+        finais: ['pago', 'sem_cobranca']
     }
+}
+const ehComprasFluxo = quadro => quadro === 'compras' || quadro === 'compras_cte'
+// Chave NF-e | CT-e do Fluxo de Compras (mesmo visual da chave de empresa).
+function chaveDocComprasFluxoHtml(quadro) {
+    return `<div class="fluxo-chave-empresa fluxo-chave-doc" role="group" aria-label="Tipo de documento">${[['compras', 'NF-e'], ['compras_cte', 'CT-e']].map(([q, t]) =>
+        `<button type="button" class="${quadro === q ? 'ativo' : ''}" aria-pressed="${quadro === q}" onclick="trocarDocComprasFluxo('${q}')">${t}</button>`).join('')}</div>`
+}
+function trocarDocComprasFluxo(quadro) {
+    if (quadro === estadoFluxo.quadro) return
+    estadoFluxo.docCompras = quadro
+    telaFluxo(quadro)
 }
 // -1 = Hoje (18/11/2026, a pedido): só o que tem a data de hoje.
 const PERIODOS_FLUXO = [[-1, 'Hoje'], [30, 'Últimos 30 dias'], [60, 'Últimos 60 dias'], [90, 'Últimos 90 dias'], [180, 'Últimos 6 meses'], [365, 'Último ano'], [0, 'Todo o período']]
@@ -96,8 +115,39 @@ function etapaCompraFluxo(d) {
     return 'conferir'
 }
 
+// Etapa de um CT-e recebido. Cancelado fica fora. Tomador fora do grupo (frete de terceiro) ou "Não gerar
+// fatura" = Sem cobrança. Fatura (do GCS ou a que veio do Omie) paga por inteiro = Pago.
+function etapaCteFluxo(d) {
+    if (String(d.situacao || '').toUpperCase() !== 'AUTORIZADO') return null
+    const fatura = String(d.fatura || '').toUpperCase()
+    if (d.paga_frete !== 'GRUPO' || fatura === 'NAO' || !fatura) return 'sem_cobranca'
+    if (fatura === 'PENDENTE') return 'emitido'
+    const omie = fatura === 'OMIE'
+    const valor = Number(omie ? d.fatura_outra_valor : d.fatura_valor) || 0
+    const pago = Number(omie ? d.fatura_outra_pago : d.fatura_pago) || 0
+    return valor > 0 && pago + 0.005 >= valor ? 'pago' : 'a_pagar'
+}
+
+// NF-e do Fluxo de Compras ← CT-e que a transportou (pela chave), para o cartão mostrar o frete.
+function freteDasNotasFluxo(ctes) {
+    const mapa = new Map()
+    for (const t of ctes || [])
+        if (String(t.situacao || '').toUpperCase() === 'AUTORIZADO')
+            for (const chave of Array.isArray(t.nfe_chaves) ? t.nfe_chaves : []) {
+                if (!mapa.has(chave)) mapa.set(chave, [])
+                mapa.get(chave).push({ id: t.id, numero: t.numero, transportadora: t.emitente_nome, valor: Number(t.valor_receber || t.valor_total) || 0 })
+            }
+    return mapa
+}
+
 // Linhas cruas → cartões no formato comum: { id, etapa, data (do período), desde (na etapa), ... }.
 function cartoesFluxo(quadro, linhas) {
+    if (quadro === 'compras_cte')
+        return linhas.map(d => ({
+            ...d, empresa: d.tomador_app || d.app, etapa: etapaCteFluxo(d), data: d.dia, participante_nome: d.emitente_nome,
+            valor_total: Number(d.valor_receber || d.valor_total) || 0,
+            desde: (['a_pagar', 'pago'].includes(etapaCteFluxo(d)) && d.fatura_em ? String(d.fatura_em).slice(0, 10) : d.dia)
+        })).filter(c => c.etapa)
     if (quadro === 'compras')
         return linhas.filter(d => !d.excluido).map(d => ({ ...d, empresa: d.app, etapa: etapaCompraFluxo(d), data: d.dia, desde: d.dia })).filter(c => c.etapa)
     if (QUADROS_FLUXO[quadro]?.servico) return cartoesServicoFluxo(linhas)
@@ -121,6 +171,7 @@ function colunasFluxo(quadro, cartoes, { periodo = 30, busca = '', empresa = '',
     const daEmpresa = c => !empresa || (empresa === '-' ? !c.empresa : c.empresa === empresa)
     const daRecorrencia = c => !soRecorrentes || c.recorrente || String(c.origem || '').toUpperCase() === 'RECORRENCIA'
     const combina = c => daEmpresa(c) && daRecorrencia(c) &&(!termo || normalFluxo([c.contrato, c.departamento, c.cliente, c.cidade, c.numero_pedido, c.participante_nome, c.numero,
+        c.notas_numeros, c.tomador_nome, c.trajeto,
         ...(Array.isArray(c.notas) ? c.notas.map(n => n.n_nota) : [])].join(' ')).includes(termo))
     return config.colunas.map(([etapa, titulo]) => {
         const daEtapa = cartoes.filter(c => c.etapa === etapa && combina(c))
@@ -139,7 +190,7 @@ function colunasFluxo(quadro, cartoes, { periodo = 30, busca = '', empresa = '',
 // porque const no topo do script não vira propriedade de window e o clique no menu não faria nada.
 function telaFluxoVendas() { return telaFluxo('vendas') }
 function telaFluxoServicos() { return telaFluxo('itens_servicos') }
-function telaFluxoCompras() { return telaFluxo('compras') }
+function telaFluxoCompras() { return telaFluxo(estadoFluxo.docCompras === 'compras_cte' ? 'compras_cte' : 'compras') }
 function telaFluxoItensVendas() { return telaFluxo('itens_vendas') }
 
 async function telaFluxo(quadro) {
@@ -160,7 +211,7 @@ async function telaFluxo(quadro) {
                     <h2>${QUADROS_FLUXO[quadro].titulo}</h2>
                     <small>${novo
                         ? 'Arraste o cartão para a próxima etapa · clique para abrir o orçamento'
-                        : `${quadro === 'compras' ? 'Período pela emissão da nota' : 'Período pela data do pedido'} · os cartões andam sozinhos conforme os dados; clique para abrir`}</small>
+                        : `${quadro === 'compras_cte' ? 'Período pela emissão do CT-e' : quadro === 'compras' ? 'Período pela emissão da nota' : 'Período pela data do pedido'} · os cartões andam sozinhos conforme os dados; clique para abrir`}</small>
                 </div>
                 ${novo || quadro === 'servicos' ? `
                 <div class="fluxo-legenda" aria-label="Legenda da cor dos cartões">
@@ -169,13 +220,14 @@ async function telaFluxo(quadro) {
                     <span><i class="fluxo-bolinha sem-nota"></i> Não emitida</span>
                 </div>` : ''}
                 <div class="fluxo-controles">
+                    ${ehComprasFluxo(quadro) ? chaveDocComprasFluxoHtml(quadro) : ''}
                     ${chaveEmpresaFluxoHtml()}
                     ${QUADROS_FLUXO[quadro].servico && pode('servicos.recorrencias') ? `
                     <button type="button" class="fluxo-so-recorrentes ${estadoFluxo.soRecorrentes ? 'ativo' : ''}" aria-pressed="${!!estadoFluxo.soRecorrentes}"
                         title="Mostrar só as notas recorrentes (previstas do mês e as já geradas)" onclick="alternarSoRecorrentesFluxo(this)">Só recorrentes</button>` : ''}
                     <label class="fluxo-campo fluxo-busca">
                         ${lupa}
-                        <input type="search" placeholder="${quadro === 'compras' ? 'Fornecedor ou número da nota' : 'Cliente, ORC, pedido, NF ou cidade'}"
+                        <input type="search" placeholder="${quadro === 'compras_cte' ? 'Transportadora, nº do CT-e ou da NF-e' : quadro === 'compras' ? 'Fornecedor ou número da nota' : 'Cliente, ORC, pedido, NF ou cidade'}"
                             aria-label="Buscar" value="${escaparAtributo(estadoFluxo.busca)}" oninput="estadoFluxo.busca = this.value; renderizarFluxo()">
                     </label>
                     <label class="fluxo-campo fluxo-periodo">
@@ -199,8 +251,8 @@ async function carregarFluxo() {
     const quadro = estadoFluxo.quadro
     try {
         const novo = QUADROS_FLUXO[quadro].novo
-        const base = quadro === 'compras' ? 'vw_fiscal_documentos' : novo ? 'vw_fluxo_itens' : 'vw_fluxo_comercial'
-        const filtros = quadro === 'compras' ? { direcao: { op: '=', value: 'entrada' } }
+        const base = quadro === 'compras_cte' ? 'vw_fiscal_ctes' : quadro === 'compras' ? 'vw_fiscal_documentos' : novo ? 'vw_fluxo_itens' : 'vw_fluxo_comercial'
+        const filtros = quadro === 'compras_cte' ? {} : quadro === 'compras' ? { direcao: { op: '=', value: 'entrada' } }
             : novo ? { [QUADROS_FLUXO[quadro].servico ? 'quadro_servicos' : 'quadro_vendas']: { op: '=', value: 'S' }, relevante: { op: '=', value: 'S' } }
                 : { quadro: { op: '=', value: quadro } }
         // Página grande: cada página recalcula a view inteira no servidor (COUNT(*) OVER()); com 500 por página
@@ -208,10 +260,13 @@ async function carregarFluxo() {
         const LIMITE = 5000
         // Notas recorrentes previstas do mês (só fin/adm/diretoria): vêm junto; falha nelas não derruba o quadro.
         const recorrentes = QUADROS_FLUXO[quadro].servico && pode('servicos.recorrencias')
-        const [primeira, recorrencias] = await Promise.all([
+        // NF-e de compra: os CT-e vêm junto para o cartão mostrar o frete (sem acesso aos CT-e, só não mostra).
+        const [primeira, recorrencias, ctes] = await Promise.all([
             pesquisarDB({ base, filtros, pagina: 1, limite: LIMITE }),
-            recorrentes ? apiModuloFiscal('fluxo-itens/recorrencias', {}).catch(err => (console.error('[FLUXO recorrências]', err), null)) : null
+            recorrentes ? apiModuloFiscal('fluxo-itens/recorrencias', {}).catch(err => (console.error('[FLUXO recorrências]', err), null)) : null,
+            quadro === 'compras' ? pesquisarDB({ base: 'vw_fiscal_ctes', filtros: {}, pagina: 1, limite: LIMITE }).catch(() => null) : null
         ])
+        estadoFluxo.fretes = freteDasNotasFluxo(ctes?.resultados)
         const linhas = [...(primeira?.resultados || [])]
         const paginas = Number(primeira?.paginas) || 1
         if (paginas > 1) {
@@ -317,7 +372,7 @@ function contextoCartaoFluxo(quadro, c) {
     const textoNf = nfs.length ? `NF ${nfs.map(n => String(n).replace(/^0+/, '')).join(', ')}` : ''
     const chamado = (Array.isArray(c.status_chamado) ? c.status_chamado : []).join(' · ')
     const juntar = (...partes) => partes.filter(Boolean).join(' · ')
-    switch (quadro === 'compras' ? `c-${c.etapa}` : c.etapa) {
+    switch (quadro === 'compras_cte' ? `cte-${c.etapa}` : quadro === 'compras' ? `c-${c.etapa}` : c.etapa) {
         case 'pedido': return quadro === 'servicos' ? (chamado || 'Aguardando início') : 'Aguardando separação'
         case 'separar': return `${c.requisicoes || 0} requisição(ões) · faturamento pendente`
         case 'execucao': return chamado || c.status_atual || 'Em andamento'
@@ -329,6 +384,17 @@ function contextoCartaoFluxo(quadro, c) {
         case 'c-sefaz': return String(c.status || '').toUpperCase() === 'RESUMO' ? 'Só o resumo da SEFAZ: manifeste para baixar o XML' : 'Aguardando manifestação'
         case 'c-conferir': return Number(c.itens_pendentes) ? `${c.itens_pendentes} item(ns) sem vínculo com o cadastro` : 'Conferir itens'
         case 'c-pronta': return 'Itens vinculados: pronta para lançar'
+        case 'cte-emitido': return 'Gerar fatura a pagar? Clique para responder'
+        case 'cte-a_pagar': {
+            const omie = String(c.fatura || '').toUpperCase() === 'OMIE'
+            const valor = Number(omie ? c.fatura_outra_valor : c.fatura_valor) || 0
+            const pago = Number(omie ? c.fatura_outra_pago : c.fatura_pago) || 0
+            return juntar(omie ? `Fatura do Omie ${c.fatura_outra || ''}`.trim() : 'Fatura lançada', pago ? `pago ${reaisFluxo(pago)} de ${reaisFluxo(valor)}` : 'em aberto')
+        }
+        case 'cte-pago': return String(c.fatura || '').toUpperCase() === 'OMIE' ? 'Fatura do Omie paga' : 'Fatura paga'
+        case 'cte-sem_cobranca': return c.paga_frete !== 'GRUPO'
+            ? `Frete por conta de ${c.tomador_nome || 'terceiro'}`
+            : 'Respondido: não gera fatura'
         case 'c-lancada': return String(c.estoque_status || '').toUpperCase() === 'NAO_MOVIMENTA' ? 'Não movimenta estoque' : 'Lançada no estoque'
         default: return ''
     }
@@ -942,15 +1008,28 @@ function cartaoFluxo(quadro, c, parado) {
     const final = QUADROS_FLUXO[quadro].finais.includes(c.etapa)
     const tempo = !final && dias != null ? `<span class="fluxo-dias ${dias > 30 ? 'velho' : dias > 7 ? 'morno' : ''}" title="Dias nesta etapa">${dias} d</span>` : ''
     if (QUADROS_FLUXO[quadro].novo) return cartaoItemFluxo(c, parado, tempo)
-    if (quadro === 'compras')
+    if (quadro === 'compras_cte')
+        return `
+            <button type="button" class="fluxo-cartao fluxo-cartao-cte ${parado ? 'parado' : ''}" data-id="${escaparAtributo(c.id)}" onclick="abrirCteFis(this.dataset.id)">
+                <span class="fluxo-cartao-linha"><span>CT-e Nº ${escaparAtributo(c.numero || '—')}${c.empresa ? ` · ${escaparAtributo(c.empresa)}` : ''}</span>${tempo}</span>
+                <b class="fluxo-cartao-nome">${escaparAtributo(c.emitente_nome || 'Transportadora')}</b>
+                <small>Emitido em ${dataBrFluxo(c.dia)}${c.trajeto ? ` · ${escaparAtributo(c.trajeto)}` : ''}</small>
+                ${c.notas_numeros ? `<small>NF-e ${escaparAtributo(c.notas_numeros)}</small>` : Number(c.qtd_nfes) ? `<small>${Number(c.qtd_nfes)} NF-e fora do GCS</small>` : ''}
+                <small class="fluxo-cartao-contexto">${escaparAtributo(contextoCartaoFluxo(quadro, c))}</small>
+                <span class="fluxo-cartao-valor">${reaisFluxo(c.valor_total)}</span>
+            </button>`
+    if (quadro === 'compras') {
+        const fretes = estadoFluxo.fretes?.get(c.chave) || []
         return `
             <button type="button" class="fluxo-cartao ${parado ? 'parado' : ''}" data-id="${escaparAtributo(c.id)}" onclick="abrirDocumentoFiscal(this.dataset.id)">
                 <span class="fluxo-cartao-linha"><span>NF Nº ${escaparAtributo(c.numero || '—')}${c.app ? ` · ${escaparAtributo(c.app)}` : ''}</span>${tempo}</span>
                 <b class="fluxo-cartao-nome">${escaparAtributo(c.participante_nome || 'Fornecedor')}</b>
                 <small>Emitida em ${dataBrFluxo(c.dia)}</small>
                 <small class="fluxo-cartao-contexto">${escaparAtributo(contextoCartaoFluxo(quadro, c))}</small>
+                ${fretes.length ? `<small class="fluxo-cartao-frete" title="CT-e que transportou esta nota">Frete: ${fretes.map(f => `CT-e ${escaparAtributo(f.numero || '')} · ${escaparAtributo(f.transportadora || '')} · ${reaisFluxo(f.valor)}`).join(' / ')}</small>` : ''}
                 <span class="fluxo-cartao-valor">${reaisFluxo(c.valor_total)}</span>
             </button>`
+    }
     const receber = Number(c.valor_a_receber) > 0 && !final
         ? `<small class="fluxo-receber ${Number(c.parcelas_atrasadas) ? 'atrasado' : ''}">${Number(c.parcelas_atrasadas) ? 'Atrasado: ' : 'A receber: '}${reaisFluxo(c.valor_a_receber)}${c.proximo_vencimento ? ` · vence ${dataBrFluxo(c.proximo_vencimento)}` : ''}</small>`
         : ''

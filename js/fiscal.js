@@ -1046,6 +1046,7 @@ async function salvarFaturaCteFis(id) {
         abrirCteFis(id)
         contadoresCtesFis()
         if (controles.ctesRecebidos) paginacao('ctesRecebidos')
+        if (document.querySelector('.fluxo-pagina') && typeof carregarFluxo === 'function') carregarFluxo()
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
@@ -1063,6 +1064,7 @@ async function desfazerFaturaCteFis(id) {
         abrirCteFis(id)
         contadoresCtesFis()
         if (controles.ctesRecebidos) paginacao('ctesRecebidos')
+        if (document.querySelector('.fluxo-pagina') && typeof carregarFluxo === 'function') carregarFluxo()
     } catch (err) {
         removerOverlay()
         popup({ titulo: err.status === 409 ? 'Não dá para desfazer' : undefined, mensagem: mensagemErroEst(err) })

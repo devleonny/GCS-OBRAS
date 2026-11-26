@@ -340,8 +340,10 @@ async function executarAtualizacaoWS() {
 
         // Kanban dos fluxos aberto (js/fluxo_kanban.js): recarrega quando muda algo que move os cartões.
         if (document.querySelector('.fluxo-pagina') && typeof carregarFluxo === 'function'
-            && (atualizarTodas || ['fluxo_itens', 'pedidos', 'requisicoes', 'notas', 'controle_logistico', 'lista_recebimentos', 'dados_orcamentos', 'dados_ocorrencias', 'fiscal_documentos']
-                .some(t => tabelas.has(t))))
+            && (atualizarTodas || ['fluxo_itens', 'pedidos', 'requisicoes', 'notas', 'controle_logistico', 'lista_recebimentos', 'dados_orcamentos', 'dados_ocorrencias', 'fiscal_documentos', 'fiscal_ctes']
+                .some(t => tabelas.has(t))
+                // Quadro de CT-e: a fatura do frete paga/lançada no Financeiro também move o cartão.
+                || (estadoFluxo?.quadro === 'compras_cte' && ['fin_titulos', 'fin_baixas'].some(t => tabelas.has(t)))))
             tarefas.push(() => carregarFluxo())
 
 

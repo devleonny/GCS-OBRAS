@@ -199,6 +199,8 @@
 .fluxo-cartao-nome { font-size: 13px; line-height: 1.25; text-transform: uppercase; }
 .fluxo-cartao small { color: #6b7a71; font-size: 11px; }
 .fluxo-cartao-contexto { color: #34495e !important; }
+/* Compras (NF-e): CT-e que transportou a nota. */
+.fluxo-cartao .fluxo-cartao-frete { color: #1f6b3a; }
 /* Serviços → Pedidos: por que o cartão ainda não foi para A faturar. */
 .fluxo-cartao .fluxo-cartao-motivo { color: #8a6d1f; font-style: italic; }
 .fluxo-cartao-valor { margin-top: 2px; font-weight: 700; font-variant-numeric: tabular-nums; }
