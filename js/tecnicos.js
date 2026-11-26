@@ -1074,7 +1074,7 @@ function formularioIndisponibilidade() {
                         <div class="fin-escolha-lista" hidden></div>
                     </div>`
             },
-            { texto: 'Motivo', elemento: `<select name="indTipo">${tipos.map(t => `<option>${escaparAtributo(t)}</option>`).join('')}</select>` },
+            { texto: 'Motivo', elemento: `<select name="indTipo"><option value="" selected disabled>Selecionar</option>${tipos.map(t => `<option>${escaparAtributo(t)}</option>`).join('')}</select>` },
             { texto: 'De', elemento: `<input type="date" name="indInicio" value="${iso}">` },
             { texto: 'Até', elemento: `<input type="date" name="indFim" value="${iso}">` },
             { texto: 'Observação', elemento: '<textarea name="indObs" maxlength="300" placeholder="Opcional"></textarea>' }
@@ -1153,6 +1153,7 @@ async function salvarIndisponibilidade() {
     const dados = { usuario, tipo: valor('indTipo'), inicio: valor('indInicio'), fim: valor('indFim'), obs: valor('indObs') }
 
     if (!pessoaIndisponibilidade(dados.usuario)) return popup({ mensagem: 'Escolha o técnico ou funcionário na lista.' })
+    if (!dados.tipo) return popup({ mensagem: 'Selecione o motivo (Atestado, Férias...).' })
     if (!dados.inicio || !dados.fim || dados.fim < dados.inicio)
         return popup({ mensagem: 'Informe o período: o fim não pode ser antes do início.' })
 
