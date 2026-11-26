@@ -301,6 +301,7 @@ const esquemaBotoes = {
             nome: 'Financeiro',
             img: 'dinheiro',
             sub: [
+                { nome: 'Conciliação Bancária', funcao: 'telaConciliacaoFin', acesso: 'financeiro.conciliacao', img: 'conciliacao' },
                 { nome: 'Fluxo de Caixa', funcao: 'telaFluxoCaixa', acesso: 'financeiro.fluxo_caixa', img: 'dashboard' },
                 { nome: 'Faturas a Pagar', funcao: 'telaFaturasPagar', acesso: 'financeiro.faturas_pagar', img: 'pagar' },
                 { nome: 'Faturas a Receber', funcao: 'telaFaturasReceber', acesso: 'financeiro.faturas_receber', img: 'receber' },
@@ -308,7 +309,6 @@ const esquemaBotoes = {
                 { nome: 'Lote de Vale Refeição', funcao: 'telaLotesAlimentacao', acesso: 'financeiro.lote_alimentacao', img: 'alimentacao' },
                 { nome: 'Lote de Transporte', funcao: 'telaLotesTransporte', acesso: 'financeiro.lote_transporte', img: 'transporte' },
                 { nome: 'Faturas do Cartão', funcao: 'abrirFaturasCartaoFin', acesso: 'financeiro.cartoes', img: 'cartao' },
-                { nome: 'Conciliação Bancária', funcao: 'telaConciliacaoFin', acesso: 'financeiro.conciliacao', img: 'conciliacao' },
                 { nome: 'Contas Correntes', funcao: 'telaContasFin', acesso: 'financeiro.contas', img: 'banco' },
                 { nome: 'Categorias', funcao: 'telaCategoriasFin', acesso: 'financeiro.categorias', img: 'prancheta' },
                 { nome: 'Dashboard', funcao: 'telaDashboardReembolsos', acesso: 'financeiro.dashboard', img: 'dashboard' },
