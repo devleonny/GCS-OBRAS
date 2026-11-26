@@ -583,15 +583,25 @@ function itemConc({ nome, detalhe = '', tags = '', valor = null, depois = '', an
 const buscaListaConc = alvo => `
     <div class="cc-busca-faturas">
         <input class="fis-input" type="search" data-busca-lista placeholder="Buscar favorecido, nº, descrição, categoria ou valor…" oninput="filtrarListaConc(this, '${alvo}')">
-        <label class="cc-busca-data" title="Só as baixas deste dia"><span>Dia da baixa</span><input class="fis-input" type="date" data-dia-lista onchange="filtrarListaConc(this, '${alvo}')"></label>
+        <label class="cc-busca-data" title="Baixa a partir de"><span>Baixa de</span><input class="fis-input" type="date" data-de-lista onchange="filtrarListaConc(this, '${alvo}')" onkeydown="tabParaAteConc(event, '[data-ate-lista]')"></label>
+        <label class="cc-busca-data" title="Baixa até"><span>até</span><input class="fis-input" type="date" data-ate-lista onchange="filtrarListaConc(this, '${alvo}')"></label>
         <button type="button" class="fis-mini" data-limpar-lista hidden onclick="this.parentElement.querySelectorAll('input').forEach(i => { i.value = '' }); filtrarListaConc(this, '${alvo}')">Limpar</button>
     </div>`
+
+// Tab no campo "de" vai direto para o "até" (o navegador parava antes, nas partes da data).
+function tabParaAteConc(ev, seletor) {
+    if (ev.key !== 'Tab' || ev.shiftKey) return
+    const ate = ev.target.closest('.cc-busca-faturas')?.querySelector(seletor)
+    if (!ate) return
+    ev.preventDefault()
+    ate.focus()
+}
 
 function filtrarListaConc(el, alvo) {
     const caixa = el.closest('.cc-busca-faturas')
     const termos = normalFin(caixa.querySelector('[data-busca-lista]').value).split(/s+/).filter(Boolean)
-    const dia = caixa.querySelector('[data-dia-lista]').value
-    caixa.querySelector('[data-limpar-lista]').hidden = !(termos.length || dia)
+    const de = caixa.querySelector('[data-de-lista]').value, ate = caixa.querySelector('[data-ate-lista]').value
+    caixa.querySelector('[data-limpar-lista]').hidden = !(termos.length || de || ate)
     const lista = document.querySelector(alvo)
     if (!lista) return
     let visiveis = 0
@@ -599,12 +609,12 @@ function filtrarListaConc(el, alvo) {
         const texto = `${normalFin(it.textContent)} ${it.dataset.busca || ''}`
         const d = it.dataset.data || ''
         const mostra = Boolean(it.querySelector('input[type=checkbox]:checked'))
-            || (termos.every(t => texto.includes(t)) && (!dia || d === dia))
+            || (termos.every(t => texto.includes(t)) && (!de || (d && d >= de)) && (!ate || (d && d <= ate)))
         it.hidden = !mostra
         if (mostra) visiveis++
     })
     const vazio = lista.querySelector('[data-vazio-busca]')
-    if (!visiveis && (termos.length || dia)) { if (!vazio) lista.insertAdjacentHTML('beforeend', `<div data-vazio-busca>${vazioConc('baixa', 'Nada com essa busca.')}</div>`) }
+    if (!visiveis && (termos.length || de || ate)) { if (!vazio) lista.insertAdjacentHTML('beforeend', `<div data-vazio-busca>${vazioConc('baixa', 'Nada com essa busca.')}</div>`) }
     else vazio?.remove()
 }
 
@@ -823,7 +833,7 @@ function desenharDetalheConc() {
                 : `Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto com valor parecido ou do mesmo favorecido.${combinacao ? ' <b>Já marcadas as que somam exatamente o valor.</b>' : ''} Não achou? Busque abaixo.`} A baixa sai com a data da linha${grupo ? ' mais recente' : ''} (${dataFin(l.data)}).</p>
             <div class="cc-busca-faturas">
                 <input class="fis-input" type="search" data-busca-fat placeholder="Buscar favorecido, CPF/CNPJ, nº, descrição ou valor…" value="${escFin(b.busca)}" oninput="filtrarFaturasConc()">
-                <label class="cc-busca-data" title="Vencimento a partir de"><span>Vence de</span><input class="fis-input" type="date" data-de-fat value="${escFin(b.de)}" onchange="filtrarFaturasConc(true)"></label>
+                <label class="cc-busca-data" title="Vencimento a partir de"><span>Vence de</span><input class="fis-input" type="date" data-de-fat value="${escFin(b.de)}" onchange="filtrarFaturasConc(true)" onkeydown="tabParaAteConc(event, '[data-ate-fat]')"></label>
                 <label class="cc-busca-data" title="Vencimento até"><span>até</span><input class="fis-input" type="date" data-ate-fat value="${escFin(b.ate)}" onchange="filtrarFaturasConc(true)"></label>
                 <button type="button" class="fis-mini" data-limpar-fat ${buscando ? '' : 'hidden'} onclick="limparBuscaFaturasConc()">Limpar</button>
             </div>
