@@ -59,12 +59,17 @@ function periodoCab(op) {
     return null
 }
 
+// "1.234,56" / "1234,5" / "R$ 80": com vírgula, ponto é milhar; só com ponto, "1.234" é milhar e "12.5" decimal.
 const numeroCab = v => {
-    const s = String(v ?? '').trim().replace(/[^\d,.-]/g, '')
+    let s = String(v ?? '').trim().replace(/[^\d,.-]/g, '')
     if (!s) return null
-    const n = Number(s.includes(',') ? s.replace(/\./g, '').replace(',', '.') : s)
+    if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.')
+    else if ((s.match(/\./g) || []).length > 1 || /^-?\d{1,3}\.\d{3}$/.test(s)) s = s.replace(/\./g, '')
+    const n = Number(s)
     return Number.isFinite(n) ? n : null
 }
+// Número de volta no formato que o servidor lê sem ambiguidade (vírgula decimal, sem milhar).
+const numeroBrCab = n => String(n).replace('.', ',')
 
 // Filtro do usuário (op + valores) -> regras do servidor. null = sem filtro.
 function regrasFiltroCab(tipo, { op, v1 = '', v2 = '' }) {
@@ -81,13 +86,20 @@ function regrasFiltroCab(tipo, { op, v1 = '', v2 = '' }) {
         if (!v1) return null
         return { op: `${op}d`, value: v1 }
     }
+    // Número vai pela pesquisa de valor do servidor (op 'valor'): serve para coluna numeric, texto
+    // "R$ 1.234,56" e lista [255.96, "R$ 255,96"]. "Igual a" leva o que foi digitado: "123,52" é exato,
+    // "123" pega 123,00 a 123,99 e ">1000" / "100 a 200" também funcionam ali.
     if (tipo === 'numero') {
         const a = numeroCab(v1), b = numeroCab(v2)
         if (op === 'entre') {
-            const r = [a != null && { op: '>=', value: a }, b != null && { op: '<=', value: b }].filter(Boolean)
+            const r = [a != null && { op: 'valor', value: `>=${numeroBrCab(a)}` }, b != null && { op: 'valor', value: `<=${numeroBrCab(b)}` }].filter(Boolean)
             return r.length ? r : null
         }
-        return a == null ? null : { op, value: a }
+        const texto = String(v1 ?? '').trim()
+        if (!texto) return null
+        if (op === '=') return { op: 'valor', value: texto }
+        if (op === '!=') return { op: 'valor_diferente', value: texto }
+        return a == null ? null : { op: 'valor', value: `${op}${numeroBrCab(a)}` }
     }
     const termo = String(v1 || '').trim()
     return termo ? { op, value: termo.toLowerCase(), original: termo } : null
@@ -190,7 +202,7 @@ function desenharFiltroCab(pag, chave) {
         const evento = col.tipo === 'data'
             ? `onchange="agendarCampoFiltroCab('${p}', '${k}')" onkeydown="if (event.key === 'Enter') { event.preventDefault(); ${aplicar} }" onblur="${aplicar}"`
             : `onkeydown="if (event.key === 'Enter') { event.preventDefault(); ${aplicar} }" onchange="${aplicar}"`
-        const campo = (attr, valor, dica) => `<input class="cab-filtro-campo" ${attr} type="${tipoInput}" value="${escCab(valor ?? '')}" ${dica ? `placeholder="${dica}"` : ''} ${col.tipo === 'numero' ? 'inputmode="decimal"' : ''} ${evento}>`
+        const campo = (attr, valor, dica) => `<input class="cab-filtro-campo" ${attr} type="${tipoInput}" value="${escCab(valor ?? '')}" ${dica ? `placeholder="${dica}"` : ''} ${col.tipo === 'numero' ? `inputmode="decimal"${meta.op === '=' && typeof DICA_PESQUISA_VALOR === 'string' ? ` title="${escCab(DICA_PESQUISA_VALOR)}"` : ''}` : ''} ${evento}>`
         campos = meta.op === 'entre'
             ? `<div class="cab-filtro-entre">${campo('data-v1', meta.v1, col.tipo === 'numero' ? 'de' : '')}${campo('data-v2', meta.v2, col.tipo === 'numero' ? 'até' : '')}</div>`
             : campo('data-v1', meta.v1)
@@ -562,21 +574,58 @@ async function cabecalhoAvancadoTabela(pag, { prefKey = pag } = {}) {
                 `<span class="cab-alca-largura" title="Arraste para mudar a largura · duplo clique volta ao automático" draggable="false"
                     onmousedown="iniciarLarguraCab(event, '${p}', '${k}')" onclick="event.stopPropagation()" ondblclick="larguraAutomaticaCab(event, '${p}', '${k}')"></span>`)
         })
-        ;[...(linhaFiltros?.children || [])].forEach((thVelho, i) => {
-            thVelho.dataset.col = i
-            const c = cols[i]
-            if (!c?.chave) return
-            // Troca o filtro do modTab (contentEditable / select / 2 datas) pelo funil + campo.
-            const th = document.createElement('th')
-            th.className = 'cab-filtro-th'
-            th.dataset.col = i
-            th.dataset.cabChave = c.chave
-            th.style.cssText = thVelho.style.cssText
-            if (c.tipo === 'lista')
-                th._opcoesCab = [...thVelho.querySelectorAll('option')].filter(o => o.value !== '').map(o => [o.value, o.textContent])
-            thVelho.replaceWith(th)
-            desenharFiltroCab(pag, c.chave)
-        })
+        montarFiltrosFunil(pag, { forcar: true })
     }
     aplicarLayoutCab(pag)
+}
+
+// Filtro com funil em toda tabela do modTab (26/11/2026): só a linha de filtros (funil + campo, opções
+// Contém / Igual a / Entre / Hoje / Esse mês...). Recolher, arrastar e largura continuam só no
+// cabecalhoAvancadoTabela. Chamado pelo paginacao; modTab com filtroSimples: true fica no campo antigo.
+function montarFiltrosFunil(pag, { forcar = false } = {}) {
+    const ctrl = controles[pag]
+    if (!ctrl || (!forcar && ctrl.filtroSimples)) return
+    const tabela = document.getElementById(ctrl.body)?.closest('table')
+    const linhaFiltros = tabela?.querySelectorAll(':scope > thead > tr')[1]
+    if (!linhaFiltros) return
+    tabela.classList.add('cab-filtros')
+    const cols = colunasCab(pag)
+    ;[...linhaFiltros.children].forEach((thVelho, i) => {
+        thVelho.dataset.col = i
+        if (thVelho.classList.contains('cab-filtro-th')) return
+        const c = cols[i]
+        if (!c?.chave) return
+        // Troca o filtro do modTab (contentEditable / select / 2 datas) pelo funil + campo.
+        const th = document.createElement('th')
+        th.className = 'cab-filtro-th'
+        th.dataset.col = i
+        th.dataset.cabChave = c.chave
+        if (thVelho.dataset.rotulo) th.dataset.rotulo = thVelho.dataset.rotulo
+        th.style.cssText = thVelho.style.cssText
+        if (c.tipo === 'lista')
+            th._opcoesCab = [...thVelho.querySelectorAll('option')].filter(o => o.value !== '').map(o => [o.value, o.textContent])
+        thVelho.replaceWith(th)
+        // Filtro já aplicado sem o funil (tela reaberta, filtro posto por botão da tela): mostra no campo.
+        if (ctrl.filtros?.[c.chave] && !ctrl.filtrosMeta?.[c.chave]) {
+            const meta = metaDoFiltroCab(c.tipo, ctrl.filtros[c.chave])
+            if (meta) (ctrl.filtrosMeta ??= {})[c.chave] = meta
+        }
+        desenharFiltroCab(pag, c.chave)
+    })
+}
+
+function metaDoFiltroCab(tipo, filtro) {
+    const lista = Array.isArray(filtro) ? filtro : [filtro]
+    const valor = f => String(f?.original ?? f?.value ?? '')
+    if (tipo === 'data') {
+        const de = lista.find(f => f?.op === '>=d'), ate = lista.find(f => f?.op === '<=d')
+        if (de || ate) return { op: 'entre', v1: valor(de) || '', v2: valor(ate) || '' }
+        return null
+    }
+    const f = lista[0]
+    if (lista.length !== 1 || !f?.op) return null
+    if (f.op === 'IS_EMPTY') return { op: 'vazio' }
+    if (f.op === 'NOT_EMPTY') return { op: 'preenchido' }
+    if (tipo === 'numero') return ['valor', 'includes', '='].includes(f.op) ? { op: '=', v1: valor(f) } : null
+    return (OPCOES_FILTRO_CAB[tipo] || []).some(([op]) => op === f.op) ? { op: f.op, v1: valor(f) } : null
 }

@@ -1136,7 +1136,8 @@
 /* Cabeçalho mais justo: títulos e filtros com menos respiro. */
 .fin-tela .tabela > thead > tr:first-child > th { padding: 5px 6px; }
 .fin-tela .tabela > thead > tr:first-child > th > div { gap: 4px !important; }
-.fin-tela .tabela.cab-avancado > thead > tr > th.cab-filtro-th { padding: 2px 3px; }
+.fin-tela .tabela.cab-avancado > thead > tr > th.cab-filtro-th,
+.fin-tela .tabela.cab-filtros > thead > tr > th.cab-filtro-th { padding: 2px 3px; }
 
 /* .tabela.caber força width: 100% !important nos inputs do cabeçalho: a caixinha mantém o seu tamanho. */
 .tabela.caber thead input.fin-marcar {

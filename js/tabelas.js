@@ -490,6 +490,10 @@ async function paginacao(pag) {
         if (!tbody)
             return
 
+        // Filtros com funil (js/tabelas-cabecalho.js) no lugar dos campos simples da linha de pesquisa.
+        if (typeof montarFiltrosFunil === 'function')
+            montarFiltrosFunil(pag)
+
         prepararCartoesCelular(tbody)
 
         const baseResolvida = typeof base === 'function'
