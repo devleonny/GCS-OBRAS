@@ -86,9 +86,21 @@
 
     // ---- máscaras
     const so = (v, n) => v.replace(/\D/g, '').slice(0, n)
+    // Até 11 dígitos é máscara de CPF; do 12º em diante vira CNPJ.
+    const mascaraDocumento = d => d.length <= 11
+        ? d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+        : d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+            .replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d{1,2})$/, '$1-$2')
     campo('cpf').addEventListener('input', e => {
-        e.target.value = so(e.target.value, 11)
-            .replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+        const d = so(e.target.value, 14)
+        e.target.value = mascaraDocumento(d)
+        // Completo e inválido já fica vermelho; completo e válido limpa a marca.
+        if ([11, 14].includes(d.length)) e.target.classList.toggle('invalido', !documentoValido(d))
+        else if (d.length > 11 || !d) e.target.classList.remove('invalido')
+    })
+    campo('cpf').addEventListener('blur', e => {
+        const d = so(e.target.value, 14)
+        e.target.classList.toggle('invalido', !!d && !documentoValido(d))
     })
     campo('telefone').addEventListener('input', e => {
         const d = so(e.target.value, 11)
@@ -136,6 +148,22 @@
         return true
     }
 
+    function cnpjValido(cnpj) {
+        const d = cnpj.replace(/\D/g, '')
+        if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false
+        for (const n of [12, 13]) {
+            let soma = 0
+            for (let i = 0; i < n; i++) soma += Number(d[i]) * ((n - 1 - i) % 8 + 2)
+            if ((soma % 11 < 2 ? 0 : 11 - soma % 11) !== Number(d[n])) return false
+        }
+        return true
+    }
+
+    function documentoValido(doc) {
+        const d = String(doc || '').replace(/\D/g, '')
+        return d.length === 14 ? cnpjValido(d) : cpfValido(d)
+    }
+
     function coletar() {
         const valor = n => String(campo(n)?.value || '').trim()
         const radio = n => form.querySelector(`[name="${n}"]:checked`)?.value || ''
@@ -157,7 +185,7 @@
         }
         marcar('nome', d.nome.split(/\s+/).length < 2, 'Informe o nome completo.')
         marcar('chave_pix', !d.chave_pix, 'Informe a chave Pix.')
-        marcar('cpf', !cpfValido(d.cpf), 'CPF inválido.')
+        marcar('cpf', !documentoValido(d.cpf), 'CPF/CNPJ inválido.')
         marcar('cep', d.cep.replace(/\D/g, '').length !== 8, 'CEP inválido.')
         marcar('estado', !d.estado, 'Selecione o estado.')
         marcar('cidade', !d.cidade, 'Informe a cidade.')
