@@ -154,12 +154,8 @@
 .cx-lote-fora td:first-child { opacity: 1; }
 .cx-lote-acoes { white-space: nowrap; }
 .cx-lote-acoes button { margin: 0 2px; }
-.cx-lote-rodape {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
-    padding-top: 8px; border-top: 1px solid #e2e6e3;
-}
-.cx-lote-rodape small { display: block; color: #6b7a71; }
 .cx-lote-status { font-size: 12px; color: #6b7a71; }
+.cx-lote-resumo b { font-size: 17px; color: #1f3a2b; }
 .cx-lote-botoes { display: flex; gap: 6px; }
 .cx-lote-botoes button { margin: 0; }
 .cx-lotes td { vertical-align: middle; }
@@ -226,8 +222,6 @@
 .cx-lote-tabela tbody tr:nth-child(even) td { background: #fafbfa; }
 .cx-lote-tabela tbody tr:hover td { background: #eef6f0; }
 .cx-lote-rolagem { border: 1px solid #e2e8e4; border-radius: 10px; }
-.cx-lote-rodape { background: #f6f8f7; border: 1px solid #e2e8e4; border-radius: 10px; padding: 10px 12px; }
-.cx-lote-rodape > div:first-child { font-size: 14px; }
 
 /* ---------- filtros de empresas e período (25/11/2026) ---------- */
 .cx-topo { flex-direction: column; align-items: stretch; }

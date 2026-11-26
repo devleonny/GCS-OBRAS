@@ -283,15 +283,9 @@ function desenharLoteSal() {
                 </tr></thead>
                 <tbody data-linhas-lote>${e.itens.map(linhaLoteSal).join('')}</tbody>
             </table>
-        </div>
-        <footer class="cx-lote-rodape">
-            <div data-totais-lote></div>
-            <div class="cx-lote-status" data-status-lote role="status"></div>
-        </footer>`
+        </div>`
     desenharPainelLoteSal()
     filtrarLoteSal()
-    escreverTotaisLoteSal()
-    escreverStatusLoteSal()
 }
 
 function linhaLoteSal(i) {
@@ -335,7 +329,20 @@ function desenharPainelLoteSal() {
     const acao = (icone, texto, funcao, { perigo = false, ativo = true, motivo = '' } = {}) => `
         <button type="button" class="fin-acao${perigo ? ' perigo' : ''}" title="${escFin(ativo ? texto : `${texto}: ${motivo}`)}" ${ativo ? `onclick="${funcao}"` : 'disabled'}>
             ${iconeFin(icone)}<span>${texto}</span></button>`
+    // Totais e "Guardado às…" no topo da bandeja (26/11/2026: saíram do rodapé da tabela).
+    const m = marcadasSal()
+    const porApp = new Map()
+    for (const i of m) porApp.set(i.app || '?', (porApp.get(i.app || '?') || 0) + Number(i.valor))
+    const total = m.reduce((a, i) => a + Number(i.valor), 0)
     painel.innerHTML = `
+        <div class="fin-painel-cabeca cx-lote-resumo">
+            <div class="fin-painel-texto">
+                <b>${dinheiro(total)}</b>
+                <small>${m.length} de ${e.itens.length} linhas</small>
+                ${porApp.size > 1 ? [...porApp].map(([a, v]) => `<small>${escFin(a)} ${dinheiro(v)}</small>`).join('') : ''}
+                <small class="cx-lote-status" data-status-lote role="status"></small>
+            </div>
+        </div>
         ${rascunho
             ? acao('raio', `Lançar ${n} fatura${n === 1 ? '' : 's'}`, 'lancarLoteSal()', { ativo: n > 0, motivo: 'Nenhuma linha marcada com valor' })
             : acao('salvar', 'Aplicar alterações', 'lancarLoteSal()', { ativo: e.emEdicao, motivo: 'Nada pendente' })}
@@ -347,6 +354,7 @@ function desenharPainelLoteSal() {
             ? acao('excluir', 'Excluir rascunho', 'excluirLoteSal()', { perigo: true, ativo: Boolean(e.id), motivo: 'Ainda guardando' })
             : acao('encerrar', 'Desfazer lançamento', 'desfazerLoteSal()', { perigo: true })}
         ${acao('voltar', 'Voltar à lista', 'voltarLotesSal()')}`
+    escreverStatusLoteSal()
 }
 
 async function guardarAntesDeSairLoteSal() {
@@ -372,17 +380,7 @@ function alternarPainelLoteSal() {
     if (botao) botao.title = `${aberto ? 'Recolher' : 'Mostrar'} as ações`
 }
 
-function escreverTotaisLoteSal() {
-    const el = document.querySelector('[data-totais-lote]')
-    if (!el) return
-    const m = marcadasSal()
-    const porApp = new Map()
-    for (const i of m) porApp.set(i.app || '?', (porApp.get(i.app || '?') || 0) + Number(i.valor))
-    const total = m.reduce((a, i) => a + Number(i.valor), 0)
-    el.innerHTML = `<b>${m.length}</b> de ${estadoLoteSal.itens.length} linhas · total <b>${dinheiro(total)}</b>
-        ${porApp.size > 1 ? `<small>${[...porApp].map(([a, v]) => `${escFin(a)} ${dinheiro(v)}`).join(' · ')}</small>` : ''}`
-    desenharPainelLoteSal()
-}
+const escreverTotaisLoteSal = () => desenharPainelLoteSal()
 
 function escreverStatusLoteSal() {
     const el = document.querySelector('[data-status-lote]')
