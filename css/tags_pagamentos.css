@@ -1,47 +1,65 @@
-/* Tags de pagamento (js/tags_pagamentos.js): pílula com o degradê da cor, como as dos orçamentos. */
+/* Tags de pagamento (js/tags_pagamentos.js) no visual do financeiro (estilo Omie):
+   chip chapado com fundo leve da cor, bolinha colorida e texto escuro; painel branco com busca e lista. */
 .tag-pag {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     max-width: 100%;
-    padding: 1px 9px;
-    border: 1px solid rgba(15, 23, 42, 0.18);
-    border-radius: 12px;
-    font-size: 0.75rem;
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid var(--tag-borda, #47556940);
+    border-radius: 4px;
+    background: var(--tag-fundo, #4755691a);
+    color: #1f2a24;
+    font-size: 11.5px;
     font-weight: 600;
-    line-height: 1.5;
-    color: #1e293b;
+    letter-spacing: .01em;
+    line-height: 20px;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     box-sizing: border-box;
+    vertical-align: middle;
 }
 
-.tag-pag.escura {
-    color: #fff;
+.tag-pag-ponto {
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--tag-cor, #475569);
+}
+
+.tag-pag-nome {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .tag-pag-tirar {
-    border: none;
-    background: none;
-    color: inherit;
-    font-size: 1rem;
-    line-height: 1;
-    padding: 0 0 0 2px;
+    flex: none;
+    margin: 0 -3px 0 0;
+    padding: 0;
+    width: 16px;
+    height: 16px;
+    border: 0;
+    border-radius: 3px;
+    background: transparent;
+    color: #5b6b61;
+    font-size: 14px;
+    line-height: 16px;
     cursor: pointer;
-    opacity: 0.7;
 }
 
 .tag-pag-tirar:hover {
-    opacity: 1;
+    background: #00000014;
+    color: #1f2a24;
 }
 
+/* Campo (formulário da fatura e do pagamento). */
 .tags-pag {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 6px;
-    min-height: 30px;
+    min-height: 28px;
 }
 
 .tags-pag-chips {
@@ -49,121 +67,35 @@
 }
 
 .tags-pag-mais {
-    border: 1px dashed #94a3b8;
+    height: 24px;
+    padding: 0 10px;
+    border: 1px dashed #b7c4bc;
+    border-radius: 4px;
     background: #fff;
-    color: #334155;
-    border-radius: 12px;
-    padding: 2px 10px;
-    font-size: 0.75rem;
+    color: #44544a;
+    font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
 }
 
 .tags-pag-mais:hover {
     border-color: #356443;
+    border-style: solid;
     color: #356443;
+    background: #eef6f0;
 }
 
 .tags-pag-vazio {
-    color: #94a3b8;
-    font-size: 0.8rem;
+    color: #8a978f;
+    font-size: 12px;
 }
 
-/* Na linha da tabela de faturas. */
+/* Linha da tabela de faturas. */
 .fin-tags-celula {
     display: flex;
     flex-wrap: nowrap;
     gap: 4px;
     overflow: hidden;
-}
-
-/* Escolha (popup). */
-.tags-pag-escolha {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    width: min(420px, 85vw);
-    padding: 4px;
-    background: #fff;
-}
-
-.tags-pag-escolha small {
-    color: #64748b;
-}
-
-.tags-pag-escolha-topo {
-    display: flex;
-    gap: 8px;
-}
-
-.tags-pag-escolha-topo input {
-    flex: 1;
-    padding: 6px 10px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-}
-
-.tags-pag-escolha-topo button {
-    border: none;
-    background: #356443;
-    color: #fff;
-    border-radius: 6px;
-    padding: 6px 12px;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.tags-pag-lista {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-height: 55vh;
-    overflow: auto;
-}
-
-.tags-pag-opcao {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    border-radius: 8px;
-    padding: 3px 6px;
-}
-
-.tags-pag-opcao.marcada {
-    background: #ecfdf3;
-}
-
-.tags-pag-opcao[hidden] {
-    display: none;
-}
-
-.tags-pag-alternar {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    padding: 2px 0;
-    text-align: left;
-}
-
-.tags-pag-estado {
-    color: #16a34a;
-    font-weight: 700;
-}
-
-.tags-pag-lapis {
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: #64748b;
-    font-size: 1rem;
-}
-
-.tags-pag-lapis:hover {
-    color: #0f172a;
 }
 
 /* Formulário da fatura: linha das tags embaixo do favorecido. */
@@ -172,22 +104,242 @@
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
-    margin: 10px 0 0 80px;
+    margin: 12px 0 0 80px;
 }
 
 .fin-form-tags > span {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #475569;
+    font-size: 12px;
+    color: #44544a;
 }
 
 .fin-form-tags > span small {
-    font-weight: 400;
-    color: #94a3b8;
+    color: #8a978f;
 }
 
 @media (max-width: 800px) {
     .fin-form-tags {
         margin-left: 0;
     }
+}
+
+/* ---------------------------------------------------------------- painel (popup branco) */
+.popup-consulta.tags-pag-painel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(440px, 86vw);
+    padding: 14px 16px 16px;
+}
+
+.tags-pag-barra {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.tags-pag-painel .tags-pag-barra .fin-extrato-busca {
+    flex: 1 1 auto;
+}
+
+.tags-pag-nova,
+.tags-pag-salvar {
+    height: 34px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 8px;
+    background: #356443;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.tags-pag-nova:hover,
+.tags-pag-salvar:hover {
+    background: #2b5337;
+}
+
+.tags-pag-cancelar {
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid #d5ded8;
+    border-radius: 8px;
+    background: #fff;
+    color: #44544a;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.tags-pag-cancelar:hover {
+    background: #f4f7f5;
+}
+
+.tags-pag-lista {
+    max-height: 52vh;
+    overflow: auto;
+    border: 1px solid var(--fin-borda, #d6e0da);
+    border-radius: 8px;
+    background: #fff;
+}
+
+.tags-pag-lista > .tags-pag-vazio {
+    padding: 18px 14px;
+    text-align: center;
+}
+
+.tags-pag-linha {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 0 8px 0 12px;
+    border-bottom: 1px solid #edf1ee;
+    cursor: pointer;
+    outline: none;
+}
+
+.tags-pag-linha:last-of-type {
+    border-bottom: 0;
+}
+
+.tags-pag-linha[hidden] {
+    display: none;
+}
+
+.tags-pag-linha:hover,
+.tags-pag-linha:focus-visible {
+    background: #f4f8f5;
+}
+
+.tags-pag-linha.marcada {
+    background: #eef6f0;
+}
+
+.tags-pag-linha .tag-pag {
+    margin-right: auto;
+}
+
+/* Caixinha de marcar no padrão das faturas. */
+.tags-pag-caixa {
+    flex: none;
+    position: relative;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid #b7c4bc;
+    border-radius: 4px;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.tags-pag-linha:hover .tags-pag-caixa {
+    border-color: #356443;
+}
+
+.tags-pag-linha.marcada .tags-pag-caixa {
+    background: #356443;
+    border-color: #356443;
+}
+
+.tags-pag-linha.marcada .tags-pag-caixa::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.tags-pag-lapis {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #8a978f;
+    cursor: pointer;
+    opacity: 0;
+}
+
+.tags-pag-linha:hover .tags-pag-lapis,
+.tags-pag-linha:focus-within .tags-pag-lapis {
+    opacity: 1;
+}
+
+.tags-pag-lapis:hover {
+    background: #e4ece6;
+    color: #1f3a29;
+}
+
+@media (hover: none) {
+    .tags-pag-lapis { opacity: 1; }
+}
+
+.tags-pag-rodape {
+    font-size: 12px;
+    color: #6b7a71;
+}
+
+/* Editor (criar / editar) dentro do painel. */
+.tags-pag-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--fin-borda, #d6e0da);
+    border-left: 3px solid #356443;
+    border-radius: 8px;
+    background: #fafcfb;
+}
+
+.tags-pag-editor[hidden] {
+    display: none;
+}
+
+.tags-pag-editor-topo {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f3a29;
+}
+
+.tags-pag-cores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tags-pag-cor {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: 0 0 0 1px #d5ded8;
+    cursor: pointer;
+}
+
+.tags-pag-cor:hover {
+    box-shadow: 0 0 0 1px var(--c);
+}
+
+.tags-pag-cor.ativa {
+    box-shadow: 0 0 0 2px var(--c);
+}
+
+.tags-pag-editor-pe {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tags-pag-previa {
+    margin-right: auto;
 }

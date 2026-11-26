@@ -1,11 +1,13 @@
 // Tags de pagamento (26/11/2026): um cadastro só do favorecido (ex.: EMBASA) e a tag diz de onde é a conta
-// (GALPÃO 6, ALEX, COSTA...). Catálogo próprio (tags_pagamentos: nome + cor), editável como o dos orçamentos
-// (js/tags.js: cLinear, isDark e escolherCor vêm de lá). Usado no formulário da fatura (Financeiro), na lista
-// de faturas e no formulário de pagamento (Reembolsos). Guardadas como lista de ids.
+// (GALPÃO 6, ALEX, COSTA...). Catálogo próprio (tags_pagamentos: nome + cor). Visual do financeiro (estilo Omie):
+// chip chapado com fundo leve da cor e bolinha, painel branco com busca e lista; criar/editar no próprio painel.
+// Usado no formulário da fatura (Financeiro), na lista de faturas e no formulário de pagamento (Reembolsos).
 //
 // Campo: htmlTagsPag(ids, { editavel }) → <div class="tags-pag" data-tags-pag="[...]">; lerTagsPag(campo) → ids.
 
-const estadoTagsPag = { catalogo: null, carregando: null, campo: null }
+const estadoTagsPag = { catalogo: null, carregando: null, campo: null, editando: null }
+
+const CORES_TAGS_PAG = ['#2563eb', '#0891b2', '#059669', '#65a30d', '#ca8a04', '#ea580c', '#dc2626', '#db2777', '#7c3aed', '#475569']
 
 async function catalogoTagsPag(recarregar = false) {
     if (estadoTagsPag.catalogo && !recarregar) return estadoTagsPag.catalogo
@@ -23,21 +25,21 @@ const catalogoTagsPagPronto = () => estadoTagsPag.catalogo || new Map()
 
 const idsTagsPag = lista => (Array.isArray(lista) ? lista : []).map(String).filter(Boolean)
 
+const ordenarTagsPag = tags => [...tags].sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'))
+
+const corValidaPag = cor => /^#[0-9a-f]{6}$/i.test(String(cor || '')) ? cor : '#475569'
+
+// Chip no estilo do financeiro (Omie): fundo leve da cor, bolinha colorida e texto escuro, sem degradê.
+const estiloTagPag = cor => `--tag-cor: ${corValidaPag(cor)}; --tag-fundo: ${corValidaPag(cor)}1a; --tag-borda: ${corValidaPag(cor)}4d;`
+
 function chipTagPag(tag, { remover = false } = {}) {
-    const cor = tag?.cor || '#94a3b8'
-    const escura = isDark(cor)
-    return `<span class="tag-pag${escura ? ' escura' : ''}" style="${cLinear(cor)}" title="${escaparAtributo(tag?.nome || '')}">
-        ${escaparAtributo(tag?.nome || '--')}${remover ? `<button type="button" class="tag-pag-tirar" title="Tirar a tag"
-            onclick="event.stopPropagation(); tirarTagPag(this, '${escaparAtributo(String(tag?.id || ''))}')">×</button>` : ''}
-    </span>`
+    return `<span class="tag-pag" style="${estiloTagPag(tag?.cor)}" title="${escaparAtributo(tag?.nome || '')}"><i class="tag-pag-ponto"></i><span class="tag-pag-nome">${escaparAtributo(tag?.nome || '--')}</span>${remover ? `<button type="button" class="tag-pag-tirar" title="Tirar a tag" aria-label="Tirar a tag ${escaparAtributo(tag?.nome || '')}"
+            onclick="event.stopPropagation(); tirarTagPag(this, '${escaparAtributo(String(tag?.id || ''))}')">×</button>` : ''}</span>`
 }
 
 // Chips só de leitura (linha da tabela, cartões). Tag que não está no catálogo (excluída) não aparece.
 function chipsTagsPag(ids, catalogo = catalogoTagsPagPronto()) {
-    return idsTagsPag(ids)
-        .map(id => catalogo.get(id))
-        .filter(Boolean)
-        .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'))
+    return ordenarTagsPag(idsTagsPag(ids).map(id => catalogo.get(id)).filter(Boolean))
         .map(tag => chipTagPag(tag))
         .join('')
 }
@@ -62,10 +64,7 @@ async function desenharCamposTagsPag(raiz = document) {
     const catalogo = await catalogoTagsPag()
     for (const campo of campos) {
         const editavel = campo.classList.contains('editavel')
-        const html = lerTagsPag(campo)
-            .map(id => catalogo.get(id))
-            .filter(Boolean)
-            .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'))
+        const html = ordenarTagsPag(lerTagsPag(campo).map(id => catalogo.get(id)).filter(Boolean))
             .map(tag => chipTagPag(tag, { remover: editavel }))
             .join('')
         const local = campo.querySelector('[data-tags-pag-chips]')
@@ -86,50 +85,80 @@ function tirarTagPag(botao, id) {
     gravarTagsNoCampoPag(campo, lerTagsPag(campo).filter(t => t !== String(id)))
 }
 
-// ------------------------------------------------------------------ escolher / criar / editar
+// ------------------------------------------------------------------ painel: escolher / criar / editar
 
 async function abrirTagsPag(campo) {
     if (!campo) return
     estadoTagsPag.campo = campo
+    estadoTagsPag.editando = null
     overlayAguarde()
-    const catalogo = await catalogoTagsPag()
+    await catalogoTagsPag()
     removerOverlay()
     const anterior = document.querySelector('[data-escolha-tags-pag]')?.closest('.popup')?.id
     if (anterior) removerPopup(anterior)
     popup({
-        titulo: 'Tags',
+        titulo: 'Tags do pagamento',
         elemento: `
-            <div class="tags-pag-escolha" data-escolha-tags-pag>
-                <div class="tags-pag-escolha-topo">
-                    <input type="search" placeholder="Buscar tag…" oninput="filtrarTagsPag(this.value)" data-busca-tags-pag>
-                    <button type="button" onclick="editarTagPag()">+ Criar tag</button>
+            <div class="fis-painel popup-consulta tags-pag-painel" data-escolha-tags-pag>
+                <div class="tags-pag-barra">
+                    <input type="search" class="fin-extrato-busca" placeholder="Buscar tag" autocomplete="off"
+                        oninput="filtrarTagsPag(this.value)" onkeydown="if (event.key === 'Enter') { event.preventDefault(); enterBuscaTagsPag(this.value) }"
+                        data-busca-tags-pag>
+                    <button type="button" class="tags-pag-nova" onclick="editarTagPag()">+ Nova tag</button>
                 </div>
-                <small>Clique na tag para pôr ou tirar. O lápis edita o nome e a cor (vale para todos os pagamentos).</small>
-                <div class="tags-pag-lista" data-lista-tags-pag>${listaEscolhaTagsPag(catalogo)}</div>
+                <div class="tags-pag-editor" data-editor-tags-pag hidden></div>
+                <div class="tags-pag-lista" data-lista-tags-pag role="listbox" aria-multiselectable="true"></div>
+                <div class="tags-pag-rodape" data-rodape-tags-pag></div>
             </div>`
     })
+    redesenharEscolhaTagsPag()
     setTimeout(() => document.querySelector('[data-busca-tags-pag]')?.focus(), 50)
 }
 
-function listaEscolhaTagsPag(catalogo = catalogoTagsPagPronto()) {
+function redesenharEscolhaTagsPag() {
+    const lista = document.querySelector('[data-lista-tags-pag]')
+    if (!lista) return
     const marcadas = new Set(lerTagsPag(estadoTagsPag.campo))
-    const tags = [...catalogo.values()].sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'))
-    if (!tags.length) return '<div class="tags-pag-vazio">Nenhuma tag ainda: crie a primeira.</div>'
-    return tags.map(tag => {
-        const id = escaparAtributo(String(tag.id))
-        const marcada = marcadas.has(String(tag.id))
-        return `<div class="tags-pag-opcao${marcada ? ' marcada' : ''}" data-tag-pag-opcao="${id}" data-nome="${escaparAtributo(String(tag.nome || '').toLowerCase())}">
-            <button type="button" class="tags-pag-alternar" onclick="alternarTagPag('${id}')" aria-pressed="${marcada}">
-                ${chipTagPag(tag)}<span class="tags-pag-estado">${marcada ? '✓' : ''}</span>
-            </button>
-            <button type="button" class="tags-pag-lapis" title="Editar nome e cor" onclick="editarTagPag('${id}')">✎</button>
-        </div>`
-    }).join('')
+    const tags = ordenarTagsPag(catalogoTagsPagPronto().values())
+    lista.innerHTML = tags.length
+        ? tags.map(tag => {
+            const id = escaparAtributo(String(tag.id))
+            const marcada = marcadas.has(String(tag.id))
+            return `<div class="tags-pag-linha${marcada ? ' marcada' : ''}" data-tag-pag-opcao="${id}" data-nome="${escaparAtributo(String(tag.nome || '').toLowerCase())}"
+                    role="option" aria-selected="${marcada}" tabindex="0" onclick="alternarTagPag('${id}')"
+                    onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); alternarTagPag('${id}') }">
+                <span class="tags-pag-caixa" aria-hidden="true"></span>
+                ${chipTagPag(tag)}
+                <button type="button" class="tags-pag-lapis" title="Editar nome e cor" aria-label="Editar ${escaparAtributo(tag.nome || '')}"
+                    onclick="event.stopPropagation(); editarTagPag('${id}')">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                </button>
+            </div>`
+        }).join('') + '<div class="tags-pag-vazio tags-pag-sem-resultado" hidden>Nenhuma tag com esse nome. <b>Enter</b> cria.</div>'
+        : '<div class="tags-pag-vazio">Nenhuma tag ainda. Crie a primeira em <b>+ Nova tag</b>.</div>'
+    filtrarTagsPag(document.querySelector('[data-busca-tags-pag]')?.value)
+    const rodape = document.querySelector('[data-rodape-tags-pag]')
+    if (rodape) rodape.textContent = marcadas.size
+        ? `${marcadas.size} marcada${marcadas.size > 1 ? 's' : ''} · clique para pôr ou tirar`
+        : 'Clique na tag para pôr no pagamento'
 }
 
 function filtrarTagsPag(texto) {
     const t = String(texto || '').trim().toLowerCase()
-    document.querySelectorAll('[data-tag-pag-opcao]').forEach(op => { op.hidden = Boolean(t) && !op.dataset.nome.includes(t) })
+    let visiveis = 0
+    document.querySelectorAll('[data-tag-pag-opcao]').forEach(op => {
+        op.hidden = Boolean(t) && !op.dataset.nome.includes(t)
+        if (!op.hidden) visiveis++
+    })
+    const aviso = document.querySelector('.tags-pag-sem-resultado')
+    if (aviso) aviso.hidden = visiveis > 0
+}
+
+// Enter na busca: uma tag só na lista → marca; nenhuma → abre a criação com o nome digitado.
+function enterBuscaTagsPag(texto) {
+    const visiveis = [...document.querySelectorAll('[data-tag-pag-opcao]')].filter(op => !op.hidden)
+    if (visiveis.length === 1) return alternarTagPag(visiveis[0].dataset.tagPagOpcao)
+    if (!visiveis.length && String(texto || '').trim()) editarTagPag()
 }
 
 function alternarTagPag(id) {
@@ -140,65 +169,90 @@ function alternarTagPag(id) {
     redesenharEscolhaTagsPag()
 }
 
-function redesenharEscolhaTagsPag() {
-    const lista = document.querySelector('[data-lista-tags-pag]')
-    if (!lista) return
-    lista.innerHTML = listaEscolhaTagsPag()
-    filtrarTagsPag(document.querySelector('[data-busca-tags-pag]')?.value)
-}
-
-const CORES_TAGS_PAG = ['#e11d48', '#f472b6', '#fb923c', '#facc15', '#84cc16', '#10b981', '#0ea5e9', '#3b82f6', '#8b5cf6', '#64748b']
-
-async function editarTagPag(id = null) {
+// Criar / editar dentro do painel (sem outro popup).
+function editarTagPag(id = null) {
+    const editor = document.querySelector('[data-editor-tags-pag]')
+    if (!editor) return
     const tag = id ? catalogoTagsPagPronto().get(String(id)) || {} : {}
-    const nova = !id
-    const cor = tag.cor || CORES_TAGS_PAG[Math.floor(Math.random() * CORES_TAGS_PAG.length)]
     const busca = document.querySelector('[data-busca-tags-pag]')?.value || ''
-    popup({
-        titulo: nova ? 'Nova tag' : 'Editar tag',
-        linhas: [
-            { texto: 'Nome', elemento: `<input name="nome" maxlength="40" placeholder="Ex.: GALPÃO 6" value="${escaparAtributo(tag.nome || (nova ? busca.toUpperCase() : ''))}">` },
-            {
-                texto: 'Cor',
-                elemento: `
-                    <div style="${horizontal}; gap: 1rem;">
-                        <button type="button" data-cor="${escaparAtributo(cor)}" style="background-color: ${escaparAtributo(cor)};" class="cor-atual"></button>
-                        <div class="container-items">
-                            ${CORES_TAGS_PAG.map(c => `<button type="button" onclick="escolherCor('${c}')" class="item-color" style="--color: ${c}"></button>`).join('')}
-                        </div>
-                    </div>`
-            }
-        ],
-        botoes: [{ texto: 'Salvar', img: 'concluido', funcao: `salvarTagPag('${escaparAtributo(String(id || ''))}')` }]
-    })
+    const usadas = new Set([...catalogoTagsPagPronto().values()].map(t => t.cor))
+    const cor = tag.cor || CORES_TAGS_PAG.find(c => !usadas.has(c)) || CORES_TAGS_PAG[0]
+    estadoTagsPag.editando = { id: id ? String(id) : null, cor }
+    editor.hidden = false
+    editor.innerHTML = `
+        <div class="tags-pag-editor-topo">${id ? 'Editar tag' : 'Nova tag'}</div>
+        <label class="fin-campo"><span>Nome</span>
+            <input class="fis-input" name="nome_tag_pag" maxlength="40" placeholder="Ex.: GALPÃO 6"
+                value="${escaparAtributo(tag.nome || (id ? '' : busca.trim().toUpperCase()))}"
+                oninput="previaTagPag()" onkeydown="if (event.key === 'Enter') { event.preventDefault(); salvarTagPag() } else if (event.key === 'Escape') { event.stopPropagation(); fecharEditorTagPag() }"></label>
+        <div class="fin-campo"><span>Cor</span>
+            <div class="tags-pag-cores" role="radiogroup" aria-label="Cor da tag">
+                ${CORES_TAGS_PAG.map(c => `<button type="button" class="tags-pag-cor${c === cor ? ' ativa' : ''}" style="--c: ${c}" data-cor="${c}"
+                    role="radio" aria-checked="${c === cor}" aria-label="Cor ${c}" onclick="escolherCorTagPag('${c}')"></button>`).join('')}
+            </div>
+        </div>
+        <div class="tags-pag-editor-pe">
+            <span class="tags-pag-previa" data-previa-tag-pag></span>
+            <button type="button" class="tags-pag-cancelar" onclick="fecharEditorTagPag()">Cancelar</button>
+            <button type="button" class="tags-pag-salvar" onclick="salvarTagPag()">${id ? 'Salvar' : 'Criar tag'}</button>
+        </div>`
+    previaTagPag()
+    const input = editor.querySelector('[name="nome_tag_pag"]')
+    input.focus()
+    input.select()
 }
 
-async function salvarTagPag(id) {
-    const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
-    const nome = String(painel?.querySelector('[name="nome"]')?.value || '').trim().toUpperCase()
-    const cor = painel?.querySelector('.cor-atual')?.dataset.cor || '#64748b'
+function escolherCorTagPag(cor) {
+    if (!estadoTagsPag.editando) return
+    estadoTagsPag.editando.cor = cor
+    document.querySelectorAll('.tags-pag-cor').forEach(b => {
+        const ativa = b.dataset.cor === cor
+        b.classList.toggle('ativa', ativa)
+        b.setAttribute('aria-checked', String(ativa))
+    })
+    previaTagPag()
+}
+
+function previaTagPag() {
+    const local = document.querySelector('[data-previa-tag-pag]')
+    if (!local || !estadoTagsPag.editando) return
+    const nome = String(document.querySelector('[name="nome_tag_pag"]')?.value || '').trim().toUpperCase()
+    local.innerHTML = chipTagPag({ nome: nome || 'PRÉVIA', cor: estadoTagsPag.editando.cor })
+}
+
+function fecharEditorTagPag() {
+    const editor = document.querySelector('[data-editor-tags-pag]')
+    if (editor) { editor.hidden = true; editor.innerHTML = '' }
+    estadoTagsPag.editando = null
+    document.querySelector('[data-busca-tags-pag]')?.focus()
+}
+
+async function salvarTagPag() {
+    const edicao = estadoTagsPag.editando
+    if (!edicao) return
+    const nome = String(document.querySelector('[name="nome_tag_pag"]')?.value || '').trim().toUpperCase()
     if (!nome) return popup({ mensagem: 'Dê um nome para a tag.' })
     const catalogo = await catalogoTagsPag()
-    const repetida = [...catalogo.values()].find(t => String(t.nome || '').trim().toUpperCase() === nome && String(t.id) !== String(id))
+    const repetida = [...catalogo.values()].find(t => String(t.nome || '').trim().toUpperCase() === nome && String(t.id) !== edicao.id)
     if (repetida) return popup({ mensagem: `Já existe a tag <b>${escaparAtributo(nome)}</b>.` })
 
-    const novaId = id || crypto.randomUUID()
+    const id = edicao.id || crypto.randomUUID()
     overlayAguarde()
-    const resultado = await enviar(`tags_pagamentos/${novaId}`, { id: novaId, nome, cor })
+    const resultado = await enviar(`tags_pagamentos/${id}`, { id, nome, cor: edicao.cor })
     removerOverlay()
     if (!resultado || resultado.mensagem)
         return popup({ mensagem: resultado?.mensagem || 'Não foi possível salvar a tag: fale com o suporte.' })
 
-    removerPopup() // edição
     await catalogoTagsPag(true)
-    // Criada pela escolha: já entra no campo.
-    if (!id && estadoTagsPag.campo?.isConnected) {
-        const ids = lerTagsPag(estadoTagsPag.campo)
-        gravarTagsNoCampoPag(estadoTagsPag.campo, [...ids, novaId])
-    } else {
+    fecharEditorTagPag()
+    const busca = document.querySelector('[data-busca-tags-pag]')
+    if (busca && !edicao.id) busca.value = ''
+    // Criada pelo painel: já entra no pagamento.
+    if (!edicao.id && estadoTagsPag.campo?.isConnected)
+        gravarTagsNoCampoPag(estadoTagsPag.campo, [...lerTagsPag(estadoTagsPag.campo), id])
+    else
         desenharCamposTagsPag()
-    }
     redesenharEscolhaTagsPag()
     // Lista de faturas aberta: nome/cor novos aparecem nas linhas.
-    if (id && document.getElementById('bodyFaturasFin') && typeof paginacao === 'function') paginacao('faturasFin')
+    if (edicao.id && document.getElementById('bodyFaturasFin') && typeof paginacao === 'function') paginacao('faturasFin')
 }
