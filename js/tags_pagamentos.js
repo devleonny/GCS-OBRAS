@@ -7,7 +7,8 @@
 
 const estadoTagsPag = { catalogo: null, carregando: null, campo: null, editando: null }
 
-const CORES_TAGS_PAG = ['#2563eb', '#0891b2', '#059669', '#65a30d', '#ca8a04', '#ea580c', '#dc2626', '#db2777', '#7c3aed', '#475569']
+// Tons pastel, como as etiquetas da lista de clientes (FORNECEDOR, FUNCIONÁRIO, TÉCNICO).
+const CORES_TAGS_PAG = ['#f4a39a', '#f6c177', '#f0dc7a', '#b9dc8c', '#8fd3a8', '#8fd3e0', '#9fc2f0', '#c3a9ee', '#f1a7cf', '#9e9e9e']
 
 async function catalogoTagsPag(recarregar = false) {
     if (estadoTagsPag.catalogo && !recarregar) return estadoTagsPag.catalogo
@@ -27,13 +28,20 @@ const idsTagsPag = lista => (Array.isArray(lista) ? lista : []).map(String).filt
 
 const ordenarTagsPag = tags => [...tags].sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'))
 
-const corValidaPag = cor => /^#[0-9a-f]{6}$/i.test(String(cor || '')) ? cor : '#475569'
+const corValidaPag = cor => /^#[0-9a-f]{6}$/i.test(String(cor || '')) ? cor : '#9e9e9e'
 
-// Chip no estilo do financeiro (Omie): fundo leve da cor, bolinha colorida e texto escuro, sem degradê.
-const estiloTagPag = cor => `--tag-cor: ${corValidaPag(cor)}; --tag-fundo: ${corValidaPag(cor)}1a; --tag-borda: ${corValidaPag(cor)}4d;`
+// Texto branco só em fundo mais escuro (o cinza das etiquetas de clientes leva branco).
+function textoTagPag(cor) {
+    const c = corValidaPag(cor)
+    const [r, g, b] = [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16))
+    return (0.299 * r + 0.587 * g + 0.114 * b) < 170 ? '#fff' : '#1f2a24'
+}
+
+// Etiqueta cheia na cor, caixa alta, cantos pouco arredondados (igual às tags da lista de clientes).
+const estiloTagPag = cor => `--tag-fundo: ${corValidaPag(cor)}; --tag-texto: ${textoTagPag(cor)};`
 
 function chipTagPag(tag, { remover = false } = {}) {
-    return `<span class="tag-pag" style="${estiloTagPag(tag?.cor)}" title="${escaparAtributo(tag?.nome || '')}"><i class="tag-pag-ponto"></i><span class="tag-pag-nome">${escaparAtributo(tag?.nome || '--')}</span>${remover ? `<button type="button" class="tag-pag-tirar" title="Tirar a tag" aria-label="Tirar a tag ${escaparAtributo(tag?.nome || '')}"
+    return `<span class="tag-pag" style="${estiloTagPag(tag?.cor)}" title="${escaparAtributo(tag?.nome || '')}"><span class="tag-pag-nome">${escaparAtributo(tag?.nome || '--')}</span>${remover ? `<button type="button" class="tag-pag-tirar" title="Tirar a tag" aria-label="Tirar a tag ${escaparAtributo(tag?.nome || '')}"
             onclick="event.stopPropagation(); tirarTagPag(this, '${escaparAtributo(String(tag?.id || ''))}')">×</button>` : ''}</span>`
 }
 
