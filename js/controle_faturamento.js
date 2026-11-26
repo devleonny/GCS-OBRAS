@@ -8,7 +8,8 @@
 //           Sem fatura, Fatura cancelada, Cancelada, Substituída, Devolvida e Sem cobrança (remessa/devolução).
 // Totais do topo (como o PAINEL da planilha): só o que se cobra (cobravel = S), com os filtros da tabela.
 
-const estadoControleFat = { ano: String(new Date().getFullYear()) }
+// painel: bandeja da direita com os totais (começa aberta).
+const estadoControleFat = { ano: String(new Date().getFullYear()), painel: true }
 const dadosControleFat = new Map()
 let assinaturaTotaisControleFat = null
 
@@ -48,12 +49,17 @@ async function telaControleFaturamento() {
                         <button type="button" onclick="baixarExcelControleFat()" title="Baixa todas as notas dos filtros aplicados">${iconeFin('excel')} Excel</button>
                     </div>
                 </header>
-                <div class="fis-resumo ctf-resumo" data-totais-ctf>
-                    ${['Recebido', 'Atrasado', 'A vencer', 'Total faturado'].map(t => `<div><span>${t}</span><b>…</b></div>`).join('')}
+                <div class="fin-corpo${estadoControleFat.painel ? '' : ' recolhido'}" data-corpo-ctf>
+                    <div class="fin-tabela-area ctf-area" data-tabela-ctf></div>
+                    <div class="fin-lateral">
+                        <button type="button" class="fin-recolher" onclick="alternarPainelControleFat()" aria-expanded="${estadoControleFat.painel}"
+                            title="${estadoControleFat.painel ? 'Recolher' : 'Mostrar'} os totais">${iconeFin('seta')}</button>
+                        <aside class="fin-painel cf-painel" data-totais-ctf>${painelControleFat()}</aside>
+                    </div>
                 </div>
-                <div class="fin-tabela-area ctf-area" data-tabela-ctf></div>
             </section>
         </div>`
+    overlayAguarde()
     try {
         delete controles.controleFat
         const area = document.querySelector('[data-tabela-ctf]')
@@ -68,7 +74,8 @@ async function telaControleFaturamento() {
             filtrosFixos: filtrosFixosControleFat(),
             ordenar: [{ path: 'emissao', direcao: 'desc' }],
             colunas: {
-                'Setor': { chave: 'setor', tipoPesquisa: 'select' },
+                // opcoes fixas: sem elas o modTab conta a view inteira por coluna antes de desenhar a tela.
+                'Setor': { chave: 'setor', tipoPesquisa: 'select', opcoes: [...SETORES_PADRAO_RH, 'SEM SETOR'] },
                 'Responsável': { chave: 'responsavel' },
                 'Grupo': { chave: 'grupo', tipoPesquisa: 'select' },
                 'Cliente': { chave: 'cliente', principal: true },
@@ -76,26 +83,58 @@ async function telaControleFaturamento() {
                 'Orçamento': { chave: 'orcamento' },
                 'Valor': { chave: 'valor', tipoOrdenacao: 'numero' },
                 'Nota': { chave: 'numero' },
-                'Tipo': { chave: 'tipo', tipoPesquisa: 'select' },
-                'Empresa': { chave: 'app', tipoPesquisa: 'select' },
+                'Tipo': { chave: 'tipo', tipoPesquisa: 'select', opcoes: ['VENDA', 'SERVIÇO', 'REMESSA', 'DEVOLUÇÃO', 'COMISSÃO VENDA DIRETA'] },
+                'Empresa': { chave: 'app', tipoPesquisa: 'select', opcoes: ['AC', 'HNK', 'IAC', 'HNW'] },
                 'Emissão': { chave: 'dia_emissao', tipoPesquisa: 'data' },
                 'Vencimento': { chave: 'dia_vencimento', tipoPesquisa: 'data' },
                 'Recebido em': { chave: 'dia_recebimento', tipoPesquisa: 'data' },
-                'Situação': { chave: 'situacao', tipoPesquisa: 'select' },
+                'Situação': { chave: 'situacao', tipoPesquisa: 'select', opcoes: Object.keys(SITUACOES_CONTROLE_FAT) },
                 'Recebido': { chave: 'recebido', tipoOrdenacao: 'numero' },
                 'Saldo': { chave: 'saldo', tipoOrdenacao: 'numero' },
                 'Dias de atraso': { chave: 'dias_atraso', tipoOrdenacao: 'numero' },
                 'Pedido do cliente': { chave: 'pedido_cliente' },
                 'CPF/CNPJ': { chave: 'cliente_documento' },
                 'LPU': { chave: 'lpu_ativa', tipoPesquisa: 'select' },
-                'Origem': { chave: 'fonte', tipoPesquisa: 'select', rotulos: { OMIE: 'Omie / avulsa', GCS: 'GCS' } }
+                'Origem': { chave: 'fonte', tipoPesquisa: 'select', opcoes: ['OMIE', 'GCS'], rotulos: { OMIE: 'Omie / avulsa', GCS: 'GCS' } }
             }
         })
         await paginacao('controleFat')
+        removerOverlay()
     } catch (err) {
+        removerOverlay()
         console.error(err)
         popup({ mensagem: `Falha ao abrir o Controle de Faturamento: ${escFin(err.message)}` })
     }
+}
+
+// Bandeja da direita (como a das Faturas): totais do filtro e ações; recolhida, ficam só os ícones.
+function painelControleFat(t = null) {
+    const v = n => t == null ? '…' : n == null ? '—' : dinheiro(n)
+    return `
+        <div class="fin-painel-cabeca" title="Totais com os filtros da tabela">
+            <span class="fin-avatar">R$</span>
+            <div class="fin-painel-texto"><b>Totais do filtro</b>
+                <small>${t ? `${t.notas} nota(s)` : 'Calculando…'} · ${estadoControleFat.ano === 'todos' ? 'todos os anos' : `emitidas em ${estadoControleFat.ano}`}</small></div>
+        </div>
+        <div class="cf-infos">
+            <div class="cf-info cf-ok"><small>Recebido</small><b>${v(t?.recebido)}</b></div>
+            <div class="cf-info cf-falta"><small>Atrasado</small><b>${v(t?.atrasado)}</b></div>
+            <div class="cf-info"><small>A vencer</small><b>${v(t?.aVencer)}</b></div>
+            <div class="cf-info"><small>Total faturado</small><b>${v(t?.total)}</b>
+                <small>Sem canceladas, substituídas, devolvidas e remessas</small></div>
+        </div>
+        <hr>
+        <button type="button" class="fin-acao" title="Baixar em Excel todas as notas dos filtros" onclick="baixarExcelControleFat()">${iconeFin('excel')}<span>Baixar Excel</span></button>`
+}
+
+function alternarPainelControleFat() {
+    const corpo = document.querySelector('[data-corpo-ctf]')
+    if (!corpo) return
+    estadoControleFat.painel = corpo.classList.contains('recolhido')
+    corpo.classList.toggle('recolhido', !estadoControleFat.painel)
+    const botao = corpo.querySelector('.fin-recolher')
+    botao?.setAttribute('aria-expanded', String(estadoControleFat.painel))
+    if (botao) botao.title = `${estadoControleFat.painel ? 'Recolher' : 'Mostrar'} os totais`
 }
 
 function criarLinhaControleFat(d) {
@@ -149,23 +188,25 @@ async function totaisControleFat() {
     if (assinatura === assinaturaTotaisControleFat) return
     assinaturaTotaisControleFat = assinatura
     const comFiltro = extra => combinarFiltros(base, extra)
+    // contar-por-campo em modo soma devolve { todos: linhas, total: soma }.
     const somar = async (path, extra) => {
-        try { return Number((await contarPorCampo({ base: 'vw_controle_faturamento', path, modo: 'soma', filtros: comFiltro(extra) }))?.total || 0) } catch { return null }
+        try { return await contarPorCampo({ base: 'vw_controle_faturamento', path, modo: 'soma', filtros: extra ? comFiltro(extra) : base }) } catch { return null }
     }
     const cobravel = { cobravel: { op: '=', value: 'S' } }
-    const [recebido, atrasado, aVencer, total] = await Promise.all([
+    caixa.innerHTML = painelControleFat()
+    const [recebido, atrasado, aVencer, total, todas] = await Promise.all([
         somar('recebido', cobravel),
         somar('saldo', { situacao: { op: '=', value: 'ATRASADA' } }),
         somar('saldo', { situacao: { modo: 'OR', regras: [{ op: '=', value: 'A VENCER' }, { op: '=', value: 'RECEBIDA PARCIAL' }] } }),
-        somar('valor', cobravel)
+        somar('valor', cobravel),
+        somar('valor', null)
     ])
-    if (assinatura !== assinaturaTotaisControleFat) return
-    const v = n => n == null ? '—' : dinheiro(n)
-    caixa.innerHTML = `
-        <div><span>Recebido</span><b class="ctf-verde">${v(recebido)}</b></div>
-        <div><span>Atrasado</span><b class="ctf-vermelho">${v(atrasado)}</b></div>
-        <div><span>A vencer</span><b>${v(aVencer)}</b></div>
-        <div><span>Total faturado</span><b>${v(total)} <small>(sem canceladas, substituídas, devolvidas e remessas)</small></b></div>`
+    if (assinatura !== assinaturaTotaisControleFat || !document.body.contains(caixa)) return
+    const n = r => r == null ? null : Number(r.total || 0)
+    caixa.innerHTML = painelControleFat({
+        recebido: n(recebido), atrasado: n(atrasado), aVencer: n(aVencer), total: n(total),
+        notas: todas?.todos != null ? Number(todas.todos).toLocaleString('pt-BR') : '—'
+    })
 }
 
 // ------------------------------------------------------------ setor do responsável (rh_funcionarios.setor)
