@@ -636,8 +636,7 @@ function criarLinhaClienteGCS(cliente) {
         desligado,
         razao_social,
         inscricao_estadual,
-        inscricao_municipal,
-        endereco_entrega
+        inscricao_municipal
     } = cliente || {}
 
     // Detalhes recolhidos (endereços e inscrições): a coluna fica estreita e abre em blocos.
@@ -656,7 +655,8 @@ function criarLinhaClienteGCS(cliente) {
 
     const conteudoDetalhes = [
         grupo('Cadastro', blocoEndereco(cliente)),
-        grupo('Entrega', blocoEndereco(endereco_entrega)),
+        // Outros endereços (js/enderecos.js) carregam ao abrir os detalhes.
+        `<div data-end-resumo="${escaparAtributo(id)}"></div>`,
         grupo('Inscrições', dado('Estadual', inscricao_estadual) + dado('Municipal', inscricao_municipal))
     ].join('')
 
@@ -799,7 +799,6 @@ async function formularioCliente(idCliente) {
     const {
         matricula,
         foto,
-        endereco_entrega = {},
         chave_pix,
         ddd,
         celular,
@@ -959,7 +958,7 @@ async function formularioCliente(idCliente) {
             texto: 'Razão social',
             elemento: `<textarea placeholder="Razão social" maxlength="120" name="razao_social">${escaparAtributo(razao_social || '')}</textarea>`
         },
-        { elemento: '<span class="cliente-secao">Endereço de cadastro</span>' },
+        { elemento: '<span class="cliente-secao">Endereço principal <small>· cadastro e notas fiscais</small></span>' },
         {
             texto: 'Cep',
             elemento: `<input oninput="formatarCep(this, 'cadastro')" name="cep" value="${cep || ''}">`
@@ -995,6 +994,9 @@ async function formularioCliente(idCliente) {
             texto: 'Bairro',
             elemento: `<textarea name="bairro" style="text-transform: uppercase;">${bairro || ''}</textarea>`
         },
+        // Vários endereços (26/11/2026, js/enderecos.js): cada um salvo na hora, com quem/quando.
+        { elemento: '<span class="cliente-secao">Outros endereços <span class="end-contador" data-end-contador-cadastro>1</span></span>' },
+        { elemento: blocoEnderecosCadastroHtml(idCliente) },
         { elemento: '<span class="cliente-secao">Dados de contato</span>' },
         editarPermissao,
         {
@@ -1029,36 +1031,7 @@ async function formularioCliente(idCliente) {
         },
         termosAceitos
             ? { texto: 'Termo aceito', elemento: `<div style="${vertical}; gap: 6px;">${termosAceitos}</div>` }
-            : {},
-        { elemento: '<span class="cliente-secao">Endereço de entrega</span>' },
-        {
-            texto: 'Cep',
-            elemento: `<input oninput="formatarCep(this)" name="e_cep" value="${endereco_entrega?.cep || ''}">`
-        },
-        {
-            texto: 'Estado',
-            elemento: `<select onchange="datalistCidades(this.value, 'e_cidade')" name="e_estado">${aEstados.map(e => `<option ${endereco_entrega?.estado == e ? 'selected' : ''}>${e}</option>`)}</select>`
-        },
-        {
-            texto: 'Cidade',
-            elemento: `<select name="e_cidade">${endereco_entrega?.cidade ? `<option>${endereco_entrega?.cidade}</option>` : ''}</select>`
-        },
-        {
-            texto: 'Endereço',
-            elemento: `<textarea name="e_endereco" style="text-transform: uppercase;">${endereco_entrega?.endereco || ''}</textarea>`
-        },
-        {
-            texto: 'Número',
-            elemento: `<input maxlength="20" name="e_numero" style="text-transform: uppercase;" placeholder="Número ou S/N" value="${escaparAtributo(endereco_entrega?.numero || '')}">`
-        },
-        {
-            texto: 'Complemento',
-            elemento: `<input maxlength="60" name="e_complemento" style="text-transform: uppercase;" placeholder="Loja, sala, bloco..." value="${escaparAtributo(endereco_entrega?.complemento || '')}">`
-        },
-        {
-            texto: 'Bairro',
-            elemento: `<textarea name="e_bairro" style="text-transform: uppercase;">${endereco_entrega?.bairro || ''}</textarea>`
-        }
+            : {}
     ]
 
     const botoes = []
@@ -1608,15 +1581,7 @@ async function salvarCliente(idCliente = null) {
             comentario: obVal('comentario'),
             chave_pix: obVal('chave_pix'),
             tags,
-            endereco_entrega: {
-                endereco: maiusculas(obVal('e_endereco')),
-                numero: String(obVal('e_numero') || '').trim().toUpperCase(),
-                complemento: maiusculas(obVal('e_complemento')),
-                bairro: maiusculas(obVal('e_bairro')),
-                cep: obVal('e_cep'),
-                cidade: maiusculas(obVal('e_cidade')),
-                estado: maiusculas(obVal('e_estado')),
-            },
+            // endereco_entrega saiu em 26/11/2026: os outros endereços ficam em clientes_enderecos (js/enderecos.js).
 
             /// Novos campos 07/2026;
             usuario: usuarioValido ? obVal('usuario') : null,

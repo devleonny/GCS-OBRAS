@@ -1,0 +1,378 @@
+/* Vários endereços por cliente (js/enderecos.js) */
+
+.end-vazio {
+    color: #6b7a71;
+    font-size: 12px;
+}
+
+.end-contador {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: #24693a;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0;
+    vertical-align: middle;
+}
+
+.cliente-secao small {
+    color: #6b7a71;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* Etiqueta do tipo */
+.end-tipo {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: #e8ecea;
+    color: #3d4a42;
+}
+
+.end-tipo-principal { background: #dcefe2; color: #1d5a31; }
+.end-tipo-entrega { background: #e0ecfb; color: #1f4f8a; }
+.end-tipo-obra { background: #fdf0d9; color: #8a5a10; }
+.end-tipo-cobranca { background: #f3e3f5; color: #74307e; }
+.end-tipo-filial { background: #e3f3f3; color: #1c6363; }
+
+.end-apelido {
+    margin-left: 6px;
+    font-size: 12px;
+    color: #24352b;
+}
+
+.end-carimbo {
+    color: #6b7a71;
+    font-size: 11px;
+}
+
+.end-alerta {
+    color: #a3560b;
+    font-size: 11px;
+}
+
+/* Seletor dentro dos formulários */
+.end-seletor {
+    width: 100%;
+    text-align: left;
+}
+
+.end-atual {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid #cfdcd3;
+    border-radius: 8px;
+    background: white;
+}
+
+.end-pino {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50% 50% 50% 0;
+    background: #24693a;
+    transform: rotate(-45deg);
+    box-shadow: inset 0 0 0 3px #24693a, inset 0 0 0 6px white;
+}
+
+.end-atual-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.end-atual-rua {
+    font-weight: 600;
+    color: #1f2c24;
+    overflow-wrap: anywhere;
+}
+
+.end-atual-texto > small {
+    color: #4f5f55;
+}
+
+.end-atual-ref {
+    font-style: italic;
+}
+
+.end-trocar {
+    flex: none;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 10px;
+    border: 1px solid #24693a;
+    border-radius: 8px;
+    background: #f2f8f4;
+    color: #24693a;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.end-trocar:hover {
+    background: #24693a;
+    color: white;
+}
+
+.end-trocar:hover .end-contador {
+    background: white;
+    color: #24693a;
+}
+
+/* Lista em cartões (escolha e cadastro) */
+.end-escolha {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    width: min(46rem, 88vw);
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.end-escolha-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: #324b3c;
+}
+
+.end-lista {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
+.end-cartao {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px;
+    border: 1px solid #d6e0d9;
+    border-radius: 8px;
+    background: white;
+    text-align: left;
+}
+
+.end-cartao.em-uso {
+    border-color: #24693a;
+    box-shadow: 0 0 0 1px #24693a;
+    background: #f5faf6;
+}
+
+.end-cartao-topo {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.end-em-uso {
+    margin-left: auto;
+    color: #24693a;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.end-cartao-rua {
+    font-weight: 600;
+    color: #1f2c24;
+    overflow-wrap: anywhere;
+}
+
+.end-cartao-sub,
+.end-cartao-ref {
+    color: #4f5f55;
+    font-size: 12px;
+}
+
+.end-cartao-ref {
+    font-style: italic;
+}
+
+.end-cartao-acoes {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.end-botao {
+    padding: 4px 10px;
+    border: 1px solid #cfdcd3;
+    border-radius: 6px;
+    background: white;
+    color: #324b3c;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.end-botao:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.end-botao-principal {
+    border-color: #24693a;
+    background: #24693a;
+    color: white;
+}
+
+.end-botao-remover:hover {
+    border-color: #b3261e;
+    color: #b3261e;
+}
+
+.end-novo,
+.end-adicionar {
+    border: 1px dashed #24693a;
+    border-radius: 8px;
+    background: #f2f8f4;
+    color: #24693a;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.end-novo {
+    padding: 6px 12px;
+}
+
+.end-adicionar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 5.5rem;
+    padding: 10px;
+}
+
+.end-adicionar > span {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.end-adicionar small {
+    color: #6b7a71;
+    font-weight: 400;
+}
+
+.end-novo:hover,
+.end-adicionar:hover {
+    background: #e3f1e7;
+}
+
+.end-dica {
+    color: #6b7a71;
+}
+
+.end-cadastro {
+    width: 100%;
+}
+
+/* Formulário novo/editar */
+.end-form {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 10px;
+    padding: 12px;
+    width: min(40rem, 88vw);
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.end-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 12px;
+    color: #4f5f55;
+}
+
+.end-form input,
+.end-form select {
+    padding: 6px 8px;
+    border: 1px solid #c4cfc8;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 13px;
+}
+
+.end-form .end-largo {
+    grid-column: span 2;
+}
+
+.end-form small.end-largo,
+.end-form-aviso {
+    grid-column: 1 / -1;
+}
+
+.end-form-aviso {
+    color: #b3261e;
+}
+
+.end-form-aviso:empty {
+    display: none;
+}
+
+/* Nota fiscal: linha de endereços do destinatário */
+.fis-enderecos {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.fis-enderecos > small {
+    color: #4f5f55;
+}
+
+.fis-endereco-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border: 1px solid #cfdcd3;
+    border-radius: 999px;
+    background: white;
+    color: #324b3c;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.fis-endereco-chip.ativo {
+    border-color: #24693a;
+    background: #24693a;
+    color: white;
+}
+
+.fis-endereco-chip.novo {
+    border-style: dashed;
+    color: #24693a;
+}
+
+@media (max-width: 640px) {
+    .end-form { grid-template-columns: 1fr 1fr; }
+    .end-atual { flex-wrap: wrap; }
+    .end-trocar { flex-direction: row; width: 100%; justify-content: center; }
+}

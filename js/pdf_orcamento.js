@@ -91,15 +91,11 @@ async function montarPdfOrcamento(idRecebido, raiz = document) {
         recuperarDado('clientes', venda_direta) || {},
     ])
 
-    const {
-        endereco,
-        bairro,
-        nome,
-        cep,
-        cnpj,
-        cidade,
-        estado,
-    } = cliente || {}
+    const { nome, cnpj } = cliente || {}
+    // Endereço escolhido no orçamento (js/enderecos.js) ou, sem escolha, o principal do cadastro.
+    const enderecoPdf = enderecoDoDocumento(cliente, orcamentoBase.dados_orcam?.endereco)
+    const { bairro, cep, cidade, estado } = enderecoPdf
+    const nomeLocal = enderecoPdf?.id ? (enderecoPdf.apelido || '') : ''
 
     // Desde 16/11/2026 o orçamento grava "AC"; os antigos têm "AC SOLUÇÕES". Os dois (e vazio) = AC.
     const chaveEmissor = String(emissor || '').trim().toUpperCase()
@@ -142,7 +138,8 @@ async function montarPdfOrcamento(idRecebido, raiz = document) {
                 { chave: 'Razão Social ou Nome Fantasia', valor: nome || '--' },
                 { chave: 'CNPJ', valor: cnpj || '--' },
                 { chave: 'CEP', valor: cep || '--' },
-                { chave: 'Endereço', valor: enderecoComNumero(cliente) || '--' },
+                ...(nomeLocal ? [{ chave: 'Local', valor: nomeLocal }] : []),
+                { chave: 'Endereço', valor: enderecoComNumero(enderecoPdf) || '--' },
                 { chave: 'Bairro', valor: bairro || '--' },
                 { chave: 'Cidade', valor: cidade || '--' },
                 { chave: 'Estado', valor: estado || '--' }

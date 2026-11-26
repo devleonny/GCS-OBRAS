@@ -1322,6 +1322,7 @@ function criarLinhaOcorrencia(ocorrencia) {
             <div style="${vertical}; width: 100%;">
                 ${existeAntigo}
                 ${modeloCampos('Unidade', cliente?.nome)}
+                ${cliente?.apelido ? modeloCampos('Local', `${escaparAtributo(cliente.apelido)}${cliente.tipo_endereco ? ` <small>(${escaparAtributo(TIPOS_ENDERECO[cliente.tipo_endereco] || cliente.tipo_endereco)})</small>` : ''}`) : ''}
                 ${modeloCampos('Endereço', enderecoComNumero(cliente))}
                 ${modeloCampos('Bairro', cliente?.bairro)}
                 ${modeloCampos('Cidade', cliente?.cidade)}
@@ -2734,7 +2735,8 @@ async function formularioOcorrencia(idOcorrencia) {
             descricao,
             tipo,
             prioridade,
-            sistema
+            sistema,
+            endereco: enderecoChamado
         } = ocorrencia || {}
 
         // Gestor Responsável: chamado novo já vem com o gestor de quem está criando (hierarquia do RH).
@@ -2762,6 +2764,8 @@ async function formularioOcorrencia(idOcorrencia) {
         controlesCxOpcoes.unidade = {
             base: 'clientes',
             retornar: ['nome'],
+            // Trocou a unidade: o endereço volta para o principal dela (js/enderecos.js).
+            funcaoAdicional: ['unidadeEscolhidaChamado'],
             colunas: {
                 'Nome': { chave: 'nome' },
                 'CNPJ': { chave: 'cnpj' },
@@ -2819,6 +2823,11 @@ async function formularioOcorrencia(idOcorrencia) {
                         ${cliente?.nome || 'Selecione'}
                     </span>
             `
+            },
+            {
+                // Vários endereços por cliente (js/enderecos.js): troca ou cadastra um novo aqui mesmo.
+                texto: 'Endereço',
+                elemento: seletorEnderecoHtml({ clienteId: unidade || '', foto: enderecoChamado, contexto: 'chamado', ref: idOcorrencia || '' })
             },
             {
                 texto: 'Gestor Responsável',
@@ -3692,6 +3701,12 @@ function obter(name) {
     return elemento
 }
 
+// cxOpcoes da Unidade (formularioOcorrencia): o seletor de endereço passa para a unidade nova.
+function unidadeEscolhidaChamado() {
+    const span = [...document.querySelectorAll('[name="unidade"]')].find(s => s.closest('.painel-padrao')?.querySelector('[data-end-seletor]'))
+    if (span) clienteSeletorEndereco(span.closest('.painel-padrao'), span.id || '')
+}
+
 async function salvarOcorrencia(idOcorrencia) {
 
     const painel = [...document.querySelectorAll('.painel-padrao')].at(-1)
@@ -3772,6 +3787,8 @@ async function salvarOcorrencia(idOcorrencia) {
         data_solicitacao: campo('data_solicitacao')?.value || null,
         equipamentos,
         unidade: Number(unidade),
+        // Endereço escolhido (js/enderecos.js): foto; null = principal da unidade.
+        endereco: lerSeletorEndereco(painel) || null,
         sistema: campo('sistema')?.id || null,
         prioridade: campo('prioridade')?.id || null,
         tipo: campo('tipo')?.id || null,

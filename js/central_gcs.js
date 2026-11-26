@@ -13,6 +13,12 @@ function enderecoComNumero(c) {
     return [[endereco, numero].filter(Boolean).join(', '), complemento].filter(Boolean).join(' - ')
 }
 
+// Endereço que vale num documento (orçamento, chamado, requisição): a foto do endereço escolhido
+// (js/enderecos.js; id null = principal) ou, sem escolha, o principal do cadastro como sempre foi.
+function enderecoDoDocumento(cliente, foto) {
+    return foto && typeof foto === 'object' && (foto.endereco || foto.cep) ? foto : (cliente || {})
+}
+
 const modelo = (valor1, valor2) => `
     <div class="modelo">
         <label>${valor1}</label>
@@ -1411,8 +1417,16 @@ async function painelClientes(idOrcamento = null) {
         telefone_analista,
         omie_cliente,
         condicoes,
-        condicao_pagamento
+        condicao_pagamento,
+        chamado: chamadoOrcamento
     } = orcamento?.dados_orcam || {}
+
+    // Endereço escolhido (js/enderecos.js). Sem escolha no orçamento, vale o do chamado dele (mesmo cliente).
+    let enderecoOrcamento = orcamento?.dados_orcam?.endereco || null
+    if (!enderecoOrcamento && omie_cliente) {
+        const ocorrencia = await recuperarDado('dados_ocorrencias', chamadoOrcamento || contrato)
+        if (ocorrencia?.endereco && String(ocorrencia.unidade) === String(omie_cliente)) enderecoOrcamento = ocorrencia.endereco
+    }
 
     const { ate: validadeAte } = validadeOrcamento(orcamento?.dados_orcam || {})
     const validadeAteFormulario = validadeAte ? brDataOrcamento(validadeAte) : ''
@@ -1504,23 +1518,9 @@ async function painelClientes(idOrcamento = null) {
             elemento: `<span id="cnpj">${cliente?.cnpj || ''}</span>`
         },
         {
+            // Vários endereços por cliente (js/enderecos.js): troca ou cadastra um novo aqui mesmo.
             texto: 'Endereço',
-            elemento: `<span id="endereco">${enderecoComNumero(cliente)}</span>`
-        },
-        {
-            texto: 'Bairro',
-            elemento: `<span id="bairro">${cliente?.bairro || ''}</span>`
-        },
-        {
-            texto: 'CEP', elemento: `<span id="cep">${cliente?.cep || ''}</span>`
-        },
-        {
-            texto: 'Cidade',
-            elemento: `<span id="cidade">${cliente?.cidade || ''}</span>`
-        },
-        {
-            texto: 'Estado',
-            elemento: `<span id="estado">${cliente?.estado || ''}</span>`
+            elemento: seletorEnderecoHtml({ clienteId: omie_cliente, foto: enderecoOrcamento, contexto: 'orcamento', ref: contrato && contrato !== 'sequencial' ? contrato : '' })
         },
         {
             texto: `
@@ -1671,11 +1671,10 @@ async function buscarDadosCliente() {
     const omie_cliente = Number(clienteName.id)
     const cliente = await recuperarDado('clientes', omie_cliente) || {}
 
-    const campos = ['cnpj', 'endereco', 'bairro', 'cidade', 'estado', 'cep']
-    for (const campo of campos) {
-        const el = document.getElementById(campo)
-        if (el) el.textContent = cliente?.[campo] || ''
-    }
+    const elCnpj = document.getElementById('cnpj')
+    if (elCnpj) elCnpj.textContent = cliente?.cnpj || ''
+    // Cliente novo: o endereço volta para o principal dele (js/enderecos.js).
+    clienteSeletorEndereco(document.getElementById('emissor')?.closest('.painel-padrao'), omie_cliente || '')
 
     // Cliente escolhido: empresa de faturamento, condição de pagamento e limite vêm do cadastro da empresa dele.
     const empresaCliente = cliente?.empresa ? await recuperarDado('empresas', cliente.empresa) || {} : {}
@@ -1819,7 +1818,9 @@ async function salvarDadosCliente(idOrcamento) {
             analista: el('analista').value,
             telefone_analista: el('telefone_analista').value,
             executor,
-            tecnico
+            tecnico,
+            // Endereço escolhido (js/enderecos.js): foto do endereço; null = principal do cadastro.
+            endereco: lerSeletorEndereco(el('emissor')?.closest('.painel-padrao')) || null
         }
 
         // Se não existir a chave contrato; sequencial fará que o servidor crie;

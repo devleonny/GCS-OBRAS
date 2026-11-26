@@ -7,7 +7,8 @@
 //                         "só cargos com" e "exceto cargos com"; sem exigencias vale ambientes + exceto_cargos)
 //   rh_ficha_itens        lançamentos por pessoa; renovar = novo lançamento, vale o de vencimento mais novo
 //   rh_funcionarios       ambiente (CAMPO / ADMINISTRATIVO; sem linha: TÉCNICO = CAMPO) e dispensa dos
-//                         exames (dispensa_exames + dispensa_motivo, ex.: sem vínculo CLT)
+//                         exames (dispensa_exames + dispensa_motivo, ex.: sem vínculo CLT); setor (fin_setores,
+//                         por enquanto só o Controle de Faturamento usa: setor de quem pediu o faturamento)
 //   rh_salarios           salário (SIGILOSO): só adm e diretoria (o servidor recusa os outros perfis). Na tela,
 //                         todo valor sigiloso leva o cadeado e o aviso "só adm e diretoria" (seloSigiloRH)
 // Treinamentos (NR 10, NR 35, PTA, NR 06...) são os documentos do RH (vw_documentos): aqui só leitura,
@@ -16,7 +17,9 @@ const AMBIENTES_RH = ['CAMPO', 'ADMINISTRATIVO']
 const TREINAMENTOS_CAMPO_RH = ['NR 06 - EPI', 'NR 10', 'NR 35', 'PTA']
 const VEEM_SALARIO_RH = ['adm', 'diretoria']
 const EDITAM_CATALOGO_RH = ['adm', 'diretoria']
-const estadoFichaRH = { exames: [], epis: [], itens: [], ambientes: new Map(), dispensas: new Map(), salarios: new Map(), ambienteFiltro: 'todos' }
+const estadoFichaRH = { exames: [], epis: [], itens: [], ambientes: new Map(), dispensas: new Map(), salarios: new Map(), setores: new Map(), listaSetores: [], ambienteFiltro: 'todos' }
+// Sem acesso à base fin_setores, a ficha oferece os setores de sempre.
+const SETORES_PADRAO_RH = ['ADMINISTRATIVO', 'FINANCEIRO', 'COMERCIAL', 'LOGÍSTICA', 'ASSISTÊNCIA TÉCNICA', 'PROJETOS']
 
 const podeVerSalarioRH = () => VEEM_SALARIO_RH.includes(acesso?.permissao)
 const maiusculoRH = texto => normalizarRH(texto).toUpperCase()
@@ -152,18 +155,22 @@ function montarFichaRH(pessoa, { exames = estadoFichaRH.exames, epis = estadoFic
 // ---------------- Carregamento (chamado por carregarRH em js/rh.js) ----------------
 // Antes da migração (bases inexistentes) a ficha fica vazia sem quebrar a tela de documentos.
 async function carregarFichaRH() {
-    const [exames, epis, itens, ambientes, salarios] = await Promise.all([
+    const [exames, epis, itens, ambientes, salarios, setores] = await Promise.all([
         pesquisarTodosRH('rh_exames').catch(() => []),
         pesquisarTodosRH('rh_epis').catch(() => []),
         pesquisarTodosRH('rh_ficha_itens').catch(() => []),
         pesquisarTodosRH('rh_funcionarios').catch(() => []),
-        podeVerSalarioRH() ? pesquisarTodosRH('rh_salarios').catch(() => []) : []
+        podeVerSalarioRH() ? pesquisarTodosRH('rh_salarios').catch(() => []) : [],
+        pesquisarTodosRH('fin_setores').catch(() => [])
     ])
     Object.assign(estadoFichaRH, {
         exames, epis,
         itens: itens.filter(i => !i.excluido),
         ambientes: new Map(ambientes.filter(a => a.ambiente).map(a => [String(a.id), a.ambiente])),
         dispensas: new Map(ambientes.filter(a => a.dispensa_exames).map(a => [String(a.id), a.dispensa_motivo || ''])),
+        setores: new Map(ambientes.filter(a => a.setor).map(a => [String(a.id), a.setor])),
+        listaSetores: setores.filter(s => s.ativo !== false && s.id !== 'EMPRESA')
+            .sort((a, b) => (a.ordem ?? 100) - (b.ordem ?? 100)).map(s => s.id),
         salarios: new Map(salarios.filter(s => s.salario != null && s.salario !== '').map(s => [String(s.id), Number(s.salario)]))
     })
 }
@@ -205,6 +212,9 @@ function fichaPessoaRH(p, ficha = montarFichaRH(p), { compacto = false } = {}) {
     ].filter(Boolean).map(escaparAtributo)
     const chipAmbiente = `<button type="button" class="rhf-chip rhf-ambiente ${ficha.ambiente === 'CAMPO' ? 'campo' : ''}" title="Ambiente: define os exames e EPIs exigidos. Clique para trocar ou dispensar dos exames"
         onclick="escolherAmbienteRH('${id}')">${ficha.ambiente}</button>`
+    const setor = estadoFichaRH.setores.get(String(p.id))
+    const chipSetor = `<button type="button" class="rhf-chip rhf-setor ${setor ? '' : 'vazio'}" title="Setor do funcionário (usado no Controle de Faturamento). Clique para alterar"
+        onclick="escolherSetorRH('${id}')">Setor: ${escaparAtributo(setor || 'informar')}</button>`
     const chipDispensa = ficha.dispensa
         ? `<button type="button" class="rhf-chip rhf-dispensa" title="${escaparAtributo(`Dispensado dos exames do ASO${ficha.dispensa.motivo ? `: ${ficha.dispensa.motivo}` : ''}. Clique para alterar`)}"
             onclick="escolherAmbienteRH('${id}')">Dispensado dos exames</button>`
@@ -219,7 +229,7 @@ function fichaPessoaRH(p, ficha = montarFichaRH(p), { compacto = false } = {}) {
                 ${compacto ? '' : fotoPessoaRH(p)}
                 <div class="rhf-identificacao">
                     ${compacto ? '' : nomePessoaRH({ ...p, cargo: null })}
-                    <div class="rhf-dados">${dados.join('<span aria-hidden="true">·</span>')}${chipAmbiente}${chipDispensa}
+                    <div class="rhf-dados">${dados.join('<span aria-hidden="true">·</span>')}${chipAmbiente}${chipSetor}${chipDispensa}
                         ${compacto ? '' : `<span>Gestor: ${escaparAtributo(gestor?.nome || '—')}</span>`}${chipSalario}</div>
                 </div>
                 <span class="rhf-resumo ${ficha.situacao.cor}" title="${escaparAtributo(ficha.situacao.texto)}">${bolinhaRH(ficha.situacao)} ${escaparAtributo(ficha.resumo)}</span>
@@ -427,6 +437,38 @@ async function salvarAmbienteRH(botao, idPessoa) {
         return popup({ mensagem: resposta?.mensagem || 'Não foi possível salvar.' })
     estadoFichaRH.ambientes.set(String(idPessoa), ambiente)
     dispensa ? estadoFichaRH.dispensas.set(String(idPessoa), motivo) : estadoFichaRH.dispensas.delete(String(idPessoa))
+    removerPopup(janela?.id)
+    renderizarRH()
+}
+
+// Setor (rh_funcionarios.setor): grava só a coluna, sem mexer no ambiente e na dispensa.
+function escolherSetorRH(idPessoa) {
+    const pessoa = estadoRH.porId.get(String(idPessoa)) || {}
+    const atual = estadoFichaRH.setores.get(String(idPessoa)) || ''
+    const lista = estadoFichaRH.listaSetores.length ? estadoFichaRH.listaSetores : SETORES_PADRAO_RH
+    const opcoes = [...new Set([...lista, ...(atual ? [atual] : [])])]
+    popup({
+        titulo: 'Setor do funcionário',
+        linhas: [
+            { texto: 'Funcionário', elemento: `<b>${escaparAtributo(pessoa.nome || '')}</b>` },
+            {
+                texto: 'Setor',
+                elemento: `<select name="setor"><option value="">— sem setor —</option>${opcoes.map(s =>
+                    `<option value="${escaparAtributo(s)}" ${s === atual ? 'selected' : ''}>${escaparAtributo(s)}</option>`).join('')}</select>`
+            },
+            { elemento: '<small>Por enquanto só o Controle de Faturamento usa (setor de quem pediu o faturamento).</small>' }
+        ],
+        botoes: [{ texto: 'Salvar', img: 'concluido', funcao: `salvarSetorRH(this, '${escaparAtributo(idPessoa)}')` }]
+    })
+}
+
+async function salvarSetorRH(botao, idPessoa) {
+    const janela = botao.closest('.popup')
+    const setor = janela?.querySelector('[name="setor"]')?.value || null
+    const resposta = await enviar(`rh_funcionarios/${idPessoa}/setor`, setor)
+    if (!resposta?.success)
+        return popup({ mensagem: resposta?.mensagem || 'Não foi possível salvar o setor.' })
+    setor ? estadoFichaRH.setores.set(String(idPessoa), setor) : estadoFichaRH.setores.delete(String(idPessoa))
     removerPopup(janela?.id)
     renderizarRH()
 }

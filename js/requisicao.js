@@ -25,7 +25,8 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         requisicao,
         prazo,
         recebedor,
-        recebedor_id
+        recebedor_id,
+        entrega
     } = await recuperarDado('requisicoes', id) || {}
 
     controlesCxOpcoes.recebedorRequisicao = {
@@ -74,15 +75,9 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
     if (!orcamento)
         return popup({ mensagem: `Orçamento ${ativo} provavelmente excluído, fale com o suporte.` })
 
-    const {
-        cnpj,
-        nome,
-        cidade,
-        endereco,
-        numero,
-        complemento,
-        bairro
-    } = await recuperarDado('clientes', orcamento?.dados_orcam?.omie_cliente) || {}
+    const { cnpj, nome } = await recuperarDado('clientes', orcamento?.dados_orcam?.omie_cliente) || {}
+    // Endereço de entrega (js/enderecos.js): o da requisição ou, na primeira vez, o escolhido no orçamento.
+    const fotoEntrega = entrega || orcamento?.dados_orcam?.endereco || null
 
     // Fluxo da correção de Logística: só escolhe na primeira gravação da requisição;
     const escolherFluxo = ocorrencia && !ocorrencia.correcoes?.[id]
@@ -233,18 +228,8 @@ async function formularioRequisicao(id = crypto.randomUUID()) {
         },
         {
             linha: 2,
-            v1: 'Endereço',
-            v2: enderecoComNumero({ endereco, numero, complemento })
-        },
-        {
-            linha: 2,
-            v1: 'Bairro',
-            v2: bairro
-        },
-        {
-            linha: 2,
-            v1: 'Cidade',
-            v2: cidade
+            v1: 'Entrega',
+            v2: seletorEnderecoHtml({ clienteId: orcamento?.dados_orcam?.omie_cliente || '', foto: fotoEntrega, contexto: 'requisicao', ref: ativo || '' })
         },
         {
             linha: 2,
@@ -633,7 +618,9 @@ async function salvarRequisicao(id) {
             // Volumes saíram daqui (13/11/2026): vão na separação (NF-e), junto com a transportadora.
             volumes: requisicao.volumes || 0,
             total_requisicao: conversor(document.querySelector('#total_requisicao').textContent),
-            requisicao: Object.fromEntries(itens.map(i => [i.codigo, i]))
+            requisicao: Object.fromEntries(itens.map(i => [i.codigo, i])),
+            // Endereço de entrega escolhido (js/enderecos.js): foto; null = principal do cliente.
+            entrega: lerSeletorEndereco(document.querySelector('.requisicao-grupo-2')) || requisicao.entrega || null
         }
 
         const resultado = await enviar(`requisicoes/${id}`, dados)
@@ -687,7 +674,8 @@ async function gerarPdfRequisicao(id, visualizar) {
         comentario,
         pedido,
         total_requisicao,
-        departamento
+        departamento,
+        entrega
     } = await recuperarDado('requisicoes', id) || {}
 
     const ativo = departamento || controles?.ocorrencias?.ativo
@@ -737,23 +725,19 @@ async function gerarPdfRequisicao(id, visualizar) {
         })
         .join('')
 
-    const {
-        nome,
-        cnpj,
-        cidade,
-        bairro,
-        endereco,
-        numero,
-        complemento,
-        cep
-    } = await recuperarDado('clientes', dados_orcam?.omie_cliente) || {}
+    const cadastroCliente = await recuperarDado('clientes', dados_orcam?.omie_cliente) || {}
+    const { nome, cnpj } = cadastroCliente
+    // Entrega escolhida na requisição (js/enderecos.js) → a do orçamento → principal do cadastro.
+    const enderecoEntrega = enderecoDoDocumento(cadastroCliente, entrega || dados_orcam?.endereco)
+    const { cidade, bairro, cep } = enderecoEntrega
 
     const dCabecalho = Object.entries({
         orçamento: dados_orcam?.contrato,
         chamado: dados_orcam?.chamado,
         nome,
         cnpj,
-        endereco: enderecoComNumero({ endereco, numero, complemento }),
+        local: enderecoEntrega?.id ? enderecoEntrega.apelido : null,
+        endereco: enderecoComNumero(enderecoEntrega),
         bairro,
         cidade,
         cep

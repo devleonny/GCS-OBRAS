@@ -2210,6 +2210,7 @@ button.rh-arquivo-acao:hover { background: #1c8235; }
 
 .rhf-chip:hover { background: #e5f3ff; border-color: #99d1ff; }
 .rhf-ambiente.campo { background: #fff4e0; border-color: #f2c77a; }
+.rhf-setor.vazio { color: #8a8f98; border-style: dashed; }
 .rhf-salario { font-variant-numeric: tabular-nums; }
 
 .rhf-resumo {

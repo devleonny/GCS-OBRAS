@@ -653,6 +653,7 @@ async function formularioEnvioLogistica(id = null, inicial = null) {
                         ${campo('Celular', input('et_celular', '', 'inputmode="numeric" placeholder="DDD + número"'))}
                         ${campo('E-mail', input('et_email', '', 'type="email"'))}
                     </div>
+                    ${chipsEnderecoHtml({ campos: { cep: 'et_cep', endereco: 'et_logradouro', numero: 'et_numero', complemento: 'et_complemento', bairro: 'et_bairro', cidade: 'et_cidade', estado: 'uf' }, contexto: 'logistica' })}
                     <div class="log-aviso" data-aviso-destinatario></div>
                 </fieldset>
 
@@ -1255,6 +1256,8 @@ async function carregarDestinatarioLog() {
         const campos = { et_doc: d.cpfCnpj, et_cep: e.cep, et_logradouro: e.logradouro, et_numero: numeroDigitado || e.numero,
             et_complemento: e.complemento, et_bairro: e.bairro, et_cidade: e.cidade, uf: e.uf, et_celular: d.celular, et_email: d.email }
         for (const [k, v] of Object.entries(campos)) if (v !== undefined) setCampoLog(form, k, v || '')
+        // Outros endereços do cliente (js/enderecos.js): trocar ou cadastrar o digitado.
+        chipsEnderecoCliente(form.querySelector('[data-end-chips]'), r.cliente_id || '')
 
         // Modalidades ficam fixas no formulário (MODALIDADES_CORREIOS_LOG): não dependem do cliente.
         form._etiquetaNF = { nf: r.nf, chave_nfe: r.chave_nfe }
