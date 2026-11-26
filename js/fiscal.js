@@ -144,6 +144,9 @@ async function abrirTabelaRecebidas(filtroExtra = null) {
                 'Fornecedor': { chave: 'participante_nome' },
                 'CPF/CNPJ': { chave: 'participante_documento' },
                 'Valor': { chave: 'valor_total', tipoPesquisa: 'valor' },
+                'CFOP': { chave: 'cfops' },
+                'CFOP entrada': { chave: 'cfop_entrada' },
+                ...colunasImpostosTelaFis(IMPOSTOS_NFE_FIS),
                 'Itens': { chave: 'itens_pendentes', tipoOrdenacao: 'numero' },
                 'Estoque': { chave: 'estoque_status', tipoPesquisa: 'select' },
                 'Manifestação': { chave: 'manifestacao', tipoPesquisa: 'select' },
@@ -350,6 +353,9 @@ async function baixarExcelRecebidasFis() {
                 { titulo: 'Fornecedor', largura: 42, valor: d => d.participante_nome || '' },
                 { titulo: 'CPF/CNPJ', largura: 19, valor: d => d.participante_documento ? docFormatadoFis(d.participante_documento) : '' },
                 { titulo: 'Valor', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor_total) || 0 },
+                { titulo: 'CFOP', largura: 10, centro: true, valor: d => d.cfops || '' },
+                { titulo: 'CFOP entrada', largura: 12, centro: true, valor: d => d.cfop_entrada || '' },
+                ...colunasImpostosExcelFis(IMPOSTOS_NFE_FIS),
                 { titulo: 'Itens', largura: 8, centro: true, valor: d => Number(d.itens) || 0 },
                 { titulo: 'A vincular', largura: 10, centro: true, valor: d => Number(d.itens_pendentes) || 0 },
                 { titulo: 'Estoque', largura: 16, valor: d => texto(ESTOQUE_FISCAL, d.estoque_status) },
@@ -468,6 +474,9 @@ function criarLinhaNotaRecebida(d) {
             <td class="fin-obs fin-nome" title="${escFis(d.participante_nome || '')}"><span class="fin-obs-txt">${escFis(d.participante_nome || '')}</span>${d.devolucao_tipo ? ` ${etiquetaFis(DEVOLUCAO_FISCAL, d.devolucao_tipo)}` : ''}</td>
             <td class="fin-centro fin-doc">${docFormatadoFis(d.participante_documento)}</td>
             <td class="fis-num">${d.valor_total != null ? dinheiro(d.valor_total) : ''}</td>
+            <td class="fin-centro">${escFis(d.cfops || '')}</td>
+            <td class="fin-centro">${escFis(d.cfop_entrada || '')}</td>
+            ${celulasImpostosTelaFis(IMPOSTOS_NFE_FIS, d)}
             <td class="fin-centro">${Number(d.itens) || ''}${pend ? ` <small class="fis-pendente">${pend} a vincular</small>` : ''}</td>
             <td>${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}</td>
             <td>${etiquetaFis(MANIFESTACAO_FISCAL, d.manifestacao)}</td>
@@ -1098,7 +1107,12 @@ async function baixarExcelCtesFis() {
                 { titulo: 'NF-e no GCS', largura: 14, valor: d => d.notas_numeros || '' },
                 { titulo: 'Qtd. NF-e', largura: 9, centro: true, valor: d => Number(d.qtd_nfes) || 0 },
                 { titulo: 'Valor', largura: 14, tipo: 'moeda', soma: true, valor: d => Number(d.valor_total) || 0 },
+                { titulo: 'Valor a receber', largura: 14, tipo: 'moeda', soma: true, valor: d => numOuVazioFis(d.valor_receber) },
+                { titulo: 'Valor da carga', largura: 15, tipo: 'moeda', soma: true, valor: d => numOuVazioFis(d.valor_carga) },
+                { titulo: 'CFOP', largura: 9, centro: true, valor: d => d.cfop || '' },
                 { titulo: 'ICMS', largura: 12, tipo: 'moeda', soma: true, valor: d => Number(d.valor_icms) || 0 },
+                { titulo: 'IBS', largura: 11, tipo: 'moeda', soma: true, valor: d => numOuVazioFis(d.valor_ibs) },
+                { titulo: 'CBS', largura: 11, tipo: 'moeda', soma: true, valor: d => numOuVazioFis(d.valor_cbs) },
                 { titulo: 'Situação', largura: 12, valor: d => texto(SITUACAO_CTE_FIS, d.situacao) },
                 { titulo: 'Fatura a pagar', largura: 18, valor: d => d.fatura === 'OMIE' ? `Já no Financeiro: ${d.fatura_outra || ''}` : texto(FATURA_CTE_FIS, d.fatura) },
                 { titulo: 'Chave', largura: 48, valor: d => d.chave || '' }
@@ -2176,9 +2190,10 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
                 [nfse ? 'Tomador' : 'Destinatário']: { chave: 'participante_nome' },
                 'Nome fantasia': { chave: 'nome_fantasia' },
                 'CPF/CNPJ': { chave: 'participante_documento' },
-                ...(nfse ? {} : { 'Operação': { chave: 'natureza_operacao' } }),
+                ...(nfse ? {} : { 'Operação': { chave: 'natureza_operacao' }, 'CFOP': { chave: 'cfops' } }),
                 'Orçamento': { chave: 'orcamento' },
                 'Valor': { chave: 'valor_total', tipoPesquisa: 'valor' },
+                ...colunasImpostosTelaFis(impostosEmitFis()),
                 'Situação': { chave: 'status', tipoPesquisa: 'select' },
                 ...(nfse ? {} : { 'Estoque': { chave: 'estoque_status', tipoPesquisa: 'select' } }),
                 'Origem': { chave: 'ambiente', tipoPesquisa: 'select' }
@@ -2356,6 +2371,29 @@ async function irPaginaEmitFis(n) {
 
 const ORIGEM_EMIT_FIS = { homologacao: 'Homologação', producao: 'Produção', omie: 'Omie' }
 
+// Impostos das notas (colunas de vw_fiscal_documentos / vw_fiscal_emitidas, lidas do XML — fiscal_totais_xml).
+// NF-e: bases e valores de ICMS, ICMS ST, PIS, COFINS e IPI. NFS-e: base, ISS, ISS retido, total retido.
+const IMPOSTOS_NFE_FIS = [
+    ['Valor do ICMS', 'valor_icms', true], ['Base de Cálculo do ICMS', 'base_icms'],
+    ['Valor do ICMS ST', 'valor_icms_st', true], ['Base do ICMS ST', 'base_icms_st'],
+    ['Valor do PIS', 'valor_pis', true], ['Base do PIS', 'base_pis'],
+    ['Valor do COFINS', 'valor_cofins', true], ['Base do COFINS', 'base_cofins'],
+    ['Valor do IPI', 'valor_ipi', true], ['Base do IPI', 'base_ipi']
+]
+const IMPOSTOS_NFSE_FIS = [
+    ['Base do ISS', 'base_iss'], ['Valor do ISS', 'valor_iss', true], ['ISS retido', 'iss_retido', true], ['Total retido', 'total_retido', true]
+]
+const impostosEmitFis = () => modeloEmitidasFis === 'NFSE' ? IMPOSTOS_NFSE_FIS
+    : modeloEmitidasFis === 'NFE' ? IMPOSTOS_NFE_FIS : [...IMPOSTOS_NFE_FIS, ['Valor do ISS', 'valor_iss', true]]
+const numOuVazioFis = v => v == null || v === '' ? null : Number(v)
+const colunasImpostosExcelFis = lista => lista.map(([titulo, chave]) =>
+    ({ id: chave, titulo, largura: 15, tipo: 'moeda', soma: true, valor: d => numOuVazioFis(d[chave]) }))
+// Na tela vão só os valores (as bases ficam no Excel). Chave = coluna da view (filtro por valor).
+const colunasImpostosTelaFis = lista => Object.fromEntries(lista.filter(x => x[2])
+    .map(([titulo, chave]) => [titulo.replace('Valor do ', ''), { chave, tipoPesquisa: 'valor' }]))
+const celulasImpostosTelaFis = (lista, d) => lista.filter(x => x[2])
+    .map(([, chave]) => `<td class="fis-num">${d[chave] != null && Number(d[chave]) ? dinheiro(d[chave]) : ''}</td>`).join('')
+
 async function baixarExcelEmitidasFis() {
     const ctrl = controles.notasEmitidas
     if (!ctrl) return
@@ -2392,9 +2430,13 @@ async function baixarExcelEmitidasFis() {
                 { titulo: nfse ? 'Tomador' : 'Destinatário', largura: 42, valor: d => d.participante_nome || '' },
                 { titulo: 'Nome fantasia', largura: 32, valor: d => d.nome_fantasia || '' },
                 { titulo: 'CPF/CNPJ', largura: 19, valor: d => d.participante_documento ? docFormatadoFis(d.participante_documento) : '' },
-                ...(nfse ? [] : [{ titulo: 'Operação', largura: 30, quebra: true, valor: d => d.natureza_operacao || '' }]),
+                ...(nfse ? [] : [
+                    { titulo: 'Operação', largura: 30, quebra: true, valor: d => d.natureza_operacao || '' },
+                    { titulo: 'CFOP', largura: 10, centro: true, valor: d => d.modelo === 'NFSE' ? '' : d.cfops || '' }
+                ]),
                 { titulo: 'Orçamento', largura: 16, valor: d => listaOrcamentosEmitFis(d.orcamento).join(', ') },
                 { titulo: 'Valor', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor_total) || 0 },
+                ...colunasImpostosExcelFis(modeloEmitidasFis === 'NFSE' ? IMPOSTOS_NFSE_FIS : modeloEmitidasFis === 'NFE' ? IMPOSTOS_NFE_FIS : [...IMPOSTOS_NFE_FIS, ...IMPOSTOS_NFSE_FIS]),
                 { titulo: 'Situação', largura: 14, valor: d => textoStatus(d.status) },
                 ...(nfse ? [] : [{ titulo: 'Estoque', largura: 14, valor: d => textoEstoque(d.estoque_status) }]),
                 { titulo: 'Origem', largura: 13, valor: d => ORIGEM_EMIT_FIS[d.ambiente] || d.ambiente || '' }
@@ -2488,7 +2530,11 @@ async function baixarExcelRelatorioGCS({ titulo, resumo = '', filtrosTexto = '',
         pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, paperSize: 9 },
         views: [{ state: 'frozen', ySplit: 6, showGridLines: false }]
     })
-    colunas.forEach((c, i) => { ws.getColumn(i + 1).width = c.largura || 14 })
+    // Largura: a pedida, mas nunca menor que o título em negrito + a setinha do autofiltro (≈3 caracteres).
+    // Título maior que 30 caracteres quebra em linhas e a altura do cabeçalho acompanha.
+    const larguras = colunas.map(c => Math.max(c.largura || 14, Math.min(30, Math.ceil(String(c.titulo || '').length * 1.15) + 4)))
+    const linhasCab = Math.max(1, ...colunas.map((c, i) => Math.ceil(String(c.titulo || '').length * 1.15 / Math.max(1, larguras[i] - 4))))
+    larguras.forEach((l, i) => { ws.getColumn(i + 1).width = l })
     try {
         const blob = await (await fetch('imagens/logo-gcs-quadrado.png')).blob()
         const base64 = await new Promise((ok, falha) => {
@@ -2500,13 +2546,19 @@ async function baixarExcelRelatorioGCS({ titulo, resumo = '', filtrosTexto = '',
         ws.addImage(livro.addImage({ base64, extension: 'png' }), { tl: { col: 0.2, row: 0.05 }, ext: { width: 88, height: 88 } })
     } catch { }
     ;[30, 20, 20].forEach((h, i) => { ws.getRow(i + 1).height = h })
-    // Com poucas colunas escolhidas não há o que mesclar depois da C (o texto só transborda).
+    // Título/gerado/filtros na coluna C. Com poucas colunas (ou estreitas) a área C..última não comporta
+    // o texto: aí não mescla nem quebra — o texto transborda para as células vazias da direita, sem
+    // espremer. Só quebra (e a linha cresce) quando a área é larga e o texto (filtros) é maior ainda.
+    const areaTopo = larguras.slice(2).reduce((s, l) => s + l, 0)
     const linhaTopo = (numero, texto, fonte) => {
-        if (n > 3) ws.mergeCells(`C${numero}:${ultima}${numero}`)
+        const tamanho = String(texto || '').length * (fonte.size || 10) / 10 * (fonte.bold ? 1.2 : 1)
+        const quebrar = n > 3 && areaTopo >= 50 && tamanho > areaTopo
+        if (n > 3 && areaTopo >= Math.min(tamanho, 50)) ws.mergeCells(`C${numero}:${ultima}${numero}`)
         const cel = ws.getCell(`C${numero}`)
         cel.value = texto
         cel.font = fonte
-        cel.alignment = { vertical: 'middle', wrapText: n > 3 }
+        cel.alignment = { vertical: 'middle', wrapText: quebrar }
+        if (quebrar) ws.getRow(numero).height = Math.max(ws.getRow(numero).height || 20, Math.ceil(tamanho / areaTopo) * ((fonte.size || 10) * 1.35 + 2))
     }
     const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' })
     linhaTopo(1, `Relatório · ${titulo}`, { size: 18, bold: true, color: { argb: VERDE } })
@@ -2519,7 +2571,7 @@ async function baixarExcelRelatorioGCS({ titulo, resumo = '', filtrosTexto = '',
     const LINHA_CAB = 6
     const cab = ws.getRow(LINHA_CAB)
     cab.values = colunas.map(c => c.titulo)
-    cab.height = 24
+    cab.height = Math.max(24, linhasCab * 15 + 8)
     cab.eachCell(cel => {
         cel.font = { bold: true, color: { argb: 'FFFFFFFF' } }
         cel.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE } }
@@ -2619,8 +2671,10 @@ function criarLinhaNotaEmitida(d) {
             <td class="fin-obs fin-nome" title="${escFis(d.nome_fantasia || '')}"><span class="fin-obs-txt">${escFis(d.nome_fantasia || '')}</span></td>
             <td class="fin-centro fin-doc">${docFormatadoFis(d.participante_documento)}</td>
             ${nfse ? '' : `<td class="fin-obs" title="${escFis(d.natureza_operacao || '')}"><span class="fin-obs-txt">${escFis(d.natureza_operacao || '')}</span></td>`}
+            ${nfse ? '' : `<td class="fin-centro">${d.modelo === 'NFSE' ? '' : escFis(d.cfops || '')}</td>`}
             ${celulaOrcamentosEmitFis(d.orcamento)}
             <td class="fis-num">${d.valor_total != null ? dinheiro(d.valor_total) : ''}</td>
+            ${celulasImpostosTelaFis(impostosEmitFis(), d)}
             <td>${etiquetaFis(STATUS_FISCAL, d.status)}</td>
             ${nfse ? '' : `<td>${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}</td>`}
             <td>${d.ambiente === 'homologacao' ? etiquetaEst('Homologação', '#d97706') : d.ambiente === 'producao' ? etiquetaEst('Produção', '#15803d') : d.ambiente === 'omie' ? etiquetaEst('Omie', '#7c3aed') : escFis(d.ambiente || '')}</td>
