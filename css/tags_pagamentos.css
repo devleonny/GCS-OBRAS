@@ -1,0 +1,193 @@
+/* Tags de pagamento (js/tags_pagamentos.js): pílula com o degradê da cor, como as dos orçamentos. */
+.tag-pag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 1px 9px;
+    border: 1px solid rgba(15, 23, 42, 0.18);
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.5;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+}
+
+.tag-pag.escura {
+    color: #fff;
+}
+
+.tag-pag-tirar {
+    border: none;
+    background: none;
+    color: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 0 0 2px;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.tag-pag-tirar:hover {
+    opacity: 1;
+}
+
+.tags-pag {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+}
+
+.tags-pag-chips {
+    display: contents;
+}
+
+.tags-pag-mais {
+    border: 1px dashed #94a3b8;
+    background: #fff;
+    color: #334155;
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.tags-pag-mais:hover {
+    border-color: #356443;
+    color: #356443;
+}
+
+.tags-pag-vazio {
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+/* Na linha da tabela de faturas. */
+.fin-tags-celula {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow: hidden;
+}
+
+/* Escolha (popup). */
+.tags-pag-escolha {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(420px, 85vw);
+    padding: 4px;
+    background: #fff;
+}
+
+.tags-pag-escolha small {
+    color: #64748b;
+}
+
+.tags-pag-escolha-topo {
+    display: flex;
+    gap: 8px;
+}
+
+.tags-pag-escolha-topo input {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+}
+
+.tags-pag-escolha-topo button {
+    border: none;
+    background: #356443;
+    color: #fff;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.tags-pag-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 55vh;
+    overflow: auto;
+}
+
+.tags-pag-opcao {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 8px;
+    padding: 3px 6px;
+}
+
+.tags-pag-opcao.marcada {
+    background: #ecfdf3;
+}
+
+.tags-pag-opcao[hidden] {
+    display: none;
+}
+
+.tags-pag-alternar {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 2px 0;
+    text-align: left;
+}
+
+.tags-pag-estado {
+    color: #16a34a;
+    font-weight: 700;
+}
+
+.tags-pag-lapis {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.tags-pag-lapis:hover {
+    color: #0f172a;
+}
+
+/* Formulário da fatura: linha das tags embaixo do favorecido. */
+.fin-form-tags {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 10px 0 0 80px;
+}
+
+.fin-form-tags > span {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.fin-form-tags > span small {
+    font-weight: 400;
+    color: #94a3b8;
+}
+
+@media (max-width: 800px) {
+    .fin-form-tags {
+        margin-left: 0;
+    }
+}

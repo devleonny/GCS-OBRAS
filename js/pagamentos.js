@@ -1289,6 +1289,11 @@ async function formularioPagamento() {
             `
             },
             {
+                // Um cadastro só do recebedor (ex.: EMBASA) e a tag diz de onde é a conta (GALPÃO 6, ALEX...).
+                texto: 'Tags',
+                elemento: `<div data-tags-pagamento>${htmlTagsPag(ultimoPagamento.param_estavel?.tags)}</div>`
+            },
+            {
                 texto: 'Chave PIX',
                 elemento: `<div data-so-reembolso style="${vertical}; gap: 5px;">
                     <textarea name="chave_pix" rows="3" style="resize: vertical; width: 100%; box-sizing: border-box;" data-cliente="${escaparAtributo(codigo_cliente_fornecedor || '')}"
@@ -1396,6 +1401,7 @@ async function formularioPagamento() {
 
         // Verificação inicial;
         aplicarFormaPagamento()
+        await desenharCamposTagsPag(document.querySelector('[data-tags-pagamento]') || document)
         await calculadoraPagamento()
         avisarTravaPagamento(!id)
 
@@ -1658,6 +1664,7 @@ async function calculadoraPagamento() {
                 forma,
                 ...(forma === 'CARTAO' ? { cartao_conta_id: Number(cartaoId), cartao_nome: cartaoEscolhido.nome } : {}),
                 observacao,
+                tags: lerTagsPag(document.querySelector('[data-tags-pagamento] .tags-pag')),
                 data_previsao: dataFinal,
                 data_vencimento: dataFinal,
                 valor_documento: Math.round(valor_documento * 100) / 100,

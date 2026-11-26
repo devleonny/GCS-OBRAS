@@ -461,6 +461,8 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
         delete controles.faturasFin
         if (anterior) controles.faturasFin = { filtros: anterior.filtros, filtrosMeta: anterior.filtrosMeta, pagina: anterior.pagina || 1 }
         const area = document.querySelector('[data-tabela-fin]')
+        // Cores das tags antes das linhas (chipsTagsPag usa o catálogo já carregado).
+        await catalogoTagsPag()
         area.innerHTML = await modTab({
             base: 'vw_fin_titulos',
             pag: 'faturasFin',
@@ -481,6 +483,7 @@ async function telaFaturasFin(tipo, filtroExtra = null, manterFiltros = false) {
                 'Nota fiscal': { chave: 'nota_fiscal' },
                 'Parcela': { chave: 'parcela_texto' },
                 [pagar ? 'Fornecedor' : 'Cliente']: { chave: 'participante_nome' },
+                'Tags': { chave: 'tags_texto' },
                 'CPF/CNPJ': { chave: 'participante_documento' },
                 'Valor da conta': { chave: 'valor', tipoOrdenacao: 'numero' },
                 'Valor líquido': { chave: 'valor_liquido', tipoOrdenacao: 'numero' },
@@ -1154,6 +1157,7 @@ function criarLinhaFaturaFin(d) {
             <td class="fin-centro fin-doc">${escFin(d.nota_fiscal || '')}</td>
             <td class="fin-centro">${escFin(d.parcela_texto)}</td>
             <td class="fin-obs fin-nome" title="${escFin(d.participante_nome || '')}"><span class="fin-obs-txt">${escFin(d.participante_nome || '')}</span></td>
+            <td title="${escFin(d.tags_texto || '')}"><div class="fin-tags-celula">${chipsTagsPag(d.tags)}</div></td>
             <td class="fin-centro fin-doc">${d.participante_documento ? docFormatadoFis(d.participante_documento) : ''}</td>
             <td class="fis-num">${dinheiro(d.valor)}</td>
             <td class="fis-num">${dinheiro(d.valor_liquido)}</td>
@@ -1174,6 +1178,7 @@ async function abrirFaturaFin(id) {
     overlayAguarde()
     try {
         const { titulo: t, baixas, irmas } = await apiFin('titulo', { id })
+        await catalogoTagsPag()
         removerOverlay()
         const anterior = document.querySelector(`[data-fatura-fin="${CSS.escape(String(id))}"]`)?.closest('.popup')?.id
         if (anterior) removerPopup(anterior)
@@ -1192,7 +1197,7 @@ async function abrirFaturaFin(id) {
                     <div class="fis-nota-topo ${{ PAGO: 'ok', ATRASADO: 'erro', CANCELADO: 'neutro', 'VENCE HOJE': 'andando' }[t.situacao] || 'rascunho'}">
                         <div class="fis-nota-titulo">
                             <b>${escFin(t.participante_nome || '(sem nome)')}</b>
-                            <div class="fis-nota-etiquetas">${etiquetaEst(s.texto || t.situacao, s.cor)} ${etiquetaEst(t.app, '#356443')}</div>
+                            <div class="fis-nota-etiquetas">${etiquetaEst(s.texto || t.situacao, s.cor)} ${etiquetaEst(t.app, '#356443')} ${chipsTagsPag(t.tags)}</div>
                             <small>${escFin(t.observacao || '')}</small>
                         </div>
                         <div class="fis-nota-valor"><span>Saldo</span><b>${dinheiro(t.saldo)}</b></div>
@@ -1343,6 +1348,10 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                                     <select class="fis-input" name="conta_id" data-conta-original="${escFin(base?.conta_id || '')}" ${cancelada ? 'disabled' : ''}>${opcoesContasFin(op.contas, app, base?.conta_id)}</select></label>
                             </div>
                         </div>
+                        <div class="fin-form-tags">
+                            <span>Tags <small>de onde é a conta (ex.: GALPÃO 6)</small></span>
+                            ${htmlTagsPag(base?.tags, { editavel: !cancelada })}
+                        </div>
                         ${avisos.map(a => `<div class="fis-info">${a}</div>`).join('')}
                         <div class="fis-info" data-aviso-empresa-fin hidden></div>
                         ${rec ? '' : blocoLeitorFin(t, manual && !cancelada)}
@@ -1418,6 +1427,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
             .then(c => { if (avatar.isConnected && document.querySelector('[data-form-fatura]')?.dataset.cliente === String(base.cliente_id)) pintarAvatarFin(avatar, base.participante_nome, c?.foto) })
             .catch(() => { })
     }
+    desenharCamposTagsPag(document.querySelector('[data-form-fatura]') || document)
     desenharAnexosFin()
     desenharPainelFormFin(t, rec)
     sincronizarTopoFin()
@@ -1997,6 +2007,7 @@ async function salvarFaturaFin() {
         numero_documento: v('numero_documento'),
         conta_id: v('conta_id') || null, forma_pagamento: v('forma_pagamento'), observacao: v('observacao'),
         chave_pix: v('chave_pix'), anexos: anexosFormFin, rateio: lerRateioFin(form),
+        tags: lerTagsPag(form.querySelector('.fin-form-tags .tags-pag')),
         // Boleto / Pix lido (js/financeiro_leitor.js); sem o campo no formulário, o servidor não mexe.
         ...(form.querySelector('[name="codigo_barras"]') ? { codigo_barras: v('codigo_barras'), pix_copia_cola: v('pix_copia_cola') } : {})
     }

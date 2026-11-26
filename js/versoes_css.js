@@ -50,6 +50,7 @@ const VERSOES_CSS = {
     "status": "58249c5d",
     "tabelas-parceiro": "22c15cc9",
     "tabelas": "7dfde69b",
+    "tags_pagamentos": "e35eba2a",
     "veiculos": "501f0f13",
     "velocimetro": "2cfa4cff"
 }
