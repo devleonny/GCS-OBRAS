@@ -1,5 +1,4 @@
-/* Controle de Faturamento (js/controle_faturamento.js): layout financeiro (.fin-tela) com os totais no topo. */
-.ctf-tela .fin-janela { display: flex; flex-direction: column; }
+/* Controle de Faturamento (js/controle_faturamento.js): layout financeiro (.fin-tela) com os totais na bandeja da direita (classes cf-* das Faturas do Cartão). */
 .ctf-tela .fin-barra select { height: 30px; border: 1px solid #cfd8d3; border-radius: 6px; padding: 0 8px; background: #fff; }
 .ctf-area { padding: 8px 12px 12px; min-height: 0; }
 .ctf-sub { display: block; font-size: 0.68rem; color: #6b7a72; }
