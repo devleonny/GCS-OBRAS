@@ -2570,7 +2570,7 @@ function htmlNotaEmitida({ documento: d, itens, movimentos, devolucoes = [], ori
             <div class="fis-acoes-claras fis-nota-acoes">
                 ${editavel ? botao('Emitir', `emitirDocumentoFiscal('${escFis(d.id)}')`, true) + botao('Editar', `editarRascunhoFiscal('${escFis(d.id)}')`) : ''}
                 ${d.status === 'AUTORIZADA' ? botao(nfse ? 'DANFSe' : 'DANFE', `baixarArquivoFiscal('${escFis(d.id)}', 'danfe')`) + botao('XML', `baixarArquivoFiscal('${escFis(d.id)}', 'xml')`) : ''}
-                ${!nfse && d.status !== 'AUTORIZADA' && entrada.itens ? botao('Espelho', `espelhoNotaItemFluxo('${escFis(d.id)}')`) : ''}
+                ${d.status !== 'AUTORIZADA' && (nfse ? entrada.servico_id : entrada.itens) ? botao('Espelho', `espelhoNotaItemFluxo('${escFis(d.id)}')`) : ''}
                 ${d.status === 'PROCESSANDO' || d.status === 'AUTORIZADA' ? botao('Atualizar situação', `consultarDocumentoFiscal('${escFis(d.id)}')`) : ''}
                 ${contexto?.item?.orcamento_id ? botao('Histórico do Orçamento', `abrirEsquema('${escFis(contexto.item.orcamento_id)}')`) : /^ORC_/.test(orc) ? botao('Histórico do Orçamento', `abrirEsquemaPorContratoFis('${escFis(orc)}')`) : ''}
                 ${!editavel && !soConsulta ? botao('Duplicar', `duplicarDocumentoFiscal('${escFis(d.id)}')`) : ''}
@@ -3897,8 +3897,12 @@ async function formularioEmissaoNFSe(inicial = {}) {
         titulo: inicial.fluxo_item ? 'Faturar serviço: dados da NFS-e' : inicial.id ? 'Editar NFS-e' : 'Emitir NFS-e',
         linhas: [{ elemento }],
         botoes: inicial.fluxo_item
-            ? [{ texto: 'Salvar', img: 'concluido', funcao: 'salvarEmissaoFis(false, this)' }]
+            ? [
+                { texto: 'Espelho', img: 'pdf', funcao: 'espelhoEmissaoFis(this)' },
+                { texto: 'Salvar', img: 'concluido', funcao: 'salvarEmissaoFis(false, this)' }
+            ]
             : [
+                { texto: 'Espelho', img: 'pdf', funcao: 'espelhoEmissaoFis(this)' },
                 { texto: 'Salvar rascunho', img: 'salvo', funcao: 'salvarEmissaoFis(false, this)' },
                 { texto: 'Emitir', img: 'concluido', funcao: 'salvarEmissaoFis(true, this)' }
             ]
@@ -4100,13 +4104,16 @@ async function atualizarPreviaFis() {
     }
 }
 
-// Espelho (PDF): DANFE de pré-visualização da Focus com o que está no formulário (mesmo sem salvar),
+// Espelho (PDF): NF-e = DANFE de pré-visualização da Focus; NFS-e = DANFSe montada no servidor (gcs
+// fiscal/espelho_nfse.js). Com o que está no formulário (mesmo sem salvar),
 // com os dados reais e "SEM VALOR FISCAL", para mostrar ao cliente antes de faturar. Abre em outra aba.
 async function espelhoEmissaoFis(botao) {
     const form = formEmissaoAberto()
     if (!form) return
     const entrada = lerEmissaoFis(form)
-    if (!(entrada.itens?.length || entrada.devolucao?.itens?.length)) return popup({ mensagem: entrada.devolucao ? 'Informe a quantidade a devolver para gerar o espelho.' : 'Inclua pelo menos um item para gerar o espelho.' })
+    if (entrada.modelo === 'NFSE') {
+        if (!entrada.app || !entrada.servico_id) return popup({ mensagem: 'Escolha a empresa e o serviço para gerar o espelho.' })
+    } else if (!(entrada.itens?.length || entrada.devolucao?.itens?.length)) return popup({ mensagem: entrada.devolucao ? 'Informe a quantidade a devolver para gerar o espelho.' : 'Inclua pelo menos um item para gerar o espelho.' })
     const aba = window.open('', '_blank') // aberta já no clique: depois do await o navegador bloquearia
     try {
         overlayAguarde()
