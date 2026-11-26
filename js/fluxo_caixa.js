@@ -259,6 +259,11 @@ function desenharFluxoCaixa() {
             ${tabelaSemanasCx(semanas, k.reserva)}
         </section>` : ''}
 
+        <section class="cx-bloco" data-cx-entre>
+            <div class="cx-bloco-topo"><h3>Entre empresas</h3><small>Dinheiro de uma empresa usado pela outra: conta paga pela conta da outra, recebimento que caiu na conta da outra e transferências entre elas (pelo extrato). Clique numa linha para ver um por um.</small></div>
+            <div data-cx-entre-corpo><div class="cx-carregando">Calculando…</div></div>
+        </section>
+
         <section class="cx-bloco cx-daqui">
             <div class="cx-bloco-topo"><h3>Daqui para frente</h3><small>Sempre a partir de hoje, para planejar (não muda com o período).</small></div>
             <div class="cx-respostas">
@@ -335,6 +340,138 @@ function desenharFluxoCaixa() {
 
     estadoCx.graficos.forEach(g => g?.destroy())
     estadoCx.graficos = [graficoSaldoCx(d)]
+    carregarEntreEmpresasCx()
+}
+
+// ---------------- entre empresas (26/11/2026; gcs SCRIPTS/financeiro_fluxo.js → entreEmpresas)
+// Movimentos por dia desde 01/01/2026 (primeiro extrato): credor = de quem era o dinheiro, devedor = quem usou.
+// No período: quanto foi de uma para a outra. Saldo: acumulado desde o início até o fim do período (ou hoje).
+
+const NATUREZAS_CX = {
+    pagou: (c, d) => `${c} pagou conta da ${d}`,
+    recebeu: (c, d) => `Recebimento da ${c} caiu na ${d}`,
+    transferiu: (c, d) => `${c} transferiu para a ${d}`
+}
+
+async function carregarEntreEmpresasCx() {
+    const caixa = document.querySelector('[data-cx-entre-corpo]')
+    if (!caixa) return
+    const { ate } = periodoCx()
+    try {
+        estadoCx.entre = await apiFin('fluxo/entre-empresas', { ate })
+        desenharEntreEmpresasCx()
+    } catch (err) {
+        caixa.innerHTML = `<div class="fis-vazio">Não deu para calcular: ${escFin(mensagemErroEst(err))}</div>`
+    }
+}
+
+// Pares de empresas (A × B) com o que foi de uma para a outra no período e o saldo acumulado.
+function paresEntreEmpresasCx() {
+    const e = estadoCx.entre
+    const { de, ate } = periodoCx()
+    const fim = e.ate < ate ? e.ate : ate
+    const apps = e.empresas.map(x => x.app)
+    const marcadas = estadoCx.apps
+    const pares = []
+    for (let i = 0; i < apps.length; i++) for (let j = i + 1; j < apps.length; j++) {
+        const a = apps[i], b = apps[j]
+        if (marcadas && !marcadas.includes(a) && !marcadas.includes(b)) continue
+        const p = { a, b, ab: 0, ba: 0, abNat: {}, baNat: {}, saldo: 0 }
+        for (const m of e.movimentos) {
+            const ida = m.credor === a && m.devedor === b, volta = m.credor === b && m.devedor === a
+            if (!ida && !volta) continue
+            if (m.dia <= fim) p.saldo += ida ? m.valor : -m.valor
+            if (m.dia < de || m.dia > ate) continue
+            const nat = ida ? p.abNat : p.baNat
+            nat[m.natureza] = (nat[m.natureza] || 0) + m.valor
+            if (ida) p.ab += m.valor; else p.ba += m.valor
+        }
+        p.saldo = r2Fin(p.saldo)
+        if (p.ab || p.ba || Math.abs(p.saldo) >= 0.01) pares.push(p)
+    }
+    return { pares: pares.sort((x, y) => Math.abs(y.saldo) - Math.abs(x.saldo)), fim }
+}
+
+// Saldo > 0 = dinheiro da A ficou com a B: "B deve à A".
+const textoSaldoEntreCx = p => Math.abs(p.saldo) < 0.01 ? 'Quites'
+    : p.saldo > 0 ? `<b>${escFin(p.b)}</b> deve à <b>${escFin(p.a)}</b>` : `<b>${escFin(p.a)}</b> deve à <b>${escFin(p.b)}</b>`
+
+const detalheNatCx = nat => ['pagou', 'transferiu', 'recebeu'].filter(k => nat[k])
+    .map(k => `${k === 'pagou' ? 'contas' : k === 'transferiu' ? 'transf.' : 'receb.'} ${dinheiro(nat[k])}`).join(' · ')
+
+function desenharEntreEmpresasCx() {
+    const caixa = document.querySelector('[data-cx-entre-corpo]')
+    if (!caixa || !estadoCx.entre) return
+    const { pares, fim } = paresEntreEmpresasCx()
+    if (!pares.length) { caixa.innerHTML = '<div class="fis-vazio">Nenhuma empresa usou dinheiro da outra neste período.</div>'; return }
+    caixa.innerHTML = `
+        <div class="fis-tabela-rolagem">
+            <table class="fis-tabela cx-entre">
+                <thead><tr><th>Empresas</th><th class="fis-num">Da 1ª para a 2ª no período</th><th class="fis-num">Da 2ª para a 1ª no período</th>
+                    <th class="fis-num" title="Desde ${diaAnoCx(estadoCx.entre.inicio)} (primeiro extrato) até ${diaAnoCx(fim)}">Saldo até ${diaCx(fim)}</th><th>Quem deve</th></tr></thead>
+                <tbody>${pares.map(p => `
+                    <tr class="cx-linha-clicavel" onclick="itensEntreEmpresasCx('${escFin(p.a)}', '${escFin(p.b)}')" title="Ver um por um">
+                        <td><b>${escFin(p.a)}</b> × <b>${escFin(p.b)}</b></td>
+                        <td class="fis-num">${p.ab ? `${dinheiro(p.ab)}<small class="cx-entre-nat">${detalheNatCx(p.abNat)}</small>` : '—'}</td>
+                        <td class="fis-num">${p.ba ? `${dinheiro(p.ba)}<small class="cx-entre-nat">${detalheNatCx(p.baNat)}</small>` : '—'}</td>
+                        <td class="fis-num"><b>${dinheiro(Math.abs(p.saldo))}</b></td>
+                        <td>${textoSaldoEntreCx(p)}</td>
+                    </tr>`).join('')}</tbody>
+            </table>
+        </div>
+        <p class="cx-entre-nota">Saldo acumulado desde ${diaAnoCx(estadoCx.entre.inicio)} (primeiro extrato), sem saldo de abertura. Ficam fora: sócios (ALEX e COSTA são retirada), cartões e contas sem extrato (Caixa Econômica). Transferência casada na conciliação com uma venda ou compra de verdade conta como negócio, não como empréstimo.</p>`
+}
+
+async function itensEntreEmpresasCx(a, b) {
+    const { de, ate } = periodoCx()
+    const par = paresEntreEmpresasCx().pares.find(p => p.a === a && p.b === b) || { a, b, ab: 0, ba: 0, saldo: 0 }
+    overlayAguarde()
+    let itens
+    try { ({ itens } = await apiFin('fluxo/entre-empresas/itens', { credor: a, devedor: b, de, ate })) } catch (err) { removerOverlay(); return popup({ mensagem: mensagemErroEst(err) }) }
+    removerOverlay()
+    const ida = itens.filter(i => i.credor === a)
+    const linha = i => {
+        const oQue = NATUREZAS_CX[i.natureza](i.credor, i.devedor)
+        const quem = i.participante || i.descricao || '—'
+        const busca = [oQue, i.participante, i.descricao, i.conta].join(' ').toLowerCase()
+        return `
+            <tr data-tipo="${i.credor === a ? 'E' : 'S'}" data-busca="${escFin(busca)}">
+                <td class="fin-extrato-data">${dataFin(i.data)}</td>
+                <td>${escFin(oQue)}</td>
+                <td class="fin-extrato-quem">
+                    ${i.titulo_id ? `<span class="fis-link" onclick="abrirFaturaFin('${escFin(i.titulo_id)}')" title="${escFin(quem)}">${escFin(quem)}</span>` : `<span title="${escFin(quem)}">${escFin(quem)}</span>`}
+                    ${i.participante && i.descricao ? `<small title="${escFin(i.descricao)}">${escFin(i.descricao)}</small>` : ''}
+                </td>
+                <td class="fin-extrato-cat" title="${escFin(i.conta || '')}">${escFin(i.conta || '—')}</td>
+                <td class="fis-num"><b>${dinheiro(i.valor)}</b></td>
+            </tr>`
+    }
+    popup({
+        titulo: `${a} × ${b} · ${diaAnoCx(de)} a ${diaAnoCx(ate)}`,
+        elemento: `
+            <div class="fis-painel popup-consulta cx-entre-popup">
+                ${resumoDocumentoFis({}, [
+                    ['Saldo acumulado', `${dinheiro(Math.abs(par.saldo))} <small>${textoSaldoEntreCx(par).replace(/<[^>]+>/g, '')}</small>`],
+                    [`Da ${escFin(a)} para a ${escFin(b)}`, dinheiro(par.ab)], [`Da ${escFin(b)} para a ${escFin(a)}`, dinheiro(par.ba)],
+                    ['Lançamentos no período', String(itens.length)]
+                ])}
+                <div class="fin-extrato-barra">
+                    <input type="search" class="fis-input fin-extrato-busca" placeholder="Buscar favorecido, descrição, conta..." oninput="filtrarExtratoFin(this)">
+                    <div class="fin-extrato-chips" data-tipo="">
+                        <button type="button" class="ativo" data-filtro="" onclick="filtrarExtratoFin(this)">Todos <small>${itens.length}</small></button>
+                        <button type="button" data-filtro="E" onclick="filtrarExtratoFin(this)">${escFin(a)} → ${escFin(b)} <small>${ida.length}</small></button>
+                        <button type="button" data-filtro="S" onclick="filtrarExtratoFin(this)">${escFin(b)} → ${escFin(a)} <small>${itens.length - ida.length}</small></button>
+                    </div>
+                </div>
+                ${itens.length ? `
+                <div class="fis-tabela-rolagem fin-extrato-rolagem">
+                    <table class="fis-tabela fin-extrato">
+                        <thead><tr><th>Data</th><th>O quê</th><th>Favorecido / descrição</th><th>Conta</th><th class="fis-num">Valor</th></tr></thead>
+                        <tbody>${itens.map(linha).join('')}</tbody>
+                    </table>
+                </div>` : '<div class="fis-vazio">Nada entre as duas neste período.</div>'}
+            </div>`
+    })
 }
 
 // ---------------- pedaços

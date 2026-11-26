@@ -293,3 +293,8 @@
 .cx-lote-tela .fin-corpo > .cx-lote { flex: 1 1 auto; min-width: 0; width: auto; }
 .cx-lote-tela .fin-lateral { align-self: flex-start; position: sticky; top: 8px; }
 .cx-lote-tela .cx-lote-rolagem { max-height: calc(100dvh - 380px); }
+
+/* Entre empresas (26/11/2026): valor com o detalhe (contas · transf. · receb.) embaixo, nota de rodapé. */
+.cx-entre td { vertical-align: top; }
+.cx-entre-nat { display: block; color: var(--cx-tinta-2, #6b6a66); font-size: 11px; font-weight: 400; white-space: nowrap; }
+.cx-entre-nota { margin: 8px 2px 0; color: var(--cx-tinta-2, #6b6a66); font-size: 12px; }

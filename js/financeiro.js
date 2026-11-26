@@ -58,10 +58,11 @@ function opcoesCategoriasFin(categorias, tipo, atual) {
         </optgroup>`).join('')
 }
 
-// Apps de sócio (ALEX, COSTA — fin_apps.tipo SOCIO): fatura do sócio aceita conta de empresa (a empresa banca)
-// e compra da empresa aceita o cartão do sócio. Empresa × outra empresa, não. Mesma regra do servidor.
+// Conta de empresa paga/recebe fatura de qualquer empresa e de sócio (uma conta por conta real, 26/11/2026: a
+// fatura diz de quem é a despesa, a conta de quem era o dinheiro). Cartão de sócio aceita empresa e o próprio
+// sócio. Mesma regra do servidor (fin_conta_aceita, migrations/financeiro-contas-unificadas.sql).
 const tipoAppFin = app => (opcoesFinCache?.empresas || []).find(e => e.app === app)?.tipo || 'EMPRESA'
-const contaAceitaFin = (k, app) => !app || k.app === app || tipoAppFin(k.app) !== tipoAppFin(app)
+const contaAceitaFin = (k, app) => !app || k.app === app || tipoAppFin(k.app) === 'EMPRESA' || tipoAppFin(k.app) !== tipoAppFin(app)
 const contaPadraoAppFin = (contas, app) => {
     const pagaPor = (opcoesFinCache?.empresas || []).find(e => e.app === app && e.tipo === 'SOCIO')?.paga_por
     return contas.find(k => k.app === (pagaPor || app) && k.padrao)
@@ -76,6 +77,7 @@ const opcoesEmpresasFin = (empresas, atual) => {
 
 const opcoesContasFin = (contas, app, atual) => `<option value="">${app ? 'Conta padrão da empresa' : 'Selecione'}</option>` + contas
     .filter(k => contaAceitaFin(k, app))
+    .sort((x, y) => (y.app === app) - (x.app === app))
     .map(k => `<option value="${k.id}" ${String(k.id) === String(atual ?? '') ? 'selected' : ''}>${escFin(k.app)} · ${escFin(k.nome)}${k.padrao ? ' (padrão)' : ''}</option>`).join('')
 
 // ---------------------------------------------------------------- componentes
