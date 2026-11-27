@@ -49,12 +49,11 @@ async function telaOrcamentos() {
                     <div class="fin-tabela-area orc-area" data-tabela-orc></div>
                     <div class="fin-lateral">
                         <button type="button" class="fin-recolher" onclick="alternarPainelOrcamentos()" aria-expanded="${aberto}"
-                            title="${aberto ? 'Recolher' : 'Mostrar'} status e filtros">${iconeFin('seta')}</button>
+                            title="${aberto ? 'Recolher' : 'Mostrar'} status">${iconeFin('seta')}</button>
                         <aside class="fin-painel orc-painel">
                             <div class="orc-recolhido-acoes">
-                                <button type="button" class="fin-acao" title="Status e filtros" onclick="alternarPainelOrcamentos()">${iconeFin('filtro')}<span>Status</span></button>
+                                <button type="button" class="fin-acao" title="Status" onclick="alternarPainelOrcamentos()">${iconeFin('filtro')}<span>Status</span></button>
                             </div>
-                            <div class="orc-filtros filtro-orcamentos"></div>
                             <div class="orc-status-bloco">
                                 <span class="orc-status-titulo">Status</span>
                                 <div class="orc-status-lista" id="orc-status"></div>
@@ -108,7 +107,6 @@ async function telaOrcamentos() {
 
     removerOverlay()
     await paginacao(pag)
-    await carregarPesquisaOrcamento()
 
 }
 
@@ -185,43 +183,13 @@ function alternarPainelOrcamentos() {
     corpo.classList.toggle('recolhido', !estadoTelaOrcamentos.painel)
     const botao = corpo.querySelector('.fin-recolher')
     botao?.setAttribute('aria-expanded', String(estadoTelaOrcamentos.painel))
-    if (botao) botao.title = `${estadoTelaOrcamentos.painel ? 'Recolher' : 'Mostrar'} status e filtros`
+    if (botao) botao.title = `${estadoTelaOrcamentos.painel ? 'Recolher' : 'Mostrar'} status`
 }
 
 // Linha inteira abre os atalhos do orçamento (fora os botões, o "+" dos detalhes, as tags e os links).
 function abrirLinhaOrcamento(event, id) {
     if (event?.target?.closest('button, a, input, select, label, .tabela-coluna-detalhes, .orc-col-tags')) return
     abrirAtalhos(id)
-}
-
-async function carregarPesquisaOrcamento() {
-
-    const menuOrcamento = document.querySelector('.filtro-orcamentos')
-    if (!menuOrcamento) return
-
-    const listagens = await recuperarDado('mvw_opcoes_filtros', 1) || {}
-
-    // Status: pela lista da bandeja (status dos chamados).
-    const camposFechados = {
-        'Empresa': {
-            chave: 'empresas',
-            path: 'empresa'
-        },
-        'Tags': {
-            chave: 'tags',
-            path: 'tags.*.nome'
-        }
-    }
-
-    menuOrcamento.innerHTML = Object.entries(camposFechados)
-        .map(([titulo, conf]) => montarDropdownCheckbox({
-            pag: 'orcamentos',
-            titulo,
-            path: conf.path,
-            opcoes: listagens?.[conf?.chave] || []
-        }))
-        .join('')
-
 }
 
 // Andamento do custo: mesmas faixas do velocímetro dos detalhes (limite 40%: a partir de 30% atenção, 40% crítico).
