@@ -74,14 +74,13 @@ function obVal(n) {
     return el ? el.value || el.id : null
 }
 
-// Vínculo em massa de clientes a uma empresa: popup com busca própria (todas as páginas, não só a
-// visível na tabela), "marcar todos os encontrados" e a lista dos selecionados, que se mantém entre
-// buscas. A seleção é feita só aqui (a tabela não tem mais checkbox).
-const vinculoMassa = { selecionados: new Map(), encontrados: [], total: 0, termo: '', consulta: 0, timer: null }
-const LIMITE_BUSCA_VINCULO = 50
-const LIMITE_MARCAR_VINCULO = 1000
-
+// Vínculo em massa (27/11/2026): marca os cadastros na própria tabela (caixinhas + "selecionar todos os N
+// deste filtro") e o botão "Vincular à empresa" leva os marcados para a empresa escolhida.
 async function classificarUnidades() {
+
+    const ids = [...selecaoClientes]
+    if (!ids.length)
+        return popup({ mensagem: 'Marque na tabela os cadastros que vão para a empresa (a caixinha do título marca a página; depois dá para selecionar todos do filtro).' })
 
     const empresas = await pesquisarDB({ base: 'empresas', limite: 500 })
     const opcoes = (empresas.resultados || [])
@@ -90,207 +89,34 @@ async function classificarUnidades() {
         .map(empresa => `<option value="${escaparAtributo(empresa.id)}">${escaparAtributo(empresa.nome)}</option>`)
         .join('')
 
-    vinculoMassa.selecionados = new Map()
-    vinculoMassa.encontrados = []
-    vinculoMassa.total = 0
-    vinculoMassa.termo = ''
-
+    const qtd = ids.length.toLocaleString('pt-BR')
     const elemento = `
         <div class="vinculo-massa">
-            <section class="vinculo-busca">
-                <input type="search" class="vinculo-campo" placeholder="Buscar por nome, CNPJ ou ID..."
-                    oninput="buscarVinculoMassa(this.value)" onkeydown="if (event.key === 'Enter') buscarVinculoMassa(this.value, true)">
-                <div class="vinculo-busca-topo">
-                    <span class="vinculo-info" data-vinculo="info">Digite para buscar clientes.</span>
-                    <button type="button" data-vinculo="marcar" hidden onclick="marcarEncontradosVinculo()"></button>
-                </div>
-                <div class="vinculo-lista" data-vinculo="resultados"></div>
-            </section>
-            <section class="vinculo-selecao">
-                <div class="vinculo-busca-topo">
-                    <strong data-vinculo="contagem">Selecionados</strong>
-                    <button type="button" onclick="limparSelecaoVinculo()">Limpar</button>
-                </div>
-                <div class="vinculo-lista" data-vinculo="selecionados"></div>
-            </section>
+            <span><b>${qtd}</b> ${ids.length === 1 ? 'cadastro marcado' : 'cadastros marcados'} na tabela.</span>
+            <label class="vinculo-empresa">
+                <span>Empresa</span>
+                <select data-vinculo="empresa">
+                    <option value="" disabled selected>Escolha a empresa</option>
+                    <option value="">(sem empresa: remover vínculo)</option>
+                    ${opcoes}
+                </select>
+            </label>
         </div>`
 
-    const conteudoRodape = `
-        <label class="vinculo-empresa">
-            <span>Empresa</span>
-            <select data-vinculo="empresa">
-                <option value="" disabled selected>Escolha a empresa</option>
-                <option value="">(sem empresa: remover vínculo)</option>
-                ${opcoes}
-            </select>
-        </label>`
+    const botoes = [{ texto: `Vincular ${qtd} ${ids.length === 1 ? 'cadastro' : 'cadastros'}`, img: 'concluido', funcao: 'vincularEmpresas()' }]
 
-    const botoes = [{ texto: 'Vincular', img: 'concluido', funcao: 'vincularEmpresas()' }]
-
-    popup({ elemento, botoes, conteudoRodape, titulo: 'Vincular clientes em massa' })
-    renderizarSelecionadosVinculo()
-    document.querySelector('.vinculo-campo')?.focus()
-}
-
-function campoVinculo(nome) {
-    return document.querySelector(`.popup-janela-fora [data-vinculo="${nome}"]`)
-}
-
-// Busca com pausa curta entre teclas (Enter busca na hora).
-function buscarVinculoMassa(termo, agora = false) {
-    clearTimeout(vinculoMassa.timer)
-    vinculoMassa.timer = setTimeout(() => executarBuscaVinculo(termo), agora ? 0 : 350)
-}
-
-function filtroBuscaVinculo(termo) {
-    return { cadastrais: { op: 'includes', value: termo } }
-}
-
-async function executarBuscaVinculo(termo) {
-    const consulta = ++vinculoMassa.consulta
-    termo = String(termo || '').trim()
-    const info = campoVinculo('info')
-
-    if (!termo) {
-        vinculoMassa.encontrados = []
-        vinculoMassa.total = 0
-        vinculoMassa.termo = ''
-        if (info) info.textContent = 'Digite para buscar clientes.'
-        return renderizarEncontradosVinculo()
-    }
-
-    if (info) info.textContent = 'Buscando...'
-    const resposta = await pesquisarDB({ base: 'vw_2_clientes', filtros: filtroBuscaVinculo(termo), limite: LIMITE_BUSCA_VINCULO })
-        .catch(() => null)
-    if (consulta !== vinculoMassa.consulta) return // chegou resposta de uma busca antiga
-
-    vinculoMassa.encontrados = resposta?.resultados || []
-    vinculoMassa.total = Number(resposta?.total) || vinculoMassa.encontrados.length
-    vinculoMassa.termo = termo
-    renderizarEncontradosVinculo()
-}
-
-function nomeClienteVinculo(cliente) {
-    return cliente?.nome || (cliente?.cadastrais || []).find(Boolean) || `Cliente ${cliente?.id}`
-}
-
-function renderizarEncontradosVinculo() {
-    const lista = campoVinculo('resultados')
-    const info = campoVinculo('info')
-    const marcar = campoVinculo('marcar')
-    if (!lista) return
-
-    const { encontrados, total, selecionados } = vinculoMassa
-
-    lista.innerHTML = encontrados.map(cliente => {
-        const id = String(cliente.id)
-        const empresa = cliente.snapshots?.empresa || ''
-        return `
-            <label class="vinculo-item">
-                <input type="checkbox" value="${escaparAtributo(id)}" data-nome="${escaparAtributo(nomeClienteVinculo(cliente))}"
-                    ${selecionados.has(id) ? 'checked' : ''} onchange="alternarClienteVinculo(this)">
-                <span class="vinculo-item-texto">
-                    <span>${escaparAtributo(nomeClienteVinculo(cliente))}</span>
-                    ${empresa ? `<small>${escaparAtributo(empresa)}</small>` : ''}
-                </span>
-            </label>`
-    }).join('') || (vinculoMassa.termo ? '<span class="vinculo-vazio">Nenhum cliente encontrado.</span>' : '')
-
-    if (info && encontrados.length)
-        info.textContent = total > encontrados.length
-            ? `Mostrando ${encontrados.length} de ${total}`
-            : `${total} encontrado${total === 1 ? '' : 's'}`
-    else if (info && vinculoMassa.termo && !encontrados.length)
-        info.textContent = '0 encontrados'
-
-    if (marcar) {
-        const ids = idsTodosEncontradosVinculo()
-        const todosMarcados = !!ids?.length && ids.every(id => selecionados.has(id))
-        marcar.hidden = !encontrados.length
-        marcar.dataset.marcar = todosMarcados ? 'N' : 'S'
-        marcar.textContent = todosMarcados
-            ? 'Desmarcar encontrados'
-            : `Marcar ${total === 1 ? 'o encontrado' : `os ${Math.min(total, LIMITE_MARCAR_VINCULO)} encontrados`}`
-    }
-}
-
-function renderizarSelecionadosVinculo() {
-    const lista = campoVinculo('selecionados')
-    const contagem = campoVinculo('contagem')
-    if (!lista) return
-
-    const itens = [...vinculoMassa.selecionados]
-    if (contagem) contagem.textContent = `Selecionados (${itens.length})`
-
-    lista.innerHTML = itens.map(([id, nome]) => `
-        <span class="vinculo-chip" title="${escaparAtributo(nome)}">
-            <span>${escaparAtributo(nome)}</span>
-            <button type="button" aria-label="Remover" data-id="${escaparAtributo(id)}" onclick="removerClienteVinculo(this.dataset.id)">×</button>
-        </span>`).join('') || '<span class="vinculo-vazio">Nenhum cliente selecionado.</span>'
-
-    const vincular = [...document.querySelectorAll('.popup-janela-fora .botoes-rodape span')].find(span => span.textContent.startsWith('Vincular'))
-    if (vincular) vincular.textContent = itens.length ? `Vincular ${itens.length} cliente${itens.length === 1 ? '' : 's'}` : 'Vincular'
-}
-
-function alternarClienteVinculo(input) {
-    if (input.checked) vinculoMassa.selecionados.set(input.value, input.dataset.nome)
-    else vinculoMassa.selecionados.delete(input.value)
-    renderizarSelecionadosVinculo()
-    renderizarEncontradosVinculo()
-}
-
-function removerClienteVinculo(id) {
-    vinculoMassa.selecionados.delete(String(id))
-    renderizarSelecionadosVinculo()
-    renderizarEncontradosVinculo()
-}
-
-function limparSelecaoVinculo() {
-    vinculoMassa.selecionados.clear()
-    renderizarSelecionadosVinculo()
-    renderizarEncontradosVinculo()
-}
-
-// Ids de todos os encontrados pela busca atual: os da lista, se couberam, ou os buscados por
-// completo no "Marcar todos" (a lista mostra só os 50 primeiros). null = ainda não conhecidos.
-function idsTodosEncontradosVinculo() {
-    const { encontrados, total, termo, todosDoTermo } = vinculoMassa
-    if (total <= encontrados.length) return encontrados.map(cliente => String(cliente.id))
-    return todosDoTermo?.termo === termo ? todosDoTermo.ids : null
-}
-
-// Marca todos os encontrados pela busca, inclusive além dos 50 mostrados (até LIMITE_MARCAR_VINCULO).
-async function marcarEncontradosVinculo() {
-    const botao = campoVinculo('marcar')
-    const { encontrados, total, termo } = vinculoMassa
-
-    if (botao?.dataset.marcar === 'N') {
-        (idsTodosEncontradosVinculo() || []).forEach(id => vinculoMassa.selecionados.delete(id))
-    } else {
-        let todos = encontrados
-        if (total > encontrados.length) {
-            if (botao) botao.textContent = 'Marcando...'
-            const resposta = await pesquisarDB({ base: 'vw_2_clientes', filtros: filtroBuscaVinculo(termo), limite: LIMITE_MARCAR_VINCULO })
-                .catch(() => null)
-            todos = resposta?.resultados || encontrados
-            vinculoMassa.todosDoTermo = { termo, ids: todos.map(cliente => String(cliente.id)) }
-        }
-        todos.forEach(cliente => vinculoMassa.selecionados.set(String(cliente.id), nomeClienteVinculo(cliente)))
-    }
-
-    renderizarSelecionadosVinculo()
-    renderizarEncontradosVinculo()
+    popup({ elemento, botoes, titulo: 'Vincular à empresa' })
 }
 
 async function vincularEmpresas() {
 
-    const selectEmp = campoVinculo('empresa')
+    const selectEmp = document.querySelector('.popup-janela-fora [data-vinculo="empresa"]')
     if (!selectEmp) return
 
-    const unidades = [...vinculoMassa.selecionados].map(([id, nome]) => ({ id, nome }))
+    const unidades = [...selecaoClientes].map(id => ({ id }))
 
     if (!unidades.length)
-        return popup({ mensagem: 'Selecione pelo menos 1 cliente.' })
+        return popup({ mensagem: 'Marque pelo menos 1 cadastro na tabela.' })
 
     if (selectEmp.selectedIndex <= 0)
         return popup({ mensagem: 'Escolha a empresa (ou "sem empresa" para remover o vínculo).' })
@@ -311,13 +137,15 @@ async function vincularEmpresas() {
         if (data.mensagem || data.erro)
             return popup({ mensagem: data.mensagem || data.erro })
 
-        vinculoMassa.selecionados.clear()
-
         removerPopup()
-        popup({ mensagem: `${unidades.length} cliente${unidades.length === 1 ? '' : 's'} vinculado${unidades.length === 1 ? '' : 's'} a ${escaparAtributo(nomeEmpresa)}.`, imagem: 'imagens/concluido.png' })
+        limparSelecaoClientes()
+        await paginacao('clientes')
+        popup({ mensagem: `${unidades.length} cadastro${unidades.length === 1 ? '' : 's'} vinculado${unidades.length === 1 ? '' : 's'} a ${escaparAtributo(nomeEmpresa)}.`, imagem: 'imagens/concluido.png' })
 
     } catch (err) {
         return popup({ mensagem: err.message || 'Falha no vínculo das empresas' })
+    } finally {
+        removerOverlay()
     }
 
 }
@@ -333,7 +161,7 @@ async function telaClientes() {
     try {
 
         const pag = 'clientes'
-        // Marcar e baixar em Excel: só quem tem a função na Central de Acessos (cadastros.excel).
+        // Marcar vale para todos (vínculo à empresa); o Excel só para quem tem cadastros.excel.
         const marcar = podeMarcarClientes()
         selecaoClientes.clear()
         const dropdownTags = montarDropdownCheckbox({
@@ -372,8 +200,8 @@ async function telaClientes() {
                     <div class="fin-barra">
                         <button type="button" onclick="formularioCliente()" title="Novo cadastro de cliente, usuário ou fornecedor">${iconeFin('incluir')} Adicionar cadastro</button>
                         <button type="button" onclick="formularioLinkCadastro()" title="Gerar um link para a pessoa preencher o próprio cadastro">${iconeFin('link')} Link de cadastro</button>
-                        <button type="button" onclick="classificarUnidades()" title="Vincular várias unidades a uma empresa de uma vez">${iconeFin('empresa')} Vincular em massa</button>
-                        ${marcar ? `<button type="button" onclick="baixarExcelClientes()" title="Com cadastros marcados, baixa só os marcados; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>` : ''}
+                        <button type="button" onclick="classificarUnidades()" title="Leva os cadastros marcados na tabela para uma empresa">${iconeFin('empresa')} Vincular à empresa</button>
+                        ${podeExcelClientes() ? `<button type="button" onclick="baixarExcelClientes()" title="Com cadastros marcados, baixa só os marcados; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>` : ''}
                     </div>
                 </header>
                 <div class="fin-corpo${aberto ? '' : ' recolhido'}" data-corpo-cli>
@@ -498,11 +326,12 @@ function desenharRodapeClientes(ctrl = controles.clientes) {
 }
 
 // ---------------------------------------------------------------- Marcar cadastros e baixar em Excel
-// Função cadastros.excel da Central de Acessos. Seleção guardada entre páginas e filtros (como as Notas
+// Marcar vale para todos (vínculo à empresa); o Excel é da função cadastros.excel. Seleção guardada entre páginas e filtros (como as Notas
 // recebidas, js/fiscal.js): marcar a página inteira mostra o aviso "selecionar todos os N deste filtro".
 const selecaoClientes = new Set()
 
-const podeMarcarClientes = () => typeof pode === 'function' && pode('cadastros.excel')
+const podeMarcarClientes = () => true
+const podeExcelClientes = () => typeof pode === 'function' && pode('cadastros.excel')
 
 function marcarCliente(caixa) {
     if (caixa.checked) selecaoClientes.add(String(caixa.value))
@@ -579,7 +408,7 @@ function desenharSelecaoClientes() {
 }
 
 async function baixarExcelClientes() {
-    if (!podeMarcarClientes()) return popup({ mensagem: 'Você não tem acesso para baixar os cadastros em Excel.' })
+    if (!podeExcelClientes()) return popup({ mensagem: 'Você não tem acesso para baixar os cadastros em Excel.' })
     const ctrl = controles.clientes
     if (!ctrl) return
     overlayAguarde()
