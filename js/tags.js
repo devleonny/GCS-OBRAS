@@ -70,8 +70,22 @@ async function atualizarTagsNaTela(idOrcamento, ids) {
         .map(tag => modeloTag(tag, idOrcamento))
         .join('')
 
+    // Lista de orçamentos (layout financeiro): chips em fila que encolhem com reticências (js/orcamentos.js).
+    const tagsChips = [...ids]
+        .map(idTag => catalogo.get(String(idTag)))
+        .filter(Boolean)
+        .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'))
+
     document.querySelectorAll(`[name="tags"][data-orcamento="${CSS.escape(String(idOrcamento))}"]`)
-        .forEach(local => { local.innerHTML = html })
+        .forEach(local => {
+            if (local.hasAttribute('data-chips-orc') && typeof chipTagOrcamento === 'function') {
+                local.innerHTML = tagsChips.map(chipTagOrcamento).join('') || '<span class="orc-tag-incluir">+ Tag</span>'
+                const celula = local.closest('td')
+                if (celula) celula.title = tagsChips.map(t => t.nome).join(', ') || 'Incluir tags'
+                return
+            }
+            local.innerHTML = html
+        })
 
     const formulario = document.getElementById('tags')
     if (formulario && controles?.etiquetas?.idOrcamento === idOrcamento)

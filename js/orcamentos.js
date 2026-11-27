@@ -1,80 +1,186 @@
+// Tela de orçamentos no layout financeiro (27/11/2026): ações na barra do topo, tabela de uma linha por orçamento
+// (fin-uma-linha) com o "+" dos detalhes, funil nas colunas e paginação no rodapé; os status (antes a faixa de
+// abas do topo), Empresa e Tags ficam na bandeja da direita.
+const estadoTelaOrcamentos = { painel: true }
+const POR_PAGINA_ORCAMENTOS = 50
+
 function formatacaoPagina() {
 
     const pag = 'orcamentos'
-    let status = ''
 
     const pesq = controles?.[pag]?.filtros?.['nomes_status']
-    status = pesq?.op == 'IS_EMPTY'
+    const status = pesq?.op == 'IS_EMPTY'
         ? 'SEM STATUS'
         : pesq?.value || 'TODOS'
 
-    const abas = document.querySelectorAll('.aba-toolbar')
-
-    abas.forEach(a => {
-        a.classList.toggle('selecionada', a.dataset.status === status)
-        a.setAttribute('aria-pressed', String(a.dataset.status === status))
+    document.querySelectorAll('.orc-status-item').forEach(a => {
+        const ativo = a.dataset.status === status
+        a.classList.toggle('selecionada', ativo)
+        a.setAttribute('aria-pressed', String(ativo))
     })
-
-    const aba = document.querySelector(`[name="${status}"]`)
-    if (aba) aba.classList.add('selecionada')
 
 }
 
 async function telaOrcamentos() {
 
-    const tabela = await modTab({
-        btnExtras: `<div class="filtro-orcamentos" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>`,
-        funcaoAdicional: ['formatacaoPagina', 'carregarToolbar'],
+    const pag = 'orcamentos'
+
+    // No celular a bandeja é uma gaveta por cima da tabela: começa fechada.
+    if (window.matchMedia?.('(max-width: 800px)').matches) estadoTelaOrcamentos.painel = false
+    const aberto = estadoTelaOrcamentos.painel
+
+    const podeCriar = typeof pode !== 'function' || pode('orcamentos.criar')
+    const podeExcel = typeof pode !== 'function' || pode('orcamentos.excel')
+
+    tela.innerHTML = `
+        <div class="fis-pagina fin-tela fin-uma-linha orc-tela">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Orçamentos</h2>
+                    <div class="fin-barra">
+                        ${podeCriar ? `<button type="button" onclick="painelEdicao()" title="Orçamentos em edição neste aparelho">${iconeFin('editar')} Em edição</button>` : ''}
+                        ${podeExcel ? `<button type="button" onclick="baixarExcelOrcamentos()" title="Baixar os orçamentos em Excel">${iconeFin('excel')} Excel</button>` : ''}
+                    </div>
+                </header>
+                <div class="fin-corpo${aberto ? '' : ' recolhido'}" data-corpo-orc>
+                    <div class="fin-tabela-area orc-area" data-tabela-orc></div>
+                    <div class="fin-lateral">
+                        <button type="button" class="fin-recolher" onclick="alternarPainelOrcamentos()" aria-expanded="${aberto}"
+                            title="${aberto ? 'Recolher' : 'Mostrar'} status e filtros">${iconeFin('seta')}</button>
+                        <aside class="fin-painel orc-painel">
+                            <div class="orc-recolhido-acoes">
+                                <button type="button" class="fin-acao" title="Status e filtros" onclick="alternarPainelOrcamentos()">${iconeFin('filtro')}<span>Status</span></button>
+                            </div>
+                            <div class="orc-filtros filtro-orcamentos"></div>
+                            <div class="orc-status-bloco">
+                                <span class="orc-status-titulo">Status</span>
+                                <div class="orc-status-lista" id="orc-status"></div>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </section>
+        </div>`
+
+    const area = tela.querySelector('[data-tabela-orc]')
+    area.innerHTML = await modTab({
+        pag,
+        base: 'mvw_dados_orcamentos',
+        // Status do orçamento = status do chamado (22/11/2026): os das abas do chamado; sem chamado, SEM STATUS.
         colunas: {
-            'Última alteração': { chave: 'lpu_ativa' },
-            // Status do orçamento = status do chamado (22/11/2026): os das abas do chamado; sem chamado, SEM STATUS.
+            'Alteração': {},
+            'LPU': { chave: 'lpu_ativa' },
             'Status': { chave: 'nomes_status' },
-            //'Pedido': { chave: 'pedidos.*.pedido' },
-            //'Notas': { chave: 'notas.*.n_nota' },
-            //'Parcelas': {},
             'Tags': { chave: 'tags.*.nome' },
-            'Contrato': { chave: 'contrato' },
-            //'Vinculações': { chave: 'vinculados' },
-            'Responsaveis': { chave: 'responsaveis' },
-            //'Custos': {},
-            'Total do Orçamento': { chave: 'total_geral', tipoPesquisa: 'valor' },
+            'Contrato': { chave: 'contrato', principal: true },
+            'Cliente': { chave: 'cliente' },
+            'Cidade': { chave: 'cidade' },
+            'Usuário': { chave: 'usuario' },
+            'Responsáveis': { chave: 'responsaveis' },
+            'Valor original': { chave: 'total_bruto', tipoPesquisa: 'valor' },
+            'Desc. / Acrés.': {},
+            'Total': { chave: 'total_geral', tipoPesquisa: 'valor' },
+            'Pedidos': {},
+            'Custo até agora': { chave: 'total_pagamentos', tipoPesquisa: 'valor' },
             'Ações': {}
         },
-        base: 'mvw_dados_orcamentos',
-        detalhes: true,
-        criarLinha: 'criarLinhaOrcamento',
+        funcaoAdicional: ['aposCarregarOrcamentos'],
         body: 'linhas',
-        pag: 'orcamentos'
+        caber: true,
+        limite: POR_PAGINA_ORCAMENTOS,
+        detalhes: true,
+        criarLinha: 'criarLinhaOrcamento'
     })
-
-    const acumulado = `
-        <div style="${vertical};">
-            <div class="orcamentos-toolbar">
-                <button type="button" class="orcamentos-toolbar-nav" aria-label="Ver status anteriores" onclick="scrollar('prev')">‹</button>
-                <div id="toolbar"></div>
-                <button type="button" class="orcamentos-toolbar-nav" aria-label="Ver próximos status" onclick="scrollar('next')">›</button>
-            </div>
-
-            ${tabela}
-        </div>
-        `
-
-    tela.innerHTML = acumulado
+    // Paginação no rodapé da janela (a do modTab fica escondida neste layout).
+    area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-orc></div>')
 
     removerOverlay()
-    await paginacao()
-    await carregarToolbar()
+    await paginacao(pag)
     await carregarPesquisaOrcamento()
 
+}
+
+async function aposCarregarOrcamentos() {
+    const ctrl = controles.orcamentos
+    const tbody = document.getElementById('linhas')
+    const tabela = tbody?.closest('table')
+    if (!tabela) return
+    // Linha de enchimento: a tabela ocupa a altura da tela mesmo com poucas linhas.
+    if (!tabela.querySelector(':scope > tbody.fin-enchimento')) {
+        const n = tabela.querySelector(':scope > thead > tr')?.children.length || 1
+        const enchimento = document.createElement('tbody')
+        enchimento.className = 'fin-enchimento'
+        enchimento.innerHTML = `<tr><td colspan="${n}"></td></tr>`
+        tabela.appendChild(enchimento)
+    }
+    // "+" de expandir todos: do topo do modTab (escondido neste layout) para o título da coluna dos detalhes.
+    const expandir = tabela.closest('.modtab')?.querySelector('.topo-tabela [data-expandir-todos]')
+    const thDetalhes = tabela.querySelector(':scope > thead > tr:first-child > th.tabela-coluna-detalhes')
+    if (expandir && thDetalhes) thDetalhes.appendChild(expandir)
+    if (typeof cabecalhoAvancadoTabela === 'function')
+        await cabecalhoAvancadoTabela('orcamentos', { prefKey: 'orcamentos' })
+    if (typeof atualizarBotaoTodosDetalhes === 'function') atualizarBotaoTodosDetalhes(tbody)
+    desenharRodapeOrcamentos(ctrl)
+    formatacaoPagina()
+    await carregarToolbar()
+}
+
+function desenharRodapeOrcamentos(ctrl = controles.orcamentos) {
+    const alvo = document.querySelector('[data-rodape-orc]')
+    if (!alvo || !ctrl) return
+    const total = Number(document.getElementById('resultados_orcamentos')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const porPagina = Number(ctrl.limite) || POR_PAGINA_ORCAMENTOS
+    const inicio = total ? (pagina - 1) * porPagina + 1 : 0
+    const fim = Math.min(total, pagina * porPagina)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaOrcamentos(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} orçamento${total === 1 ? '' : 's'}</span>${typeof filtrosAtivosRodapeCab === 'function' ? filtrosAtivosRodapeCab(ctrl.pag) : ''}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaOrcamentos(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
+        </div>`
+}
+
+async function irPaginaOrcamentos(n) {
+    const ctrl = controles.orcamentos
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeOrcamentos(ctrl)
+    ctrl.pagina = pagina
+    await paginacao('orcamentos')
+}
+
+function alternarPainelOrcamentos() {
+    const corpo = document.querySelector('[data-corpo-orc]')
+    if (!corpo) return
+    estadoTelaOrcamentos.painel = corpo.classList.contains('recolhido')
+    corpo.classList.toggle('recolhido', !estadoTelaOrcamentos.painel)
+    const botao = corpo.querySelector('.fin-recolher')
+    botao?.setAttribute('aria-expanded', String(estadoTelaOrcamentos.painel))
+    if (botao) botao.title = `${estadoTelaOrcamentos.painel ? 'Recolher' : 'Mostrar'} status e filtros`
+}
+
+// Linha inteira abre os atalhos do orçamento (fora os botões, o "+" dos detalhes, as tags e os links).
+function abrirLinhaOrcamento(event, id) {
+    if (event?.target?.closest('button, a, input, select, label, .tabela-coluna-detalhes, .orc-col-tags')) return
+    abrirAtalhos(id)
 }
 
 async function carregarPesquisaOrcamento() {
 
     const menuOrcamento = document.querySelector('.filtro-orcamentos')
+    if (!menuOrcamento) return
 
     const listagens = await recuperarDado('mvw_opcoes_filtros', 1) || {}
 
-    // Status: pela barra de cima (status dos chamados).
+    // Status: pela lista da bandeja (status dos chamados).
     const camposFechados = {
         'Empresa': {
             chave: 'empresas',
@@ -86,31 +192,52 @@ async function carregarPesquisaOrcamento() {
         }
     }
 
-    const filtros = Object.entries(camposFechados)
-        .map(([titulo, conf]) => {
-
-            return montarDropdownCheckbox({
-                pag: 'orcamentos',
-                titulo,
-                path: conf.path,
-                opcoes: listagens?.[conf?.chave] || []
-            })
-
-        })
-
-    menuOrcamento.innerHTML = filtros.join('')
+    menuOrcamento.innerHTML = Object.entries(camposFechados)
+        .map(([titulo, conf]) => montarDropdownCheckbox({
+            pag: 'orcamentos',
+            titulo,
+            path: conf.path,
+            opcoes: listagens?.[conf?.chave] || []
+        }))
+        .join('')
 
 }
 
-function scrollar(direcao) {
-
-    direcao = direcao == 'next' ? 1 : -1
-    const movimento = 1000 * direcao
-    const toolbar = document.getElementById('toolbar')
-
-    if (toolbar) toolbar.scrollBy({ left: movimento, behavior: 'smooth' })
-
+// Andamento do custo: mesmas faixas do velocímetro dos detalhes (limite 40%: a partir de 30% atenção, 40% crítico).
+function barraCustoOrcamento(custo, total) {
+    const valor = Number(custo) || 0
+    const base = Number(total) || 0
+    if (!valor) return '<span class="orc-custo vazio">—</span>'
+    const pct = base > 0 ? (valor / base) * 100 : null
+    const situacao = pct == null ? 'critico' : pct >= 40 ? 'critico' : pct >= 30 ? 'atencao' : 'normal'
+    const largura = pct == null ? 100 : Math.max(2, Math.min(100, pct))
+    const textoPct = pct == null ? '—' : `${pct.toLocaleString('pt-BR', { maximumFractionDigits: pct < 10 ? 1 : 0 })}%`
+    return `<span class="orc-custo ${situacao}" title="${escaparAtributo(dinheiroTexto(valor))} de custo${pct == null ? '' : ` = ${textoPct} do total`}">
+        <span class="orc-custo-valor">${dinheiro(valor)}</span>
+        <span class="orc-custo-barra"><i style="width: ${largura}%"></i></span>
+        <span class="orc-custo-pct">${textoPct}</span>
+    </span>`
 }
+
+function diferencaOrcamento(bruto, total) {
+    const b = Number(bruto)
+    const t = Number(total) || 0
+    if (!b) return ''
+    const dif = Math.round((t - b) * 100) / 100
+    if (!dif) return '<span class="orc-dif zero">—</span>'
+    const pct = Math.abs(dif) / b * 100
+    const tipo = dif > 0 ? 'Acréscimo' : 'Desconto'
+    const textoPct = pct.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    return `<span class="orc-dif ${dif > 0 ? 'acrescimo' : 'desconto'}" title="${tipo} de ${escaparAtributo(dinheiroTexto(Math.abs(dif)))} (${textoPct}%)">
+        <span class="orc-dif-seta" aria-hidden="true">${dif > 0 ? '▲' : '▼'}</span>${dinheiro(Math.abs(dif))}<small>${textoPct}%</small>
+    </span>`
+}
+
+// Chip da tag do orçamento na linha (mesmo chip das tags de pagamento: cheio na cor, encolhe com reticências).
+// O clique na célula abre o painel das tags (vincular, tirar, editar).
+const chipTagOrcamento = tag => typeof chipTagPag === 'function'
+    ? chipTagPag({ nome: tag?.nome, cor: tag?.cor })
+    : `<span class="tag-pag"><span class="tag-pag-nome">${escaparAtributo(tag?.nome || '--')}</span></span>`
 
 async function criarLinhaOrcamento(orcamento) {
 
@@ -122,9 +249,11 @@ async function criarLinhaOrcamento(orcamento) {
         nomes_status,
         timestamp,
         total_geral,
+        total_bruto,
         lpu_ativa,
         tags,
-        contrato: colunaContrato,
+        cliente,
+        cidade,
         total_pagamentos,
         notas,
         pedidos,
@@ -132,6 +261,7 @@ async function criarLinhaOrcamento(orcamento) {
     } = orcamento || {}
 
     const { contrato, executor, venda_direta } = dados_orcam || {}
+    const esc = v => escaparAtributo(v ?? '')
 
     // Velocímetro
     const porcentagem = total_pagamentos
@@ -148,22 +278,14 @@ async function criarLinhaOrcamento(orcamento) {
         </div>
     `
 
-    const labelTipoCorrecao = (nomes_status || [])
-        .map(st => formatacaoTipoCorrecao(st))
-        .join('')
-
     const pedidosStatus = (pedidos || [])
-        .map(({ tipo, pedido, valor, autorizado_por }) => {
-
-            const label = `
+        .map(({ tipo, pedido, valor, autorizado_por }) => `
                 <div class="orcamento-documento">
                     <div class="orcamento-documento-topo"><strong>${pedido}</strong><span class="orcamento-documento-valor">${dinheiro(valor)}</span></div>
                     <span class="orcamento-documento-info">${tipo || ''}</span>
                     ${autorizado_por ? `<span class="orcamento-documento-info">Autorizado por <b>${autorizado_por}</b></span>` : ''}
                 </div>
-                `
-            return label
-        })
+                `)
         .join('')
 
     const notasStatus = (notas || [])
@@ -199,96 +321,59 @@ async function criarLinhaOrcamento(orcamento) {
         `})
         .join('')
 
+    // Uma linha por orçamento: o que não cabe termina em "..." e o texto inteiro fica no title.
+    const texto = (valor, extra = '') => `<td class="fin-obs" title="${esc(valor)}"><span class="fin-uma-celula"><span class="fin-obs-txt">${esc(valor)}</span>${extra}</span></td>`
+
+    const listaStatus = (nomes_status || []).filter(Boolean)
+    const chipsStatus = listaStatus.length
+        ? listaStatus.map(st => formatacaoTipoCorrecao(esc(st))).join('')
+        : '<span class="orc-sem-status">SEM STATUS</span>'
+
+    const tagsOrdenadas = [...(tags || [])]
+        .sort((a, b) => String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR'))
+
     const rAtual = orcamento?.revisoes?.atual
-    const etiqRevAtual = rAtual
-        ? `<span class="etiqueta-revisao">${rAtual}</span>`
-        : ''
+    const etiquetas = [
+        rAtual ? `<span class="etiqueta-revisao">${esc(rAtual)}</span>` : '',
+        venda_direta ? '<span class="etiqueta-revisao">Venda Direta</span>' : ''
+    ].join('')
 
-    const responsaveis = (executor || [])
-        .join(', ')
+    const responsaveis = (Array.isArray(executor) ? executor : [executor]).filter(Boolean).join(', ')
+    const totalPedidos = (pedidos || []).reduce((s, p) => s + (Number(p?.valor) || 0), 0)
+    const data = timestamp ? new Date(Number(timestamp)).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''
 
-    const etiqVendaDireta = venda_direta
-        ? `<span class="etiqueta-revisao">Venda Direta</span>`
-        : ''
-
-    const finalContrato = `
-        <div style="${vertical}; min-width: 150px; text-align: left; gap: 2px;">
-            ${etiqRevAtual}
-            ${etiqVendaDireta}
-            ${colunaContrato.filter(Boolean).map(c => `<span>${c}</span>`).join('')}
-        </div>
+    const tds = `
+        <td class="orc-col-data">${esc(data)}</td>
+        ${texto(lpu_ativa)}
+        <td class="fin-obs orc-col-status" title="${esc(listaStatus.join(', ') || 'SEM STATUS')}"><div class="fin-tags-celula">${chipsStatus}</div></td>
+        <td class="fin-obs orc-col-tags" title="${esc(tagsOrdenadas.map(t => t?.nome).join(', ') || 'Incluir tags')}"
+            data-orcamento="${esc(id)}" onclick="event.stopPropagation(); renderPainel(this.dataset.orcamento)">
+            <div class="fin-tags-celula" name="tags" data-chips-orc data-orcamento="${esc(id)}">${tagsOrdenadas.map(chipTagOrcamento).join('') || '<span class="orc-tag-incluir">+ Tag</span>'}</div>
+        </td>
+        ${texto(contrato, etiquetas)}
+        ${texto(cliente)}
+        ${texto(cidade)}
+        ${texto(usuario)}
+        ${texto(responsaveis)}
+        <td class="fin-valor">${total_bruto ? dinheiro(total_bruto) : ''}</td>
+        <td class="fin-valor">${diferencaOrcamento(total_bruto, total_geral)}</td>
+        <td class="fin-valor orc-col-total">${dinheiro(total_geral)}</td>
+        <td class="fin-valor">${totalPedidos ? dinheiro(totalPedidos) : ''}</td>
+        <td class="fin-valor orc-col-custo">${barraCustoOrcamento(total_pagamentos, total_geral)}</td>
+        <td class="orc-col-acoes">
+            <button type="button" class="orc-atalhos" title="Atalhos do orçamento" aria-label="Atalhos do orçamento"
+                data-orcamento="${esc(id)}" onclick="abrirAtalhos(this.dataset.orcamento)">
+                <img src="imagens/pesquisar.svg" alt="">
+            </button>
+        </td>
     `
 
-    // Tags;
-    const listaTags = tags
-        .map(tag => modeloTag(tag, id))
-        .join('')
-
-    const data = new Date(timestamp).toLocaleString()
-
-    const linha = `
-        <tr class="linha-master">
-            <td>
-                <div style="${vertical}">
-                    <span><b>${lpu_ativa || ''}</b></span>
-                    <span>${data}</span>
-                </div>
-            </td>
-
-            <td>
-                <div style="${vertical}; gap: 5px;">
-                    <div style="${vertical}; gap: 2px;">
-                        ${labelTipoCorrecao || '<span>SEM STATUS</span>'}
-                    </div>
-                </div>
-            </td>
-
-            <td>
-                <div style="${vertical}; gap: 2px;">
-                    <div name="tags" data-orcamento="${escaparAtributo(String(id))}" style="${vertical}; gap: 1px; width: 100%;">
-                        ${listaTags}
-                    </div>
-                    <!-- Fora do [name="tags"]: atualizarTagsNaTela troca só a lista, o botão fica. -->
-                    <button type="button" class="tag-adicionar" title="Incluir ou remover tags" onclick="renderPainel('${id}')">
-                        <img src="imagens/etiqueta.png" alt="">
-                        <span>Tag</span>
-                    </button>
-                </div>
-            </td>
-
-            <td>${finalContrato}</td>
-
-            <td>
-                <div style="${vertical}">
-                    <span>${usuario || ''}</span>
-                    <span>${responsaveis}</span>
-                </div>
-            </td>
-            
-            <td>
-                <div style="${vertical}; width: 100%;">
-                    <span style="font-size: 0.8rem; white-space: nowrap;">${dinheiro(total_geral)}</span>
-                </div>
-            </td>
-
-            <td>
-                <img 
-                    onclick="abrirAtalhos('${id}')"
-                    src="imagens/pesquisar.svg"
-                    style="width: 1.5rem;">
-            </td>
-        </tr>
-    `
-
-    const envelopar = (titulo, lista, quantidade = 0) => {
-
-        return `
+    const envelopar = (titulo, lista, quantidade = 0) => `
             <div class="envelope-etiquetas">
                 <div class="orcamento-bloco-titulo"><label class="titulo">${titulo}</label><span class="orcamento-bloco-contagem">${quantidade}</span></div>
                 <div class="bloco-etiquetas">${lista}</div>
             </div>
         `
-    }
 
     const detalhes = `
         <div class="detalhes-orcamento">
@@ -300,7 +385,10 @@ async function criarLinhaOrcamento(orcamento) {
         </div>
     `
 
-    return { linha, detalhes }
+    return {
+        linha: `<tr class="fin-linha linha-master" data-orc-linha="${esc(id)}" onclick="abrirLinhaOrcamento(event, this.dataset.orcLinha)">${tds}</tr>`,
+        detalhes
+    }
 
 }
 
@@ -393,7 +481,11 @@ async function duplicar(id) {
 
 }
 
+// Status dos chamados na bandeja da direita (antes a faixa de abas no topo da tela).
 async function carregarToolbar() {
+
+    const lista = document.getElementById('orc-status')
+    if (!lista) return
 
     try {
 
@@ -401,21 +493,20 @@ async function carregarToolbar() {
 
         // Status dos chamados (gcs mw_qtde_status_orcamentos): TODOS e SEM STATUS primeiro, o resto pela quantidade.
         const fixos = ['TODOS', 'SEM STATUS']
-        const lista = [...(resultado || [])]
+        const ordenados = [...(resultado || [])]
             .sort((a, b) => (fixos.includes(b.status) - fixos.includes(a.status))
                 || (fixos.indexOf(a.status) - fixos.indexOf(b.status))
                 || (Number(b.quantidade) - Number(a.quantidade)))
 
-        const toolbar = document.getElementById('toolbar')
-        toolbar.innerHTML = lista
+        lista.innerHTML = ordenados
             .map(({ status, quantidade }) => `
             <button type="button"
-                class="aba-toolbar"
+                class="orc-status-item"
                 data-status="${escaparAtributo(status)}"
-                name="${escaparAtributo(status)}"
+                title="${escaparAtributo(status)}"
                 onclick="filtrarToolbar(this.dataset.status)">
-                <label>${escaparAtributo(status)}</label>
-                <span>${quantidade}</span>
+                <span class="orc-status-nome">${escaparAtributo(status)}</span>
+                <span class="orc-status-qtde">${Number(quantidade || 0).toLocaleString('pt-BR')}</span>
             </button>
             `)
             .join('')

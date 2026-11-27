@@ -712,3 +712,130 @@
     background-color: #42a5f563;
     padding: 0 8px;
 }
+
+/* ---------- Tela de orçamentos no layout financeiro (js/orcamentos.js telaOrcamentos, 27/11/2026) */
+.orc-area { min-height: 0; }
+
+.orc-tela .tabela td.orc-col-data { font-variant-numeric: tabular-nums; color: #52615a; }
+.orc-tela .tabela td.fin-valor { text-align: right; font-variant-numeric: tabular-nums; }
+.orc-tela .tabela td.orc-col-total { font-weight: 600; }
+
+/* Status e tags lado a lado; o que não cabe encolhe com reticências (lista inteira no title). */
+.orc-tela .tabela td.orc-col-status { max-width: 220px; }
+.orc-tela .tabela td.orc-col-tags { max-width: 220px; cursor: pointer; }
+.orc-tela .tabela td.orc-col-tags:hover .orc-tag-incluir { color: #2f7d4f; }
+.orc-tela .tabela td.orc-col-status :is(.and, .fin, .na) {
+    display: inline-block;
+    flex: 0 1 auto;
+    min-width: 2.6em;
+    max-width: 100%;
+    min-height: 0;
+    padding: 0 6px;
+    font-size: 11px;
+    line-height: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-radius: 3px;
+}
+.orc-sem-status,
+.orc-tag-incluir { color: #8a968f; font-size: 11px; white-space: nowrap; }
+.orc-tela .tabela td .etiqueta-revisao { flex: none; padding: 0 5px; font-size: 10px; line-height: 16px; }
+
+/* Desconto / acréscimo sobre o valor original. */
+.orc-dif { display: inline-flex; align-items: baseline; gap: 3px; white-space: nowrap; }
+.orc-dif small { font-size: 10px; opacity: .8; }
+.orc-dif-seta { font-size: 8px; }
+.orc-dif.desconto { color: #b12425; }
+.orc-dif.acrescimo { color: #2f7d4f; }
+.orc-dif.zero,
+.orc-custo.vazio { color: #b3bdb7; }
+
+/* Custo até agora: valor + barrinha de andamento + % do total (faixas do velocímetro: 30% atenção, 40% crítico). */
+.orc-custo { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; white-space: nowrap; }
+.orc-custo-barra {
+    flex: none;
+    width: 46px;
+    height: 4px;
+    border-radius: 2px;
+    background: #e6ece8;
+    overflow: hidden;
+}
+.orc-custo-barra > i { display: block; height: 100%; border-radius: inherit; background: #7fbf95; }
+.orc-custo-pct { min-width: 2.6em; font-size: 10px; color: #6b7a72; text-align: right; }
+.orc-custo.atencao .orc-custo-barra > i { background: #f0b45a; }
+.orc-custo.critico .orc-custo-barra > i { background: #e07070; }
+.orc-custo.critico .orc-custo-pct { color: #b12425; font-weight: 600; }
+
+.orc-tela .tabela td.orc-col-acoes { width: 2rem; text-align: center; }
+.orc-atalhos { padding: 0; border: none; background: transparent; cursor: pointer; display: inline-flex; }
+.orc-atalhos img { width: 1.1rem; }
+
+/* Detalhes do "+" continuam quebrando linha. */
+.orc-tela .tabela > tbody > tr.tabela-linha-detalhes > td { white-space: normal; }
+
+/* Bandeja da direita: Empresa/Tags e a lista de status (com a mesma altura do bloco da tabela). */
+.orc-tela .fin-lateral { width: 52px; transition: width 200ms ease; }
+.orc-tela .fin-corpo:not(.recolhido) .fin-lateral { width: clamp(240px, 20vw, 320px); }
+.orc-tela .fin-lateral > .orc-painel {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    gap: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+@media (prefers-reduced-motion: reduce) { .orc-tela .fin-lateral { transition: none; } }
+.orc-recolhido-acoes { display: none; flex-direction: column; align-items: center; gap: 2px; }
+.orc-tela .fin-corpo.recolhido .orc-recolhido-acoes { display: flex; }
+.orc-tela .fin-corpo.recolhido :is(.orc-filtros, .orc-status-bloco) { display: none; }
+
+.orc-tela .orc-filtros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.orc-filtros .campo-pesquisa { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.orc-filtros .campo-pesquisa > label { color: #5b6b62 !important; font-size: 11px; }
+.orc-filtros .filtro-dropdown { min-width: 0; width: 100%; }
+.orc-filtros .filtro-dropdown-botao { border-color: #cfd8d3; }
+
+.orc-status-bloco { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.orc-status-titulo { color: #5b6b62; font-size: 11px; }
+.orc-status-lista { display: flex; flex-direction: column; gap: 2px; }
+.orc-status-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    margin: 0;
+    padding: 5px 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: #3d4b44;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+}
+.orc-status-item:hover { background: #f0f6f2; }
+.orc-status-item.selecionada { background: #2f7d4f; border-color: #2f7d4f; color: #fff; font-weight: 600; }
+.orc-status-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.orc-status-qtde {
+    flex: none;
+    min-width: 2em;
+    padding: 0 6px;
+    border-radius: 9px;
+    background: #e6ece8;
+    color: #4d5f54;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+.orc-status-item.selecionada .orc-status-qtde { background: #ffffff33; color: #fff; }
+
+@media (max-width: 800px) {
+    .orc-tela .fin-lateral,
+    .orc-tela .fin-corpo:not(.recolhido) .fin-lateral { width: auto; }
+    .orc-tela .fin-lateral > .orc-painel { position: static; width: 100%; }
+    .orc-tela .fin-corpo.recolhido .orc-recolhido-acoes { display: none; }
+    .orc-tela .orc-filtros { grid-template-columns: 1fr; }
+}
