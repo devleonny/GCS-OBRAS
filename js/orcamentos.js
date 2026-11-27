@@ -79,6 +79,7 @@ async function telaOrcamentos() {
             'Responsáveis': { chave: 'responsaveis' },
             'Valor original': { chave: 'total_bruto', tipoPesquisa: 'valor' },
             'Desc. / Acrés.': {},
+            'Diferença': {},
             'Total': { chave: 'total_geral', tipoPesquisa: 'valor' },
             'Pedidos': {},
             'Custo até agora': { chave: 'total_pagamentos', tipoPesquisa: 'valor' },
@@ -219,18 +220,23 @@ function barraCustoOrcamento(custo, total) {
     </span>`
 }
 
+// Diferença entre o Total e o Valor original (total_geral − total_bruto): em duas colunas, o tipo (Desconto /
+// Acréscimo) e o valor com sinal e a % sobre o original. Sem valor original salvo, as duas ficam vazias.
 function diferencaOrcamento(bruto, total) {
     const b = Number(bruto)
     const t = Number(total) || 0
-    if (!b) return ''
+    if (!b) return { tipo: '', valor: '' }
     const dif = Math.round((t - b) * 100) / 100
-    if (!dif) return '<span class="orc-dif zero">—</span>'
+    if (!dif) return { tipo: '<span class="orc-dif zero">Sem diferença</span>', valor: '<span class="orc-dif zero">—</span>' }
     const pct = Math.abs(dif) / b * 100
-    const tipo = dif > 0 ? 'Acréscimo' : 'Desconto'
+    const nome = dif > 0 ? 'Acréscimo' : 'Desconto'
+    const classe = dif > 0 ? 'acrescimo' : 'desconto'
     const textoPct = pct.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-    return `<span class="orc-dif ${dif > 0 ? 'acrescimo' : 'desconto'}" title="${tipo} de ${escaparAtributo(dinheiroTexto(Math.abs(dif)))} (${textoPct}%)">
-        <span class="orc-dif-seta" aria-hidden="true">${dif > 0 ? '▲' : '▼'}</span>${dinheiro(Math.abs(dif))}<small>${textoPct}%</small>
-    </span>`
+    const titulo = `${nome} de ${escaparAtributo(dinheiroTexto(Math.abs(dif)))} (${textoPct}%) sobre ${escaparAtributo(dinheiroTexto(b))}`
+    return {
+        tipo: `<span class="orc-dif-tipo ${classe}" title="${titulo}"><span aria-hidden="true">${dif > 0 ? '▲' : '▼'}</span>${nome}</span>`,
+        valor: `<span class="orc-dif ${classe}" title="${titulo}">${dif > 0 ? '+' : '−'} ${dinheiro(Math.abs(dif))}<small>${textoPct}%</small></span>`
+    }
 }
 
 // Chip da tag do orçamento na linha (mesmo chip das tags de pagamento: cheio na cor, encolhe com reticências).
@@ -339,6 +345,7 @@ async function criarLinhaOrcamento(orcamento) {
     ].join('')
 
     const responsaveis = (Array.isArray(executor) ? executor : [executor]).filter(Boolean).join(', ')
+    const dif = diferencaOrcamento(total_bruto, total_geral)
     const totalPedidos = (pedidos || []).reduce((s, p) => s + (Number(p?.valor) || 0), 0)
     const data = timestamp ? new Date(Number(timestamp)).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''
 
@@ -356,7 +363,8 @@ async function criarLinhaOrcamento(orcamento) {
         ${texto(usuario)}
         ${texto(responsaveis)}
         <td class="fin-valor">${total_bruto ? dinheiro(total_bruto) : ''}</td>
-        <td class="fin-valor">${diferencaOrcamento(total_bruto, total_geral)}</td>
+        <td class="orc-col-dif-tipo">${dif.tipo}</td>
+        <td class="fin-valor">${dif.valor}</td>
         <td class="fin-valor orc-col-total">${dinheiro(total_geral)}</td>
         <td class="fin-valor">${totalPedidos ? dinheiro(totalPedidos) : ''}</td>
         <td class="fin-valor orc-col-custo">${barraCustoOrcamento(total_pagamentos, total_geral)}</td>

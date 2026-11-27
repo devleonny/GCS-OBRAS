@@ -839,3 +839,13 @@
     .orc-tela .fin-corpo.recolhido .orc-recolhido-acoes { display: none; }
     .orc-tela .orc-filtros { grid-template-columns: 1fr; }
 }
+
+/* Coluna do tipo da diferença: etiqueta leve Desconto (vermelho) / Acréscimo (verde). */
+.orc-dif-tipo {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 0 6px; border-radius: 3px;
+    font-size: 11px; line-height: 18px; font-weight: 600; white-space: nowrap;
+}
+.orc-dif-tipo > span { font-size: 8px; }
+.orc-dif-tipo.desconto { background: #fbe4e4; color: #b12425; }
+.orc-dif-tipo.acrescimo { background: #e0f1e6; color: #2f7d4f; }
