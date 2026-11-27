@@ -60,7 +60,18 @@ async function acaoConc(rota, corpo, depois = null, mensagemOk = null) {
     }
 }
 
-// Mesma janela das Faturas do cartão: título em cima, painel de ações à direita (recolhe pela seta).
+// Janela no layout financeiro: título em cima, painel de ações à direita (recolhe pela seta).
+const acaoPainelConc = (icone, texto, funcao, { ativo = true, motivo = '' } = {}) => `
+    <button type="button" class="fin-acao" title="${escFin(ativo ? texto : `${texto}: ${motivo}`)}" ${ativo ? `onclick="${funcao}"` : 'disabled'}>
+        ${iconeFin(icone)}<span>${texto}</span></button>`
+// Informação do painel: some quando o painel está recolhido (fica só nos títulos dos ícones).
+const infoPainelConc = (rotulo, valor, classe = '') => `<div class="cf-info ${classe}"><small>${rotulo}</small><b>${valor}</b></div>`
+const cabecaPainelConc = (circulo, titulo, detalhe = '') => `
+    <div class="fin-painel-cabeca" title="${escFin(titulo)}">
+        <span class="fin-avatar">${escFin(circulo)}</span>
+        <div class="fin-painel-texto"><b>${escFin(titulo)}</b>${detalhe}</div>
+    </div>`
+
 function janelaConc(titulo, principal, painel, classe = '') {
     return `
         <div class="fis-pagina fin-tela cc-tela ${classe}">
@@ -176,11 +187,11 @@ function desenharContasConc(todas) {
             </section>`
     }
     const painel = `
-        ${cabecaPainelCartaoFin(String(contas.length), `${contas.length} conta${contas.length === 1 ? '' : 's'} do banco`, `<small>${pendentes} pendência${pendentes === 1 ? '' : 's'} no período aberto</small>`)}
-        ${acaoPainelCartaoFin('baixar', 'Importar OFX', 'importarOfxConc()')}
-        ${acaoPainelCartaoFin('relogio', todas ? 'Só as últimas importações' : 'Todas as importações', `telaContasConc(${!todas})`)}
-        ${acaoPainelCartaoFin('incluir', 'Nova conta do banco', 'formularioContaBancoConc()')}
-        ${acaoPainelCartaoFin('editar', 'Contas Correntes', 'telaContasFin()')}
+        ${cabecaPainelConc(String(contas.length), `${contas.length} conta${contas.length === 1 ? '' : 's'} do banco`, `<small>${pendentes} pendência${pendentes === 1 ? '' : 's'} no período aberto</small>`)}
+        ${acaoPainelConc('baixar', 'Importar OFX', 'importarOfxConc()')}
+        ${acaoPainelConc('relogio', todas ? 'Só as últimas importações' : 'Todas as importações', `telaContasConc(${!todas})`)}
+        ${acaoPainelConc('incluir', 'Nova conta do banco', 'formularioContaBancoConc()')}
+        ${acaoPainelConc('editar', 'Contas Correntes', 'telaContasFin()')}
         <hr>
         <small class="cc-nota">Conta com tudo casado até uma data e fechada entra com saldo conferido no Fluxo de Caixa.</small>`
     tela.innerHTML = janelaConc('Conciliação bancária', `
@@ -449,7 +460,7 @@ function painelConciliarConc() {
             <div class="cc-progresso-barra"><span style="width:${pct}%"></span></div>
         </div>` : ''
     const painel = `
-        ${cabecaPainelCartaoFin((c.contas.find(k => String(k.id) === String(c.conta_principal_id)) || c.contas[0] || {}).app || '?', `${c.nome} · ${mesNomeConc(d.mes)}`,
+        ${cabecaPainelConc((c.contas.find(k => String(k.id) === String(c.conta_principal_id)) || c.contas[0] || {}).app || '?', `${c.nome} · ${mesNomeConc(d.mes)}`,
             `<small>${c.conferida_ate ? `conferida até ${dataFin(c.conferida_ate)}` : `ainda não fechada · corte ${dataFin(c.corte)}`}</small>`)}
         <label class="cc-mes cc-so-aberto">Mês
             <select class="fis-input" onchange="estadoConc.mes = this.value; estadoConc.dias = null; telaConciliarConc(false)">
@@ -465,13 +476,13 @@ function painelConciliarConc() {
         </div>
         <hr>
         <div class="cf-infos">
-            ${infoPainelCartaoFin(`Saldo do banco (${dataFin(d.saldo_dia)})`, d.saldo_banco != null ? dinheiro(d.saldo_banco) : '—')}
-            ${infoPainelCartaoFin(`Saldo do GCS (${dataFin(d.saldo_dia)})`, c.conferida_ate ? dinheiro(d.saldo_gcs) : 'a conferir')}
-            ${infoPainelCartaoFin('Falta explicar no mês', Math.abs(falta) < 0.005 ? '✔ R$ 0,00' : dinheiro(falta), Math.abs(falta) < 0.005 ? 'cf-ok' : 'cf-falta')}
+            ${infoPainelConc(`Saldo do banco (${dataFin(d.saldo_dia)})`, d.saldo_banco != null ? dinheiro(d.saldo_banco) : '—')}
+            ${infoPainelConc(`Saldo do GCS (${dataFin(d.saldo_dia)})`, c.conferida_ate ? dinheiro(d.saldo_gcs) : 'a conferir')}
+            ${infoPainelConc('Falta explicar no mês', Math.abs(falta) < 0.005 ? '✔ R$ 0,00' : dinheiro(falta), Math.abs(falta) < 0.005 ? 'cf-ok' : 'cf-falta')}
         </div>
         <hr>
-        ${acaoPainelCartaoFin('check', unicas ? `Confirmar ${unicas} sugestões` : 'Confirmar sugestões', 'confirmarSugestoesConc()', { ativo: unicas > 0, motivo: 'nenhuma sugestão única neste mês' })}
-        ${acaoPainelCartaoFin('baixar', 'Importar OFX', 'importarOfxConc()')}
+        ${acaoPainelConc('check', unicas ? `Confirmar ${unicas} sugestões` : 'Confirmar sugestões', 'confirmarSugestoesConc()', { ativo: unicas > 0, motivo: 'nenhuma sugestão única neste mês' })}
+        ${acaoPainelConc('baixar', 'Importar OFX', 'importarOfxConc()')}
         <hr>
         <div class="cc-fechar" title="Fechado: as baixas até a data travam e a conta entra conferida no Fluxo de Caixa">
             <small>Fechar o período até</small>
@@ -480,9 +491,9 @@ function painelConciliarConc() {
                 <button type="button" class="fis-mini" onclick="fecharPeriodoConc()">Fechar</button>
             </div>
         </div>
-        ${c.conferida_ate ? acaoPainelCartaoFin('voltar', `Reabrir (até ${dataFin(c.conferida_ate)})`, 'reabrirPeriodoConc()') : ''}
+        ${c.conferida_ate ? acaoPainelConc('voltar', `Reabrir (até ${dataFin(c.conferida_ate)})`, 'reabrirPeriodoConc()') : ''}
         <hr>
-        ${acaoPainelCartaoFin('voltar', 'Todas as contas', 'telaContasConc()')}`
+        ${acaoPainelConc('voltar', 'Todas as contas', 'telaContasConc()')}`
     return painel
 }
 
