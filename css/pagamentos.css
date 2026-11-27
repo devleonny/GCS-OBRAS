@@ -1441,6 +1441,12 @@
     width: 100%;
     box-sizing: border-box;
 }
+.detalhes-pagamento > .pag-lpu-detalhe > section {
+    padding: 12px 14px;
+    border: 1px solid #b8c9be;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px #10201914;
+}
 
 /* "+" da linha: resumo da LPU Parceiro do pagamento. */
 .pagamentos-referencias-detalhes .pagamento-lpu-linha {
