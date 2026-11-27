@@ -12,7 +12,7 @@
 const estadoControleFat = { ano: String(new Date().getFullYear()), painel: true }
 const dadosControleFat = new Map()
 // Empresa sem foto no cadastro (ou foto que não carrega): o logo do GCS no lugar.
-const LOGO_GCS_CTF = 'imagens/logo-gcs-quadrado.png'
+const LOGO_GCS_CTF = 'imagens/simbolo-gcs.png'
 let assinaturaTotaisControleFat = null
 
 const SITUACOES_CONTROLE_FAT = {
