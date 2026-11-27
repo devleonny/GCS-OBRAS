@@ -248,6 +248,8 @@ function desenharLoteSal() {
             <label class="fis-campo"><span>Competência</span><input class="fis-input" type="month" name="competencia" value="${escFin(e.competencia)}" onchange="editarCabLoteSal(this)"></label>
             <label class="fis-campo"><span>Vencimento</span><input class="fis-input" type="date" name="vencimento" value="${escFin(cab.vencimento || '')}" onchange="editarCabLoteSal(this)">
                 <small>Vale para as linhas sem data própria. Sugestão: 5º dia útil.</small></label>
+            <label class="fis-campo cx-lote-obs"><span>Observação principal</span><input class="fis-input" name="observacao" maxlength="500" value="${escFin(cab.observacao || '')}" oninput="editarCabLoteSal(this)">
+                <small>Vale para as linhas sem observação própria.</small></label>
             ${diariaSal() ? `
             <label class="fis-campo"><span>Valor diário</span><input class="fis-input fis-num" type="number" min="0" step="0.01" name="valor_dia" value="${escFin(cab.valor_dia ?? '')}" onchange="editarCabLoteSal(this)">
                 <small>Vale para quem não tem valor próprio na linha.</small></label>
@@ -260,7 +262,6 @@ function desenharLoteSal() {
             ${apps.map(app => `
             <label class="fis-campo"><span>Conta que paga (${escFin(app)})</span>
                 <select class="fis-input" data-conta-app="${escFin(app)}" onchange="editarContaAppLoteSal(this)">${opcoesContasFin(op.contas, app, contaDoApp(app))}</select></label>`).join('')}
-            <label class="fis-campo cx-lote-obs"><span>Observação nas faturas</span><input class="fis-input" name="observacao" maxlength="500" value="${escFin(cab.observacao || '')}" oninput="editarCabLoteSal(this)"></label>
         </div>
         <div class="cx-lote-barra">
             <input type="search" class="fis-input" placeholder="Filtrar por nome ou CPF…" value="${escFin(e.filtro)}" oninput="estadoLoteSal.filtro = this.value; filtrarLoteSal()">
@@ -280,7 +281,7 @@ function desenharLoteSal() {
             <table class="fis-tabela cx-lote-tabela">
                 <thead><tr>
                     <th></th><th>Pessoa</th>${tipoSal().rh ? '<th class="fis-num">Salário RH</th>' : ''}<th class="fis-num">Último pago</th>${diariaSal() ? '<th class="fis-num">Valor diário</th><th class="fis-num">Dias</th>' : ''}<th class="fis-num">Valor</th>
-                    <th>Empresa</th><th>Categoria</th><th>Rateio</th><th>Vencimento</th><th>Fatura</th><th></th>
+                    <th>Empresa</th><th>Categoria</th><th>Rateio</th><th>Vencimento</th><th>Observação</th><th>Fatura</th><th></th>
                 </tr></thead>
                 <tbody data-linhas-lote>${e.itens.map(linhaLoteSal).join('')}</tbody>
             </table>
@@ -310,6 +311,7 @@ function linhaLoteSal(i) {
             <td><select class="fis-input cx-lote-cat" name="categoria_id" ${trava} onchange="editarLinhaLoteSal(this)">${opcoesCategoriasFin(e.op.categorias || [], 'PAGAR', i.categoria_id)}</select></td>
             <td data-rateio-celula>${celulaRateioSal(i)}</td>
             <td><input class="fis-input" type="date" name="vencimento" value="${escFin(i.vencimento || '')}" title="Em branco: o vencimento do lote" ${trava} onchange="editarLinhaLoteSal(this)"></td>
+            <td><input class="fis-input cx-lote-obs-linha" name="observacao" maxlength="500" value="${escFin(i.observacao || '')}" placeholder="${escFin(e.cabecalho.observacao || '')}" title="Em branco: a observação principal do lote" ${trava} oninput="editarLinhaLoteSal(this)"></td>
             <td>${f ? `<span class="fis-link" onclick="abrirFaturaFin('${escFin(f.id)}')">${escFin(situacaoTextoSal(f))}</span>` : '<small>—</small>'}</td>
             <td class="cx-lote-acoes">
                 <button type="button" class="fis-mini" title="Outra linha para a mesma pessoa (ex.: adiantamento, vale)" onclick="duplicarLinhaLoteSal('${escFin(i.chave)}')">+</button>
@@ -434,6 +436,10 @@ function editarCabLoteSal(input) {
     } else if (input.name === 'forma_pagamento') {
         e.cabecalho.forma_pagamento = v || null
         e.itens.filter(i => !pagaSal(i)).forEach(i => { i.forma_pagamento = v || null })
+    } else if (input.name === 'observacao') {
+        e.cabecalho.observacao = v || null
+        // Linhas sem observação própria mostram a principal.
+        document.querySelectorAll('[data-lote-sal] .cx-lote-obs-linha').forEach(x => { x.placeholder = v })
     } else e.cabecalho[input.name] = v || null
     agendarSalvarLoteSal()
 }

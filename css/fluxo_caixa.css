@@ -148,6 +148,8 @@
 .cx-lote-tabela .cx-lote-cat { width: 200px; }
 .cx-lote-tabela [name="departamento"] { width: 130px; }
 .cx-lote-tabela [name="vencimento"] { width: 130px; }
+.cx-lote-tabela .cx-lote-obs-linha { width: 200px; }
+.cx-lote-tabela .cx-lote-obs-linha::placeholder { color: #9aa8a0; font-style: italic; }
 .cx-lote-pessoa { min-width: 200px; }
 .cx-lote-pessoa b, .cx-lote-pessoa small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
 .cx-lote-pessoa small, .cx-lote-tabela td.fis-num small { display: block; color: #6b7a71; font-size: 11px; }
