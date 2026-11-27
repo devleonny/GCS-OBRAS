@@ -854,3 +854,9 @@
 /* Caixinha de marcar: coluna estreita logo depois do "+" dos detalhes. */
 .orc-tela .tabela th.orc-col-marcar,
 .orc-tela .tabela td.orc-col-marcar { width: 1.6rem; min-width: 1.6rem; padding-inline: 4px; text-align: center; }
+
+/* Empresa com a foto do cliente (ou da empresa / iniciais) ao lado: avatar pequeno, a linha fica com uma altura só. */
+.orc-tela .tabela td.orc-col-empresa { max-width: 200px; }
+.orc-tela .orc-avatar { display: inline-flex; flex: none; }
+.orc-tela .tabela .orc-avatar .cliente-foto { width: 22px; height: 22px; padding: 1px; border-width: 2px; }
+.orc-tela .tabela .orc-avatar .cliente-iniciais { font-size: 9px; }

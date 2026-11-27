@@ -70,15 +70,21 @@ async function telaOrcamentos() {
         pag,
         base: 'mvw_dados_orcamentos',
         // Status do orçamento = status do chamado (22/11/2026): os das abas do chamado; sem chamado, SEM STATUS.
+        // Ordem: caixinha, lupa (atalhos), dados do cliente (Empresa com a foto, Cliente, CNPJ, Cidade), dados do
+        // orçamento e, no fim, os valores juntos. Empresa, CNPJ, foto e requisições vêm da mvw (gcs
+        // migrations/orcamentos-dados-cliente.sql).
         colunas: {
             '': {},
-            'Alteração': {},
-            'LPU': { chave: 'lpu_ativa' },
+            ' ': {},
+            'Empresa': { chave: 'empresa' },
+            'Cliente': { chave: 'cliente' },
+            'CNPJ': { chave: 'cnpj' },
+            'Cidade': { chave: 'cidade' },
+            'Contrato': { chave: 'contrato', principal: true },
             'Status': { chave: 'nomes_status' },
             'Tags': { chave: 'tags.*.nome' },
-            'Contrato': { chave: 'contrato', principal: true },
-            'Cliente': { chave: 'cliente' },
-            'Cidade': { chave: 'cidade' },
+            'LPU': { chave: 'lpu_ativa' },
+            'Alteração': {},
             'Usuário': { chave: 'usuario' },
             'Responsáveis': { chave: 'responsaveis' },
             'Valor original': { chave: 'total_bruto', tipoPesquisa: 'valor' },
@@ -86,8 +92,8 @@ async function telaOrcamentos() {
             'Diferença': { chave: 'diferenca', tipoPesquisa: 'valor' },
             'Total': { chave: 'total_geral', tipoPesquisa: 'valor' },
             'Pedidos': {},
-            'Custo até agora': { chave: 'total_pagamentos', tipoPesquisa: 'valor' },
-            'Ações': {}
+            'Requisições': { chave: 'total_requisicoes', tipoPesquisa: 'valor' },
+            'Custo até agora': { chave: 'total_pagamentos', tipoPesquisa: 'valor' }
         },
         funcaoAdicional: ['aposCarregarOrcamentos'],
         body: 'linhas',
@@ -275,6 +281,12 @@ async function criarLinhaOrcamento(orcamento) {
         tags,
         cliente,
         cidade,
+        empresa,
+        empresa_id,
+        cnpj,
+        cliente_foto,
+        total_requisicoes,
+        qtde_requisicoes,
         total_pagamentos,
         notas,
         pedidos,
@@ -364,21 +376,38 @@ async function criarLinhaOrcamento(orcamento) {
     const totalPedidos = (pedidos || []).reduce((s, p) => s + (Number(p?.valor) || 0), 0)
     const data = timestamp ? new Date(Number(timestamp)).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''
 
+    // Foto do cliente; sem foto própria, a da empresa (preencherFotosEmpresaCliente em js/clientes.js); senão as iniciais.
+    const avatar = typeof avatarCliente === 'function'
+        ? avatarCliente({ foto: cliente_foto, nome: cliente || empresa || '', empresa: empresa_id || empresa })
+        : ''
+    const documento = cnpj && typeof docFormatadoFis === 'function' ? docFormatadoFis(cnpj) : (cnpj || '')
+    const qtdeReq = Number(qtde_requisicoes) || 0
+
     const tds = `
         <td class="fin-col-marcar orc-col-marcar">
             <input type="checkbox" class="fin-marcar" data-marcar-orc value="${esc(id)}" ${selecaoOrcamentos.has(String(id)) ? 'checked' : ''}
                 onclick="event.stopPropagation(); marcarOrcamento(this)" aria-label="Marcar orçamento">
         </td>
-        <td class="orc-col-data">${esc(data)}</td>
-        ${texto(lpu_ativa)}
+        <td class="orc-col-acoes">
+            <button type="button" class="orc-atalhos" title="Atalhos do orçamento" aria-label="Atalhos do orçamento"
+                data-orcamento="${esc(id)}" onclick="abrirAtalhos(this.dataset.orcamento)">
+                <img src="imagens/pesquisar.svg" alt="">
+            </button>
+        </td>
+        <td class="fin-obs orc-col-empresa" title="${esc(empresa || 'Sem empresa no cadastro do cliente')}">
+            <span class="fin-uma-celula"><span class="orc-avatar">${avatar}</span><span class="fin-obs-txt">${esc(empresa)}</span></span>
+        </td>
+        ${texto(cliente)}
+        <td class="fin-doc">${esc(documento)}</td>
+        ${texto(cidade)}
+        ${texto(contrato, etiquetas)}
         <td class="fin-obs orc-col-status" title="${esc(listaStatus.join(', ') || 'SEM STATUS')}"><div class="fin-tags-celula">${chipsStatus}</div></td>
         <td class="fin-obs orc-col-tags" title="${esc(tagsOrdenadas.map(t => t?.nome).join(', ') || 'Incluir tags')}"
             data-orcamento="${esc(id)}" onclick="event.stopPropagation(); renderPainel(this.dataset.orcamento)">
             <div class="fin-tags-celula" name="tags" data-chips-orc data-orcamento="${esc(id)}">${tagsOrdenadas.map(chipTagOrcamento).join('') || '<span class="orc-tag-incluir">+ Tag</span>'}</div>
         </td>
-        ${texto(contrato, etiquetas)}
-        ${texto(cliente)}
-        ${texto(cidade)}
+        ${texto(lpu_ativa)}
+        <td class="orc-col-data">${esc(data)}</td>
         ${texto(usuario)}
         ${texto(responsaveis)}
         <td class="fin-valor">${total_bruto ? dinheiro(total_bruto) : ''}</td>
@@ -386,13 +415,8 @@ async function criarLinhaOrcamento(orcamento) {
         <td class="fin-valor">${dif.valor}</td>
         <td class="fin-valor orc-col-total">${dinheiro(total_geral)}</td>
         <td class="fin-valor">${totalPedidos ? dinheiro(totalPedidos) : ''}</td>
+        <td class="fin-valor" title="${qtdeReq ? `${qtdeReq} requisiç${qtdeReq === 1 ? 'ão' : 'ões'}` : 'Sem requisições'}">${qtdeReq ? dinheiro(total_requisicoes) : ''}</td>
         <td class="fin-valor orc-col-custo">${barraCustoOrcamento(total_pagamentos, total_geral)}</td>
-        <td class="orc-col-acoes">
-            <button type="button" class="orc-atalhos" title="Atalhos do orçamento" aria-label="Atalhos do orçamento"
-                data-orcamento="${esc(id)}" onclick="abrirAtalhos(this.dataset.orcamento)">
-                <img src="imagens/pesquisar.svg" alt="">
-            </button>
-        </td>
     `
 
     const envelopar = (titulo, lista, quantidade = 0) => `
@@ -679,15 +703,17 @@ async function baixarExcelOrcamentos() {
             filtrosTexto: marcados.length ? `Orçamentos marcados na tela: ${marcados.length}` : `Filtros: ${filtros}`,
             linhas,
             colunas: [
-                { titulo: 'Última alteração', largura: 13, tipo: 'data', valor: o => o.timestamp ? new Date(Number(o.timestamp)) : '' },
+                { titulo: 'Empresa', largura: 20, valor: o => o.empresa || '' },
+                { titulo: 'Cliente', largura: 34, valor: o => o.cliente || '' },
+                { titulo: 'CNPJ', largura: 19, valor: o => o.cnpj && typeof docFormatadoFis === 'function' ? docFormatadoFis(o.cnpj) : (o.cnpj || '') },
+                { titulo: 'Cidade', largura: 20, valor: o => o.cidade || '' },
                 { titulo: 'Contrato', largura: 14, valor: o => o.dados_orcam?.contrato || '' },
                 { titulo: 'Revisão', largura: 9, centro: true, valor: o => o.revisoes?.atual || '' },
                 { titulo: 'Venda direta', largura: 8, centro: true, valor: o => o.dados_orcam?.venda_direta ? 'Sim' : '' },
                 { titulo: 'LPU', largura: 16, valor: o => o.lpu_ativa || '' },
                 { titulo: 'Status', largura: 26, valor: o => lista(o.nomes_status) || 'SEM STATUS' },
                 { titulo: 'Tags', largura: 26, valor: o => (o.tags || []).map(t => t?.nome).filter(Boolean).join(', ') },
-                { titulo: 'Cliente', largura: 34, valor: o => o.cliente || '' },
-                { titulo: 'Cidade', largura: 20, valor: o => o.cidade || '' },
+                { titulo: 'Última alteração', largura: 13, tipo: 'data', valor: o => o.timestamp ? new Date(Number(o.timestamp)) : '' },
                 { titulo: 'Usuário', largura: 16, valor: o => o.usuario || '' },
                 { titulo: 'Responsáveis', largura: 26, valor: o => lista(o.dados_orcam?.executor) },
                 { titulo: 'Vinculados', largura: 20, valor: o => lista(o.vinculados) },
@@ -698,6 +724,8 @@ async function baixarExcelOrcamentos() {
                 { titulo: 'Total', largura: 15, tipo: 'moeda', soma: true, valor: o => Number(o.total_geral) || 0 },
                 { titulo: 'Pedidos', largura: 15, tipo: 'moeda', soma: true, valor: o => somaPedidos(o) },
                 { titulo: 'Nº dos pedidos', largura: 22, valor: o => (o.pedidos || []).map(p => p?.pedido).filter(Boolean).join(', ') },
+                { titulo: 'Requisições', largura: 15, tipo: 'moeda', soma: true, valor: o => Number(o.total_requisicoes) || 0 },
+                { titulo: 'Qtde. de requisições', largura: 10, centro: true, valor: o => Number(o.qtde_requisicoes) || 0 },
                 { titulo: 'Notas', largura: 22, valor: o => (o.notas || []).map(n => n?.n_nota).filter(Boolean).join(', ') },
                 { titulo: 'Custo até agora', largura: 15, tipo: 'moeda', soma: true, valor: o => Number(o.total_pagamentos) || 0 },
                 { titulo: 'Custo % do total', largura: 11, valor: o => Number(o.total_geral) ? Math.round(Number(o.total_pagamentos || 0) / Number(o.total_geral) * 1000) / 10 : '' }
