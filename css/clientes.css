@@ -755,12 +755,24 @@
 .cli-tela .tabela > tbody > tr.tabela-linha-detalhes > td { white-space: normal; }
 
 /* Bandeja da direita: filtros e mapa por estado. */
-.cli-tela .fin-corpo:not(.recolhido) .cli-painel {
-    width: clamp(300px, 26vw, 440px);
-    gap: 10px;
-    /* O menu dos filtros abre por cima da bandeja (a largura animada só precisa cortar recolhida). */
-    overflow: visible;
+/* Bandeja com a mesma altura do bloco da tabela: a altura vem da tabela (a bandeja fica por cima, em
+   absoluto, sem esticar a linha) e o que passar rola dentro dela. */
+.cli-tela .fin-lateral {
+    width: 52px;
+    transition: width 200ms ease;
 }
+.cli-tela .fin-corpo:not(.recolhido) .fin-lateral { width: clamp(300px, 26vw, 440px); }
+.cli-tela .fin-lateral > .cli-painel {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    gap: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+.cli-tela .fin-corpo.recolhido .fin-lateral > .cli-painel { width: auto; }
+@media (prefers-reduced-motion: reduce) { .cli-tela .fin-lateral { transition: none; } }
 .cli-recolhido-acoes { display: none; flex-direction: column; align-items: center; gap: 2px; }
 .cli-tela .fin-corpo.recolhido .cli-recolhido-acoes { display: flex; }
 .cli-tela .fin-corpo.recolhido .cli-filtros,
@@ -778,7 +790,10 @@
 .cli-painel .fundo-mapa .mapa-br svg { max-height: calc(100dvh - 380px); min-height: 160px; }
 
 @media (max-width: 800px) {
-    .cli-tela .fin-corpo:not(.recolhido) .cli-painel { width: 100%; overflow-y: auto; }
+    /* Celular: volta a ser a gaveta de baixo do layout financeiro. */
+    .cli-tela .fin-lateral,
+    .cli-tela .fin-corpo:not(.recolhido) .fin-lateral { width: auto; }
+    .cli-tela .fin-lateral > .cli-painel { position: static; width: 100%; }
     .cli-tela .fin-corpo.recolhido .cli-recolhido-acoes { display: none; }
     .cli-filtros { grid-template-columns: 1fr; }
 }
