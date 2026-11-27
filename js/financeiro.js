@@ -198,6 +198,12 @@ const normalFin = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').
 const rotuloDepFin = d => d ? `${d.id}${d.cliente ? ` · ${d.cliente}` : d.tipo === 'SETOR' ? ' · setor' : ''}${d.cidade ? ` (${d.cidade})` : ''}` : ''
 const r6Fin = v => Math.round(Number(v) * 1e6) / 1e6
 const pctCampoFin = v => String(Number(Number(v).toFixed(4)))
+// Departamento que a fatura já tinha mas não está na lista (veio do Omie: "LOGISTICA", "ARQUIVO MORTO"...):
+// fica na linha com o próprio código (27/11/2026). Antes a linha abria em branco e o rateio quebrava ao salvar.
+const rotuloDepIdFin = id => {
+    const dep = (opcoesFinCache?.departamentos || []).find(d => d.id === id)
+    return dep ? rotuloDepFin(dep) : id ? `${id} · fora da lista` : ''
+}
 
 // { valorDoFormulario: true } (fatura, 21/11/2026, a pedido): R$ e % na mesma linha, a base é o Valor do topo.
 function editorRateioFin(departamentos, rateio = [], { total = null, valorDoFormulario = false } = {}) {
@@ -215,12 +221,12 @@ function editorRateioFin(departamentos, rateio = [], { total = null, valorDoForm
 }
 
 function linhaRateioFin(r, comValor = false) {
-    const dep = (opcoesFinCache?.departamentos || []).find(d => d.id === r.departamento)
+    const id = String(r.departamento || '')
     const recalcular = comValor ? ` oninput="editarRateioFin(this, 'pct')"` : ''
     return `
         <div class="fin-rateio-linha" data-modo="pct">
-            <div class="fin-escolha" data-valor="${escFin(dep ? dep.id : '')}">
-                <input class="fis-input" name="departamento_busca" value="${escFin(rotuloDepFin(dep))}" placeholder="Buscar contrato, cliente ou setor…" autocomplete="off"
+            <div class="fin-escolha" data-valor="${escFin(id)}">
+                <input class="fis-input" name="departamento_busca" value="${escFin(rotuloDepIdFin(id))}" placeholder="Buscar contrato, cliente ou setor…" autocomplete="off"
                     onfocus="this.select(); buscarDepFin(this)" oninput="buscarDepFin(this)" onblur="setTimeout(() => fecharBuscaDepFin(this), 150)">
                 <div class="fin-escolha-lista" hidden></div>
             </div>
@@ -294,7 +300,7 @@ function buscarDepFin(input) {
     const termo = normalFin(input.value)
     const todos = opcoesFinCache?.departamentos || []
     // O que já está escolhido não filtra (ao focar, mostra tudo de novo).
-    const filtro = termo && termo !== normalFin(rotuloDepFin(todos.find(d => d.id === caixa.dataset.valor))) ? termo : ''
+    const filtro = termo && termo !== normalFin(rotuloDepIdFin(caixa.dataset.valor)) ? termo : ''
     const achados = todos.filter(d => !filtro || normalFin(`${d.id} ${d.cliente || ''} ${d.cidade || ''}`).includes(filtro)).slice(0, 40)
     lista.innerHTML = achados.map(d => `
         <button type="button" class="fin-escolha-item" onmousedown="event.preventDefault(); escolherDepFin(this, '${escFin(d.id)}')">
@@ -317,8 +323,7 @@ function fecharBuscaDepFin(input) {
     const caixa = input.closest('.fin-escolha')
     if (!caixa) return
     caixa.querySelector('.fin-escolha-lista').hidden = true
-    const dep = (opcoesFinCache?.departamentos || []).find(d => d.id === caixa.dataset.valor)
-    input.value = rotuloDepFin(dep)
+    input.value = rotuloDepIdFin(caixa.dataset.valor)
 }
 
 // todas = true: inclui as linhas sem departamento e não arredonda (para somar). Com R$, a linha guiada pelo
@@ -1267,11 +1272,16 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
     const dia = v => v ? String(v).slice(0, 10) : ''
     const vencimento = t ? dia(t.vencimento) : rec ? dia(rec.primeiro_vencimento) : ''
     const valor = t ? r2Fin(t.valor) : rec ? r2Fin(rec.valor) : ''
-    const travaVencimento = rec || (t && !manual && Number(t.pago)) || cancelada
+    // Com pagamento/recebimento registrado (27/11/2026, a pedido): valor, vencimento e favorecido travam; para
+    // mudar, cancela-se o pagamento, altera e registra de novo. Departamentos, categorias, tags e obs. seguem livres.
+    const comPagamento = Number(t?.pago) > 0
+    const livre = manual && !cancelada && !comPagamento
+    const travaVencimento = rec || comPagamento || cancelada
     anexosFormFin = Array.isArray(t?.anexos) ? [...t.anexos] : []
     const quando = (em, por) => em ? `Em ${new Date(em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}${por ? ` por ${escFin(por)}` : ''}` : '—'
     const avisos = [
-        !manual ? `Fatura de ${escFin(ORIGENS_FIN[t.origem])}: valor e ${termoFin('favorecido', tipo)} vêm da origem.${Number(t.pago) ? ` Com ${termoFin('pagamento', tipo)}, o vencimento também fica.` : ''}` : '',
+        !manual ? `Fatura de ${escFin(ORIGENS_FIN[t.origem])}: valor e ${termoFin('favorecido', tipo)} vêm da origem.${comPagamento ? ` Com ${termoFin('pagamento', tipo)}, o vencimento também fica.` : ''}` : '',
+        manual && comPagamento && !cancelada ? `Fatura com ${termoFin('pagamento', tipo)} registrado: valor, vencimento e ${termoFin('favorecido', tipo)} não mudam. Para alterar, use <b>Cancelar ${termoFin('pagamento', tipo)}</b>, ajuste e registre de novo.` : '',
         t?.recorrencia_id ? `Ocorrência de uma repetição (${escFin(nomeFrequenciaFin(t.recorrencia_frequencia).toLowerCase())}): a mudança vale só para ela. Para mudar as futuras, edite a repetição.` : '',
         rec ? `A mudança vale para as próximas faturas ainda sem ${termoFin('pagamento', tipo)}. Frequência e 1º vencimento não mudam: para isso, encerre e crie outra.` : '',
         cancelada ? `Fatura excluída${t.cancelamento_motivo ? `: ${escFin(t.cancelamento_motivo)}` : ''}. Não se altera.` : ''
@@ -1300,14 +1310,14 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                             <div class="fin-form-grade">
                                 <div class="fin-campo fin-campo-favorecido">
                                     <span>${pagar ? 'Favorecido / Fornecedor' : 'Cliente'} <i class="fin-vinculo" data-vinculo-fin title="Escolhido do cadastro de clientes" ${base?.cliente_id ? '' : 'hidden'}>🔗</i></span>
-                                    <span class="opcoes fin-opcoes${manual && !cancelada ? '' : ' travado'}" name="favorecido_fin" ${base?.cliente_id ? `id="${escFin(base.cliente_id)}"` : ''}
-                                        ${manual && !cancelada ? 'onclick="abrirFavorecidosFin()"' : 'title="Vem da origem da fatura"'}>${escFin(base?.participante_nome || 'Selecione')}</span>
+                                    <span class="opcoes fin-opcoes${livre ? '' : ' travado'}" name="favorecido_fin" ${base?.cliente_id ? `id="${escFin(base.cliente_id)}"` : ''}
+                                        ${livre ? 'onclick="abrirFavorecidosFin()"' : `title="${manual && comPagamento ? `Com ${termoFin('pagamento', tipo)}: cancele para alterar` : 'Vem da origem da fatura'}"`}>${escFin(base?.participante_nome || 'Selecione')}</span>
                                     <input type="hidden" name="participante_nome" value="${escFin(base?.participante_nome || '')}">
                                 </div>
                                 <label class="fin-campo"><span>Vencimento *</span>
                                     <input class="fis-input" type="date" name="vencimento" value="${escFin(vencimento)}" ${travaVencimento ? 'readonly' : ''} oninput="sincronizarTopoFin()"></label>
                                 <label class="fin-campo"><span>Valor *${t ? ` <small class="fin-parcela">${escFin(t.parcela_texto)}</small>` : ''}</span>
-                                    <input class="fis-input fis-num" type="number" step="0.01" min="0.01" name="valor" value="${valor}" ${manual && !cancelada ? '' : 'readonly'} oninput="sincronizarTopoFin()"></label>
+                                    <input class="fis-input fis-num" type="number" step="0.01" min="0.01" name="valor" value="${valor}" ${livre ? '' : 'readonly'} oninput="sincronizarTopoFin()"></label>
                                 <label class="fin-campo"><span>Empresa</span>
                                     <select class="fis-input" name="app" ${cancelada || rec ? 'disabled' : ''} data-app-original="${escFin(t ? app : '')}"
                                         data-pagamentos="${baixas.filter(b => !b.estornada).length}" onchange="trocarEmpresaFormFin(this)">
@@ -1319,7 +1329,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                         </div>
                         ${avisos.map(a => `<div class="fis-info">${a}</div>`).join('')}
                         <div class="fis-info" data-aviso-empresa-fin hidden></div>
-                        ${rec ? '' : blocoLeitorFin(t, manual && !cancelada)}
+                        ${rec ? '' : blocoLeitorFin(t, livre)}
                         <div class="fin-abas" role="tablist">
                             ${abas.map(([chave, nome]) => `<button type="button" role="tab" data-aba="${chave}" aria-selected="${chave === aba}" onclick="mostrarAbaFin('${chave}')">${nome}</button>`).join('')}
                         </div>
@@ -1328,7 +1338,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                             <div class="fin-form-grade fin-grade-detalhes">
                                 ${rec ? '' : `<label class="fin-campo"><span>Nº do documento / nota</span><input class="fis-input" name="numero_documento" maxlength="60" value="${escFin(t?.numero_documento || '')}"></label>`}
                                 <label class="fin-campo"><span>Forma de pagamento</span><select class="fis-input" name="forma_pagamento"><option value=""></option>${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}" ${base?.forma_pagamento === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-                                <label class="fin-campo"><span>CPF/CNPJ</span><input class="fis-input" name="participante_documento" value="${escFin(base?.participante_documento ? docFormatadoFis(base.participante_documento) : '')}" ${manual && !cancelada ? '' : 'readonly'}></label>
+                                <label class="fin-campo"><span>CPF/CNPJ</span><input class="fis-input" name="participante_documento" value="${escFin(base?.participante_documento ? docFormatadoFis(base.participante_documento) : '')}" ${livre ? '' : 'readonly'}></label>
                                 <label class="fin-campo fin-campo-pix"><span>Chave Pix</span><input class="fis-input" name="chave_pix" maxlength="140" value="${escFin(base?.chave_pix || '')}" placeholder="CPF, CNPJ, e-mail, telefone ou aleatória"></label>
                                 <label class="fin-campo fin-campo-largo"><span>Observações</span><textarea class="fis-input" name="observacao" rows="3">${escFin(base?.observacao || '')}</textarea></label>
                             </div>
@@ -1481,6 +1491,20 @@ function sincronizarTopoFin() {
         previaRepeticaoFin(bloco)
     }
     simularRepeticoesFin(true)
+    // Valor da fatura mudou (27/11/2026, a pedido): departamentos e categorias se repartem na mesma proporção.
+    // A linha digitada em R$ vira o % que ela tinha sobre o valor anterior (antes mantinha o R$ e a soma saía de 100%).
+    const anterior = Number(form.dataset.valorAnterior) || 0
+    const atual = Number(valor) || 0
+    if (anterior && atual && Math.abs(anterior - atual) > 0.0001) {
+        for (const l of form.querySelectorAll('.fin-rateio-linha[data-modo="valor"]')) {
+            const categoria = l.classList.contains('fin-categoria-linha')
+            const pct = l.querySelector(categoria ? '[name="percentual_categoria"]' : '[name="percentual"]')
+            const val = l.querySelector(categoria ? '[name="valor_categoria"]' : '[name="valor_rateio"]')
+            if (pct && val && val.value !== '') pct.value = String(r6Fin((Number(val.value) || 0) * 100 / anterior))
+            l.dataset.modo = 'pct'
+        }
+    }
+    if (atual) form.dataset.valorAnterior = String(atual)
     somarCategoriasFin()
     const rateio = form.querySelector('[data-rateio][data-total-formulario]')
     if (rateio) somarRateioFin(rateio)
@@ -1654,6 +1678,8 @@ function editorCategoriasFin(lista, tipo, travado = false) {
 // só entra clicando num item (data-valor). Saiu sem escolher, volta para a que estava.
 const categoriaFinPorId = id => (opcoesFinCache?.categorias || []).find(c => String(c.id) === String(id ?? ''))
 const rotuloCatFin = c => c ? `${c.codigo} · ${c.nome}${c.excluida ? ' (excluída)' : ''}` : ''
+// Categoria da fatura que não veio na lista: fica com o id (27/11/2026), em vez de a linha abrir vazia.
+const rotuloCatIdFin = id => { const c = categoriaFinPorId(id); return c ? rotuloCatFin(c) : id != null && id !== '' ? `Categoria nº ${id}` : '' }
 const aceitaCatFin = (c, tipo) => !c.grupo && (tipo === 'PAGAR' ? c.tipo !== 'RECEITA' : c.tipo !== 'DESPESA')
 
 function buscarCatFin(input) {
@@ -1661,7 +1687,7 @@ function buscarCatFin(input) {
     const lista = caixa.querySelector('.fin-escolha-lista')
     const tipo = input.closest('[data-categorias-fin]')?.dataset.tipo
     const termo = normalFin(input.value)
-    const filtro = termo && termo !== normalFin(rotuloCatFin(categoriaFinPorId(caixa.dataset.valor))) ? termo : ''
+    const filtro = termo && termo !== normalFin(rotuloCatIdFin(caixa.dataset.valor)) ? termo : ''
     const achados = (opcoesFinCache?.categorias || [])
         .filter(c => aceitaCatFin(c, tipo))
         .filter(c => !filtro || normalFin(`${c.codigo} ${c.nome} ${c.grupo_codigo || ''} ${c.grupo_nome || ''}`).includes(filtro))
@@ -1692,16 +1718,16 @@ function fecharBuscaCatFin(input) {
     const caixa = input.closest('.fin-escolha')
     if (!caixa) return
     caixa.querySelector('.fin-escolha-lista').hidden = true
-    input.value = rotuloCatFin(categoriaFinPorId(caixa.dataset.valor))
+    input.value = rotuloCatIdFin(caixa.dataset.valor)
 }
 
 function linhaCategoriaFin(c, tipo, travado = false) {
     const trava = travado ? 'disabled' : ''
-    const cat = categoriaFinPorId(c.categoria_id)
+    const id = c.categoria_id == null ? '' : String(c.categoria_id)
     return `
         <div class="fin-rateio-linha fin-categoria-linha" data-modo="pct">
-            <div class="fin-escolha" data-categoria-escolha data-valor="${escFin(cat ? cat.id : '')}">
-                <input class="fis-input" name="categoria_busca" value="${escFin(rotuloCatFin(cat))}" placeholder="Buscar código ou nome da categoria…" autocomplete="off" ${trava}
+            <div class="fin-escolha" data-categoria-escolha data-valor="${escFin(id)}">
+                <input class="fis-input" name="categoria_busca" value="${escFin(rotuloCatIdFin(id))}" placeholder="Buscar código ou nome da categoria…" autocomplete="off" ${trava}
                     onfocus="this.select(); buscarCatFin(this)" oninput="buscarCatFin(this)" onblur="setTimeout(() => fecharBuscaCatFin(this), 150)">
                 <div class="fin-escolha-lista" hidden></div>
             </div>
