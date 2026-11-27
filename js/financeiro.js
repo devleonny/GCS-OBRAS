@@ -868,17 +868,17 @@ async function excluirFaturaFin(id, doFormulario = false) {
     executarLoteFin({ acao: 'excluir' }, null, [String(id)])
 }
 
-// Cancelar = desfazer os pagamentos/recebimentos (todas as baixas, com motivo): a fatura volta a ficar em aberto.
-// Sem id: as faturas marcadas na tabela.
+// Cancelar = desfazer os pagamentos/recebimentos (todas as baixas, com juros/desconto etc.): a fatura volta a
+// ficar em aberto. Sem justificativa. Sem id: as faturas marcadas na tabela.
 async function cancelarPagamentosFin(id = null) {
     const varias = !id
-    const motivo = await pedirTextoPopup({
+    const ok = await confirmarPopup({
         titulo: `Cancelar ${termoFin('pagamento')}${varias ? ` de ${selecaoFin.size} fatura(s)` : ''}`,
-        mensagem: `A fatura volta a ficar em aberto (o ${termoFin('pagamento')} sai da conta corrente). Motivo:`,
-        minimo: 5, maximo: 300, textoConfirmar: `Cancelar ${termoFin('pagamento')}`
+        mensagem: `A fatura volta a ficar em aberto (o ${termoFin('pagamento')} sai da conta corrente).`,
+        textoConfirmar: `Cancelar ${termoFin('pagamento')}`
     })
-    if (motivo === null) return
-    await executarLoteFin({ acao: 'cancelar', motivo }, null, varias ? null : [String(id)])
+    if (!ok) return
+    await executarLoteFin({ acao: 'cancelar' }, null, varias ? null : [String(id)])
     if (!varias) posAcaoFaturaFin(id, Boolean(document.querySelector(`[data-fatura-fin="${CSS.escape(String(id))}"]`)))
 }
 
@@ -1215,7 +1215,7 @@ async function abrirFaturaFin(id) {
                                     <td class="fis-num">${dinheiro(b.valor)}</td>
                                     <td class="fis-num">${Number(b.juros) + Number(b.multa) ? dinheiro(Number(b.juros) + Number(b.multa)) : ''}</td>
                                     <td class="fis-num">${Number(b.desconto) ? dinheiro(b.desconto) : ''}</td>
-                                    <td><small>${escFin(b.criado_por || '')}${b.estornada ? ` · desfeito: ${escFin(b.estorno_motivo || '')}` : ''}</small></td>
+                                    <td><small>${escFin(b.criado_por || '')}${b.estornada ? ` · desfeito${b.estorno_motivo ? `: ${escFin(b.estorno_motivo)}` : ''}` : ''}</small></td>
                                     <td>${b.estornada ? '' : `<button type="button" class="fis-mini" onclick="estornarBaixaFin('${escFin(b.id)}', '${escFin(t.id)}')">Desfazer</button>`}</td>
                                 </tr>`).join('')}
                             </tbody>
@@ -1973,7 +1973,7 @@ function abaPagamentosFin(t, baixas, pagar, cancelada) {
                                 <td class="fis-num">${Number(b.juros) + Number(b.multa) ? dinheiro(Number(b.juros) + Number(b.multa)) : ''}</td>
                                 <td class="fis-num"><b>${dinheiro(Number(b.valor) + Number(b.juros) + Number(b.multa) - Number(b.desconto))}</b></td>
                                 <td>${celulaComprovanteBaixaFin(b, t.id)}</td>
-                                <td><small>${escFin(b.criado_por || '')}${b.estornada ? ` · desfeito: ${escFin(b.estorno_motivo || '')}` : ''}</small></td>
+                                <td><small>${escFin(b.criado_por || '')}${b.estornada ? ` · desfeito${b.estorno_motivo ? `: ${escFin(b.estorno_motivo)}` : ''}` : ''}</small></td>
                                 <td>${b.estornada ? '' : `<button type="button" class="fis-mini" onclick="estornarBaixaFin('${escFin(b.id)}', '${id}')">Desfazer</button>`}</td>
                             </tr>`).join('')}
                         </tbody>
@@ -2181,8 +2181,9 @@ async function encerrarRecorrenciaFin(id, tipo) {
 }
 
 // Registrar pagamento (aba Pagamentos da fatura): o completo, com pagamento parcial, desconto, juros, multa,
-// abatimento e acréscimo. "Valor do pagamento" é o que saiu/entrou de fato na conta; o que abate da fatura é
-// valor − juros − multa − acréscimo + desconto + abatimento. Abatimento grava como desconto e acréscimo como juros.
+// abatimento e acréscimo. "Valor da fatura" já vem com o que falta e é o que abate da fatura; o "Valor pago"
+// (o que saiu/entrou de fato na conta) é calculado: valor + juros + multa + acréscimo − desconto − abatimento.
+// Abatimento grava como desconto e acréscimo como juros.
 async function formularioBaixaFin(id) {
     let op, t
     try {
@@ -2212,7 +2213,7 @@ async function formularioBaixaFin(id) {
                         <label class="fis-campo"><span>Data do ${pg} *</span><input class="fis-input" type="date" name="data" max="${hojeFin()}" value="${hojeFin()}"></label>
                     </div>
                     <div class="fis-grade">
-                        ${num('valor', `Valor do ${pg} *`, r2Fin(t.saldo))}
+                        ${num('valor', 'Valor da fatura *', r2Fin(t.saldo), `Quanto abate da fatura. Já vem com o que falta; diminua para ${pg} parcial.`)}
                         <label class="fis-campo"><span>Forma</span><select class="fis-input" name="forma">${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}" ${(t.forma_pagamento || '15') === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
                     </div>
                     <div class="fin-baixa-situacao" data-previa-baixa></div>
@@ -2224,6 +2225,7 @@ async function formularioBaixaFin(id) {
                     <div class="fis-grade">
                         ${num('abatimento', 'Abatimento', 0, 'Reduz o que falta sem ser desconto comercial (ex.: devolução, crédito). Grava como desconto.')}
                         ${num('acrescimo', 'Acréscimo', 0, 'Valor a mais que não é juros nem multa (ex.: tarifa). Grava como juros.')}
+                        <label class="fis-campo"><span>Valor ${pagar ? 'pago' : 'recebido'}</span><div class="fin-pag-total forte" data-valor-pago-baixa>${dinheiro(t.saldo)}</div></label>
                     </div>
                     <div class="fin-baixa-faixa">
                         <span>Vencimento<b>${dataFin(t.vencimento)}</b></span>
@@ -2246,20 +2248,23 @@ function lerBaixaFin(form) {
     const desconto = r2Fin(n('desconto') + n('abatimento'))
     const juros = r2Fin(n('juros') + n('acrescimo'))
     const multa = n('multa')
-    const abate = r2Fin(valor - juros - multa + desconto)
-    return { saldo, valor, desconto, juros, multa, abate }
+    const abate = valor
+    const pago = r2Fin(valor + juros + multa - desconto)
+    return { saldo, valor, desconto, juros, multa, abate, pago }
 }
 
 // Diz na hora se a fatura fica quitada, quanto ainda falta, ou se passou do saldo.
 function previaBaixaFin(campo) {
     const form = campo?.closest('[data-form-baixa]')
     if (!form) return
-    const { saldo, valor, abate } = lerBaixaFin(form)
+    const { saldo, valor, abate, pago } = lerBaixaFin(form)
+    const campoPago = form.querySelector('[data-valor-pago-baixa]')
+    if (campoPago) campoPago.textContent = dinheiro(pago)
     const quitada = form.dataset.pagar ? 'Esta conta a pagar será quitada' : 'Esta conta a receber será quitada'
     const caixa = form.querySelector('[data-previa-baixa]')
     caixa.className = 'fin-baixa-situacao'
     if (!(valor > 0)) caixa.textContent = 'Informe o valor.'
-    else if (abate <= 0) { caixa.classList.add('erro'); caixa.textContent = 'Juros, multa e acréscimo passam do valor: nada abateria da fatura.' }
+    else if (pago <= 0) { caixa.classList.add('erro'); caixa.textContent = 'Desconto e abatimento passam do valor: o valor pago ficaria zerado.' }
     else if (abate > saldo + 0.004) {
         caixa.classList.add('erro')
         caixa.innerHTML = `Passa ${dinheiro(abate - saldo)} do que falta (${dinheiro(saldo)}). Se pagou a mais, lance a diferença em juros, multa ou acréscimo.`
@@ -2271,11 +2276,11 @@ async function salvarBaixaFin(botao) {
     const form = document.querySelector('[data-form-baixa]')
     const v = n => form.querySelector(`[name="${n}"]`).value
     const id = form.dataset.id
-    const { saldo, valor, desconto, juros, multa, abate } = lerBaixaFin(form)
+    const { saldo, valor, desconto, juros, multa, abate, pago } = lerBaixaFin(form)
     if (!v('conta_id')) return popup({ mensagem: 'Escolha a conta corrente.' })
     if (!v('data')) return popup({ mensagem: `Informe a data do ${termoFin('pagamento')}.` })
     if (!(valor > 0)) return popup({ mensagem: 'Informe o valor.' })
-    if (abate <= 0) return popup({ mensagem: 'Juros, multa e acréscimo passam do valor: nada abateria da fatura.' })
+    if (pago <= 0) return popup({ mensagem: 'Desconto e abatimento passam do valor: o valor pago ficaria zerado.' })
     if (abate > saldo + 0.004) return popup({ mensagem: `Passa ${dinheiro(abate - saldo)} do que falta na fatura (${dinheiro(saldo)}). Lance a diferença em juros, multa ou acréscimo.` })
     try {
         overlayAguarde()
@@ -2350,11 +2355,11 @@ async function salvarBaixaRapidaFin(botao) {
 }
 
 async function estornarBaixaFin(baixaId, tituloId) {
-    const motivo = await pedirTextoPopup({ titulo: `Desfazer ${termoFin('pagamento')}`, mensagem: `Por que desfazer este ${termoFin('pagamento')}?`, textoConfirmar: 'Desfazer' })
-    if (motivo === null) return
+    const ok = await confirmarPopup({ titulo: `Desfazer ${termoFin('pagamento')}`, mensagem: `Este ${termoFin('pagamento')} (com juros, desconto etc.) sai da fatura e da conta corrente.`, textoConfirmar: 'Desfazer' })
+    if (!ok) return
     try {
         overlayAguarde()
-        await apiFin('baixa/estornar', { baixa_id: baixaId, motivo })
+        await apiFin('baixa/estornar', { baixa_id: baixaId })
         removerOverlay()
         posAcaoFaturaFin(tituloId)
         if (controles.faturasFin) { paginacao('faturasFin'); totaisFaturasFin() }
