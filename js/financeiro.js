@@ -840,8 +840,8 @@ async function mostrarDanfePainelFin(id) {
     const nota = notaFaturaFin.get(id)
     const alvo = document.querySelector(`[data-danfe-fin="${CSS.escape(id)}"]`)
     if (!alvo || !nota) return
-    const doc = nota.modelo === 'NFSE' ? 'DANFSe' : 'DANFE'
-    const texto = nota.direcao === 'ENTRADA' ? `Exibir ${doc} do fornecedor` : `Exibir ${doc}`
+    const doc = nota.modelo === 'CTE' ? 'DACTE' : nota.modelo === 'NFSE' ? 'DANFSe' : 'DANFE'
+    const texto = nota.modelo === 'CTE' ? `Exibir ${doc} do frete` : nota.direcao === 'ENTRADA' ? `Exibir ${doc} do fornecedor` : `Exibir ${doc}`
     alvo.outerHTML = `
         <button type="button" class="fin-acao" title="${escFin(`${texto}${nota.numero ? ` (nota ${nota.numero})` : ''}`)}" onclick="baixarArquivoFiscal('${escFin(id)}', 'pdf', 'fatura/danfe')">
             ${iconeFin('danfe')}<span>${texto}</span></button>`
