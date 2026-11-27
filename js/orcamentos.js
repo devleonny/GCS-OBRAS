@@ -91,7 +91,7 @@ async function telaOrcamentos() {
             'Desc. / Acrés.': { chave: 'diferenca_pct', tipoPesquisa: 'valor' },
             'Diferença': { chave: 'diferenca', tipoPesquisa: 'valor' },
             'Total': { chave: 'total_geral', tipoPesquisa: 'valor' },
-            'Pedidos': {},
+            'Pedidos': { chave: 'total_pedidos', tipoPesquisa: 'valor' },
             'Requisições': { chave: 'total_requisicoes', tipoPesquisa: 'valor' },
             'Custo até agora': { chave: 'total_pagamentos', tipoPesquisa: 'valor' }
         },
@@ -287,6 +287,8 @@ async function criarLinhaOrcamento(orcamento) {
         cliente_foto,
         total_requisicoes,
         qtde_requisicoes,
+        total_pedidos,
+        qtde_pedidos,
         total_pagamentos,
         notas,
         pedidos,
@@ -373,7 +375,8 @@ async function criarLinhaOrcamento(orcamento) {
 
     const responsaveis = (Array.isArray(executor) ? executor : [executor]).filter(Boolean).join(', ')
     const dif = diferencaOrcamento(diferenca, diferenca_pct, total_bruto)
-    const totalPedidos = (pedidos || []).reduce((s, p) => s + (Number(p?.valor) || 0), 0)
+    // Soma dos pedidos: coluna nativa total_pedidos da mvw (gcs migrations/orcamentos-total-pedidos.sql), com funil de valor.
+    const qtdePed = Number(qtde_pedidos) || 0
     const data = timestamp ? new Date(Number(timestamp)).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''
 
     // Foto do cliente; sem foto própria, a da empresa (preencherFotosEmpresaCliente em js/clientes.js); senão as iniciais.
@@ -414,7 +417,7 @@ async function criarLinhaOrcamento(orcamento) {
         <td class="orc-col-dif-tipo">${dif.tipo}</td>
         <td class="fin-valor">${dif.valor}</td>
         <td class="fin-valor orc-col-total">${dinheiro(total_geral)}</td>
-        <td class="fin-valor">${totalPedidos ? dinheiro(totalPedidos) : ''}</td>
+        <td class="fin-valor" title="${qtdePed ? `${qtdePed} pedido${qtdePed === 1 ? '' : 's'}` : 'Sem pedidos'}">${qtdePed ? dinheiro(total_pedidos) : ''}</td>
         <td class="fin-valor" title="${qtdeReq ? `${qtdeReq} requisiç${qtdeReq === 1 ? 'ão' : 'ões'}` : 'Sem requisições'}">${qtdeReq ? dinheiro(total_requisicoes) : ''}</td>
         <td class="fin-valor orc-col-custo">${barraCustoOrcamento(total_pagamentos, total_geral)}</td>
     `
@@ -694,7 +697,6 @@ async function baixarExcelOrcamentos() {
             : ''
         const num = v => (v === null || v === undefined || v === '') ? '' : Number(v) || 0
         const lista = v => (Array.isArray(v) ? v : [v]).filter(Boolean).join(', ')
-        const somaPedidos = o => (o.pedidos || []).reduce((s, p) => s + (Number(p?.valor) || 0), 0)
 
         await baixarExcelRelatorioGCS({
             titulo: 'Orçamentos',
@@ -722,7 +724,7 @@ async function baixarExcelOrcamentos() {
                 { titulo: 'Diferença %', largura: 11, valor: o => num(o.diferenca_pct) },
                 { titulo: 'Diferença', largura: 14, tipo: 'moeda', soma: true, valor: o => num(o.diferenca) },
                 { titulo: 'Total', largura: 15, tipo: 'moeda', soma: true, valor: o => Number(o.total_geral) || 0 },
-                { titulo: 'Pedidos', largura: 15, tipo: 'moeda', soma: true, valor: o => somaPedidos(o) },
+                { titulo: 'Pedidos', largura: 15, tipo: 'moeda', soma: true, valor: o => Number(o.total_pedidos) || 0 },
                 { titulo: 'Nº dos pedidos', largura: 22, valor: o => (o.pedidos || []).map(p => p?.pedido).filter(Boolean).join(', ') },
                 { titulo: 'Requisições', largura: 15, tipo: 'moeda', soma: true, valor: o => Number(o.total_requisicoes) || 0 },
                 { titulo: 'Qtde. de requisições', largura: 10, centro: true, valor: o => Number(o.qtde_requisicoes) || 0 },
