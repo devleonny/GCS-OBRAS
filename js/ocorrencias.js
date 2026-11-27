@@ -536,7 +536,7 @@ function carregarCorrecoes(ocorrencia) {
                 id="aba_${idOcorrencia}_${aba}" 
                 onclick="exibirAba('${idOcorrencia}', '${aba}')" 
                 style="opacity: ${aba == abaInicial ? 1 : 0.5};"
-                class="aba-correcao">${formatacaoTipoCorrecao(st)}</div>`
+                class="aba-correcao">${abas?.[aba]?.orcamento ? `<span class="aba-orcamento">${abas[aba].orcamento}</span>` : ''}${formatacaoTipoCorrecao(st)}</div>`
         })
     )]
 

@@ -849,6 +849,15 @@
     white-space: nowrap;
 }
 
+/* Número do orçamento na aba (chamado com orçamentos vinculados: cada um com a sua aba). */
+.aba-orcamento {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #222;
+    margin-bottom: 2px;
+}
+
 .scroll-aba {
     flex: 0 0 auto;
 }
