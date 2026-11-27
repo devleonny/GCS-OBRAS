@@ -1315,7 +1315,7 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                             <div class="fin-avatar fin-avatar-grande" data-avatar-fin>${escFin(iniciaisFin(base?.participante_nome))}</div>
                             <div class="fin-form-grade">
                                 <div class="fin-campo fin-campo-favorecido">
-                                    <span>${pagar ? 'Favorecido / Fornecedor' : 'Cliente'} <i class="fin-vinculo" data-vinculo-fin title="Escolhido do cadastro de clientes" ${base?.cliente_id ? '' : 'hidden'}>🔗</i></span>
+                                    <span>${pagar ? 'Favorecido / Fornecedor' : 'Cliente'} <img class="fin-vinculo" data-vinculo-fin src="imagens/link.png" alt="Cadastro" title="Abrir o cadastro" onclick="abrirCadastroFavorecidoFin(event)" ${base?.cliente_id ? '' : 'hidden'}></span>
                                     <span class="opcoes fin-opcoes${livre ? '' : ' travado'}" name="favorecido_fin" ${base?.cliente_id ? `id="${escFin(base.cliente_id)}"` : ''}
                                         ${livre ? 'onclick="abrirFavorecidosFin()"' : `title="${manual && comPagamento ? `Com ${termoFin('pagamento', tipo)}: cancele para alterar` : 'Vem da origem da fatura'}"`}>${escFin(base?.participante_nome || 'Selecione')}</span>
                                     <input type="hidden" name="participante_nome" value="${escFin(base?.participante_nome || '')}">
@@ -1861,6 +1861,14 @@ function pintarAvatarFin(el, nome, foto) {
     img.onerror = () => { el.classList.remove('com-foto'); el.textContent = iniciais }
     el.classList.add('com-foto')
     el.replaceChildren(img)
+}
+
+// Corrente ao lado de Favorecido / Cliente: abre o cadastro escolhido.
+function abrirCadastroFavorecidoFin(event) {
+    event?.stopPropagation()
+    const form = document.querySelector('[data-form-fatura]')
+    const id = form?.querySelector('[name="favorecido_fin"]')?.id || form?.dataset.cliente
+    if (id) formularioCliente(Number(id) || id)
 }
 
 // Depois de escolher na lista (o cxOpcoes já pôs o nome e o id no span): CPF/CNPJ, chave Pix e iniciais.

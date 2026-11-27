@@ -896,7 +896,8 @@
 .fin-campo .fis-input:disabled { background: #eef1ef; color: #5b6b61; }
 .fin-campo-largo { grid-column: 1 / -1; }
 .fin-parcela { margin-left: auto; color: #6b7a71; font-weight: 600; }
-.fin-vinculo { font-style: normal; font-size: 11px; cursor: help; }
+.fin-vinculo { width: 14px; height: 14px; vertical-align: -2px; margin-left: 2px; cursor: pointer; }
+.fin-vinculo:hover { transform: scale(1.2); }
 .fin-vinculo[hidden] { display: none; }
 
 .fin-abas {
