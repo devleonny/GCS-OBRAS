@@ -11,6 +11,8 @@
 // painel: bandeja da direita com os totais (começa aberta).
 const estadoControleFat = { ano: String(new Date().getFullYear()), painel: true }
 const dadosControleFat = new Map()
+// Empresa sem foto no cadastro (ou foto que não carrega): o logo do GCS no lugar.
+const LOGO_GCS_CTF = 'imagens/logo-gcs-quadrado.png'
 let assinaturaTotaisControleFat = null
 
 const SITUACOES_CONTROLE_FAT = {
@@ -259,7 +261,7 @@ function criarLinhaControleFat(d) {
             <td class="ctf-corta"><button type="button" class="ctf-setor ${d.setor === 'SEM SETOR' ? 'vazio' : ''}" title="${escFin(d.setor)} · ${d.responsavel_id ? 'clique para corrigir o setor de quem pediu (vale para todas as notas dele)' : 'responsável sem cadastro: o setor não se corrige por aqui'}"
                 ${d.responsavel_id ? `onclick="event.stopPropagation(); escolherSetorControleFat('${id}')"` : 'disabled'}>${escFin(d.setor)}</button></td>
             ${corta(d.responsavel)}
-            <td class="ctf-corta" title="${escFin(d.grupo || '')}"><span>${d.grupo_foto ? `<img class="ctf-empresa-foto" src="${escFin(urlFotoCliente(d.grupo_foto))}" alt="" loading="lazy" onerror="this.remove()">` : ''}${escFin(d.grupo || '')}</span></td>
+            <td class="ctf-corta" title="${escFin(d.grupo || '')}"><span><img class="ctf-empresa-foto" src="${d.grupo_foto ? escFin(urlFotoCliente(d.grupo_foto)) : LOGO_GCS_CTF}" alt="" loading="lazy" onerror="this.onerror = null; this.src = LOGO_GCS_CTF">${escFin(d.grupo || '')}</span></td>
             ${corta(d.cliente, 'ctf-largo')}
             <td class="ctf-corta" title="${escFin(Number(d.orcamentos_extras) ? `${d.orcamento} e mais ${d.orcamentos_extras} orçamento(s) no rateio da nota` : d.orcamento || '')}"><span>${escFin(d.orcamento || '')}${Number(d.orcamentos_extras) ? ` <small class="ctf-modelo">+${d.orcamentos_extras}</small>` : ''}</span></td>
             <td class="fis-num">${dinheiro(d.valor)}</td>
