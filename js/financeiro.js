@@ -2216,13 +2216,10 @@ async function formularioBaixaFin(id) {
                     <div class="fis-grade">
                         ${num('abatimento', 'Abatimento', 0, 'Reduz o que falta sem ser desconto comercial (ex.: devolução, crédito). Grava como desconto.')}
                         ${num('acrescimo', 'Acréscimo', 0, 'Valor a mais que não é juros nem multa (ex.: tarifa). Grava como juros.')}
-                        <label class="fis-campo"><span>Valor ${pagar ? 'pago' : 'recebido'}</span><div class="fin-pag-total forte" data-valor-pago-baixa>${dinheiro(t.saldo)}</div></label>
                     </div>
+                    <!-- Faixa só com o valor final do pagamento (27/11, a pedido): sem vencimento/original/já pago/falta. -->
                     <div class="fin-baixa-faixa">
-                        <span>Vencimento<b>${dataFin(t.vencimento)}</b></span>
-                        <span>Valor original<b>${dinheiro(t.valor)}</b></span>
-                        <span>Total já ${pagar ? 'pago' : 'recebido'}<b>${dinheiro(Number(t.pago) + Number(t.acrescimos || 0))}</b></span>
-                        <span>Falta<b>${dinheiro(t.saldo)}</b></span>
+                        <span>Valor ${pagar ? 'pago' : 'recebido'}<b data-valor-pago-baixa>${dinheiroTexto(t.saldo)}</b></span>
                     </div>
                     <label class="fis-campo"><span>Observação deste ${pg}</span><textarea class="fis-input" name="observacao" maxlength="500" rows="3"></textarea></label>
                 </div>`
