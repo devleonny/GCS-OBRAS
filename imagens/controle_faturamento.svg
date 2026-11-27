@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Controle de Faturamento (26/11/2026): nota fiscal emitida (linhas + total em R$) com selo de conferido. -->
+  <path d="M10 6h32l8 8v44l-4-3-4 3-4-3-4 3-4-3-4 3-4-3-4 3-4-3-4 3z" fill="#2a78d6"/>
+  <path d="M42 6v8h8z" fill="#1b5aa6"/>
+  <rect x="15" y="16" width="20" height="3" rx="1.5" fill="#fff" opacity=".9"/>
+  <rect x="15" y="24" width="28" height="3" rx="1.5" fill="#fff" opacity=".7"/>
+  <rect x="15" y="31" width="24" height="3" rx="1.5" fill="#fff" opacity=".7"/>
+  <rect x="15" y="38" width="16" height="3" rx="1.5" fill="#fff" opacity=".7"/>
+  <text x="15" y="51" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#ffd25e">R$</text>
+  <circle cx="48" cy="46" r="12" fill="#1f9e89" stroke="#fff" stroke-width="2.5"/>
+  <path d="M42.5 46.5l4 4 7.5-8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

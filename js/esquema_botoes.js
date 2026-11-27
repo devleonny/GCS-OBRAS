@@ -306,7 +306,7 @@ const esquemaBotoes = {
                 { nome: 'Fluxo de Caixa', mais: true, funcao: 'telaFluxoCaixa', acesso: 'financeiro.fluxo_caixa', img: 'dashboard' },
                 { nome: 'Faturas a Pagar', funcao: 'telaFaturasPagar', acesso: 'financeiro.faturas_pagar', img: 'pagar' },
                 { nome: 'Faturas a Receber', funcao: 'telaFaturasReceber', acesso: 'financeiro.faturas_receber', img: 'receber' },
-                { nome: 'Controle de Faturamento', funcao: 'abrirControleFaturamento', acesso: 'financeiro.controle_faturamento', img: 'dashboard' },
+                { nome: 'Controle de Faturamento', funcao: 'abrirControleFaturamento', acesso: 'financeiro.controle_faturamento', svg: 'controle_faturamento' },
                 { nome: 'Lote de Salários', funcao: 'telaLotesSalarios', acesso: 'financeiro.lote_salarios', img: 'dinheiro' },
                 { nome: 'Lote de Vale Refeição', funcao: 'telaLotesAlimentacao', acesso: 'financeiro.lote_alimentacao', img: 'alimentacao' },
                 { nome: 'Lote de Transporte', funcao: 'telaLotesTransporte', acesso: 'financeiro.lote_transporte', svg: 'onibus' },
