@@ -2250,7 +2250,7 @@ function previaBaixaFin(campo) {
     if (!form) return
     const { saldo, valor, abate, pago } = lerBaixaFin(form)
     const campoPago = form.querySelector('[data-valor-pago-baixa]')
-    if (campoPago) campoPago.textContent = dinheiro(pago)
+    if (campoPago) campoPago.textContent = dinheiroTexto(pago)
     const quitada = form.dataset.pagar ? 'Esta conta a pagar será quitada' : 'Esta conta a receber será quitada'
     const caixa = form.querySelector('[data-previa-baixa]')
     caixa.className = 'fin-baixa-situacao'

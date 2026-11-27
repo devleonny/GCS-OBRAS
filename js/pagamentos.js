@@ -394,7 +394,7 @@ function colunaComprovantePagamento(pagamento) {
     const lista = comprovantesDoPagamento(pagamento)
     if (!lista.length) return '<span class="pagamento-comprovante-falta" title="Sem comprovante do banco">✗</span>'
     return lista.map(c => `<span class="pagamento-comprovante-tem" role="button" tabindex="0"
-        title="${escaparAtributo(`Comprovante · pago em ${String(c.data || '').split('-').reverse().join('/')} · ${dinheiro(c.valor)}`)}"
+        title="${escaparAtributo(`Comprovante · pago em ${String(c.data || '').split('-').reverse().join('/')} · ${dinheiroTexto(c.valor)}`)}"
         data-link="${escaparAtributo(c.link)}" data-nome="${escaparAtributo(c.nome || c.link)}"
         onclick="abrirArquivo(this.dataset.link, this.dataset.nome)"
         onkeydown="if (event.key === 'Enter') abrirArquivo(this.dataset.link, this.dataset.nome)">✓</span>`).join('')

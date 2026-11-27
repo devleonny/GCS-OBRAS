@@ -1126,7 +1126,7 @@ async function carregarLoteHistorico(painel, orcamentoId) {
     if (!lote) return
     const esc = escaparAtributo
     const ocs = (lote.pedidos || [])
-        .map(p => `<span class="${p.saldo > 10 ? '' : 'ok'}" title="OC ${esc(dinheiro(p.valor))} · faturado ${esc(dinheiro(p.faturado))}">${esc(p.numero || 'OC')} ${p.saldo > 10 ? `· falta faturar ${dinheiro(p.saldo)}` : '· faturada'}</span>`)
+        .map(p => `<span class="${p.saldo > 10 ? '' : 'ok'}" title="OC ${esc(dinheiroTexto(p.valor))} · faturado ${esc(dinheiroTexto(p.faturado))}">${esc(p.numero || 'OC')} ${p.saldo > 10 ? `· falta faturar ${dinheiro(p.saldo)}` : '· faturada'}</span>`)
         .join('')
     const verRef = lote.papel === 'LOJA' && lote.orcamento_ref
         ? `<button type="button" onclick="abrirEsquema('${esc(lote.orcamento_ref)}')">Ver ${esc(lote.contrato_ref || 'proposta')}</button>` : ''
@@ -1142,8 +1142,8 @@ async function carregarLoteHistorico(painel, orcamentoId) {
                 ${lote.excedente > 0
                     ? `<span class="alerta">${lote.excedente} além das vagas</span>`
                     : `<span class="${lote.livres ? '' : 'ok'}">${lote.livres} ${lote.livres === 1 ? 'vaga livre' : 'vagas livres'}</span>`}
-                ${lote.livres ? `<span title="Vagas livres × ${esc(dinheiro(lote.valor_vaga_venda))}">Venda a usar ${dinheiro(lote.saldo_venda)}</span>
-                <span title="Vagas livres × ${esc(dinheiro(lote.valor_vaga_servico))}">Serviço a usar ${dinheiro(lote.saldo_servico)}</span>` : ''}
+                ${lote.livres ? `<span title="Vagas livres × ${esc(dinheiroTexto(lote.valor_vaga_venda))}">Venda a usar ${dinheiro(lote.saldo_venda)}</span>
+                <span title="Vagas livres × ${esc(dinheiroTexto(lote.valor_vaga_servico))}">Serviço a usar ${dinheiro(lote.saldo_servico)}</span>` : ''}
                 ${ocs}
             </div>
         </div>

@@ -159,7 +159,7 @@ function desenharContasConc(todas) {
                 <div class="cc-saldos">
                     <div><small>Banco</small><b>${c.saldo_banco != null ? dinheiro(c.saldo_banco) : '—'}</b></div>
                     <div><small>GCS</small><b>${conferida ? dinheiro(c.saldo_gcs) : '<span class="cc-cinza" title="O saldo do GCS só vale depois do primeiro fechamento">a conferir</span>'}</b></div>
-                    <div class="${ok ? 'cc-saldo-ok' : 'cc-saldo-falta'}"><small>Falta explicar</small><b title="${ok ? '' : escFin(dinheiro(dif))}">${ok ? '✔ R$ 0,00' : dinheiro(dif)}</b></div>
+                    <div class="${ok ? 'cc-saldo-ok' : 'cc-saldo-falta'}"><small>Falta explicar</small><b title="${ok ? '' : escFin(dinheiroTexto(dif))}">${ok ? '✔ R$ 0,00' : dinheiro(dif)}</b></div>
                 </div>
                 <small class="cc-saldos-dia">Saldos no fim de ${dataFin(c.saldo_dia)}</small>
                 <div class="cc-progresso">
@@ -996,7 +996,7 @@ function listaFaturasConc() {
             detalhe: escFin([f.numero_documento && `nº ${f.numero_documento}`, f.parcela_texto, f.descricao && f.descricao !== f.participante_nome ? f.descricao : '', f.categoria].filter(Boolean).join(' · ')),
             tags: [Math.abs(f.saldo - abs) < 0.005 ? tagConc('valor exato', 'azul') : '', f.mesmo_documento ? tagConc('mesmo CPF/CNPJ', 'ok') : f.mesmo_nome ? tagConc('nome parecido', 'ok') : '',
                 tagConc(`vence ${dataFin(f.vencimento)}`, f.situacao === 'ATRASADO' ? 'alerta' : ''), tagConc(escFin(f.app))].join(''),
-            depois: `<span class="cc-item-campo"><input class="fis-input fis-num cc-valor" type="number" step="0.01" min="0.01" value="${marcada ? marcadas.get(String(f.id)) : f.saldo.toFixed(2)}" data-saldo="${f.saldo}" oninput="somarFaturasConc()" title="Valor a baixar (saldo ${escFin(dinheiro(f.saldo))})">
+            depois: `<span class="cc-item-campo"><input class="fis-input fis-num cc-valor" type="number" step="0.01" min="0.01" value="${marcada ? marcadas.get(String(f.id)) : f.saldo.toFixed(2)}" data-saldo="${f.saldo}" oninput="somarFaturasConc()" title="Valor a baixar (saldo ${escFin(dinheiroTexto(f.saldo))})">
                 <button type="button" class="fis-mini" onclick="event.preventDefault(); abrirFaturaFin(${f.id})">Ver</button></span>`
         })
     }).join('') || (res ? vazioConc('baixa', 'Nenhuma fatura em aberto com essa busca. Se já foi paga no GCS, procure na aba "Baixas lançadas".')
