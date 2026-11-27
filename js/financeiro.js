@@ -2302,8 +2302,8 @@ async function formularioBaixaRapidaFin(id) {
         return popup({ mensagem: mensagemErroEst(err) })
     }
     const pagar = t.tipo === 'PAGAR'
-    // Vencimento já passado (27/11/2026, a pedido): seletor com a sugestão "No vencimento" ou "Hoje" no próprio popup;
-    // a data também pode ser digitada. Vencimento hoje ou futuro: só hoje (o pagamento não pode ter data futura).
+    // Dois campos lado a lado (27/11/2026, a pedido): o vencimento (só consulta, cinza) e a data do pagamento (destacada).
+    // Vencimento já passado: a data do pagamento já vem com ele; hoje ou futuro: vem hoje (pagamento não tem data futura).
     const vencimento = String(t.vencimento || '').slice(0, 10)
     const hoje = hojeFin()
     const sugereVencimento = Boolean(vencimento && vencimento < hoje)
@@ -2324,32 +2324,14 @@ async function formularioBaixaRapidaFin(id) {
                         <label class="fis-campo fis-largo"><span>Conta corrente *</span><select class="fis-input" name="conta_id">
                             ${contas.length ? contas.map(k => `<option value="${k.id}" ${k.id === padrao ? 'selected' : ''}>${escFin(k.nome)}${k.padrao ? ' (padrão)' : ''}</option>`).join('') : '<option value="">Nenhuma conta desta empresa</option>'}
                         </select></label>
-                        ${sugereVencimento ? `<label class="fis-campo"><span>Quando ${pagar ? 'foi pago' : 'foi recebido'}</span><select class="fis-input" name="quando" onchange="sugestaoDataBaixaFin(this)">
-                            <option value="${vencimento}" selected>No vencimento · ${dataFin(vencimento)}</option>
-                            <option value="${hoje}">Hoje · ${dataFin(hoje)}</option>
-                            <option value="">Outra data</option>
-                        </select></label>` : ''}
-                        <label class="fis-campo"><span>Data real ${pagar ? 'do pagamento' : 'do recebimento'} *</span><input class="fis-input" type="date" name="data" max="${hoje}" value="${dataBaixa}" oninput="dataBaixaDigitadaFin(this)"></label>
+                        <label class="fis-campo fin-baixa-venc" title="Vencimento da fatura (só consulta)"><span>Vencimento da fatura</span><input class="fis-input" type="date" value="${escFin(vencimento)}" readonly tabindex="-1"></label>
+                        <label class="fis-campo fin-baixa-data"><span>Data ${pagar ? 'do pagamento' : 'do recebimento'} *</span><input class="fis-input" type="date" name="data" max="${hoje}" value="${dataBaixa}"></label>
                     </div>
                     <small class="fis-dica">Quita o que falta da fatura. Parcial, desconto, juros ou multa: aba ${pagar ? 'Pagamentos' : 'Recebimentos'} da fatura → Registrar ${pagar ? 'pagamento' : 'recebimento'}.</small>
                 </div>`
         }],
         botoes: [{ texto: pagar ? 'Marcar como pago' : 'Marcar como recebido', img: 'concluido', funcao: 'salvarBaixaRapidaFin(this)' }]
     })
-}
-
-// Seletor do Pagar agora: a sugestão escolhida vai para a data; "Outra data" deixa a data para digitar.
-function sugestaoDataBaixaFin(select) {
-    const data = select.closest('[data-form-baixa-rapida]').querySelector('[name="data"]')
-    if (select.value) data.value = select.value
-    else data.focus()
-}
-
-// Data digitada: o seletor acompanha (vencimento, hoje ou outra data).
-function dataBaixaDigitadaFin(input) {
-    const select = input.closest('[data-form-baixa-rapida]').querySelector('[name="quando"]')
-    if (!select) return
-    select.value = [...select.options].some(o => o.value && o.value === input.value) ? input.value : ''
 }
 
 async function salvarBaixaRapidaFin(botao) {

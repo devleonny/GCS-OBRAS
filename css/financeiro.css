@@ -1031,6 +1031,11 @@
 }
 .fin-baixa-faixa b { display: block; font-size: 18px; color: #26332b; }
 
+/* Pagar agora: vencimento só consulta (cinza) × data do pagamento (destacada, é o que se preenche). */
+.fin-baixa-venc .fis-input { background: #eef1ef; color: #5b6b61; pointer-events: none; }
+.fin-baixa-data > span { font-weight: 700; color: #1f6f3a; }
+.fin-baixa-data .fis-input { border: 2px solid #2e9e55; background: #f4fbf6; font-weight: 600; }
+
 @media (max-width: 700px) {
     .fin-pagamentos { grid-template-columns: 1fr; }
 }
