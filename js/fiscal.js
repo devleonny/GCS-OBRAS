@@ -1401,7 +1401,7 @@ function htmlFaturaCteFis(c, { titulos = [], outras = [], rateio = [] }, opcoesF
         : `
             <div class="fis-grade">
                 <label class="fis-campo fis-largo"><span>Categoria *</span><select class="fis-input" name="categoria_id">${opcoesCategoriasFin(opcoesFin.categorias, 'PAGAR', frete?.id)}</select></label>
-                <label class="fis-campo"><span>Forma</span><select class="fis-input" name="forma_pagamento"><option value=""></option>${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select></label>
+                <label class="fis-campo"><span>Forma</span><select class="fis-input" name="forma_pagamento" onchange="formaContaFin(this, '${escFis(c.tomador_app)}')"><option value=""></option>${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select></label>
                 <label class="fis-campo"><span>Conta</span><select class="fis-input" name="conta_id">${opcoesContasFin(opcoesFin.contas, c.tomador_app)}</select></label>
             </div>
             <small class="fis-dica">O CT-e não traz vencimento: informe pelo boleto/fatura da transportadora.</small>
@@ -1750,8 +1750,8 @@ function htmlEntradaNotaFis(d, { itens = [], pendentes, titulos, locais, cobranc
         : `
             <div class="fis-grade">
                 <label class="fis-campo fis-largo"><span>Categoria *</span><select class="fis-input" name="categoria_id">${opcoesCategoriasFin(opcoesFin.categorias, 'PAGAR')}</select></label>
-                <label class="fis-campo"><span>Forma</span><select class="fis-input" name="forma_pagamento"><option value=""></option>${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}" ${formaXml === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-                <label class="fis-campo"><span>Conta</span><select class="fis-input" name="conta_id">${opcoesContasFin(opcoesFin.contas, d.app)}</select></label>
+                <label class="fis-campo"><span>Forma</span><select class="fis-input" name="forma_pagamento" onchange="formaContaFin(this, '${escFis(d.app)}')"><option value=""></option>${FORMAS_FIN.filter(([v]) => v !== 'OMIE').map(([v, n]) => `<option value="${v}" ${formaXml === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+                <label class="fis-campo"><span>${formaXml === '03' ? 'Cartão *' : 'Conta'}</span><select class="fis-input" name="conta_id">${opcoesContaPelaFormaFin(opcoesFin.contas, d.app, formaXml)}</select></label>
             </div>
             ${dups.length ? `<small class="fis-dica">Parcelas que o fornecedor pôs na nota (${dups.length}): confira.</small>` : '<small class="fis-dica">A nota não traz parcelas: informe os vencimentos.</small>'}
             ${editorParcelasFin(dups.map(x => ({ vencimento: x.vencimento, valor: x.valor })), total)}

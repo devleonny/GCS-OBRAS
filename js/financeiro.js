@@ -80,6 +80,23 @@ const opcoesContasFin = (contas, app, atual) => `<option value="">${app ? 'Conta
     .sort((x, y) => (y.app === app) - (x.app === app))
     .map(k => `<option value="${k.id}" ${String(k.id) === String(atual ?? '') ? 'selected' : ''}>${escFin(k.app)} · ${escFin(k.nome)}${k.padrao ? ' (padrão)' : ''}</option>`).join('')
 
+// Forma "Cartão de crédito" (03, 27/11/2026): a Conta vira a lista dos cartões ativos (de qualquer empresa ou sócio,
+// os da empresa da nota primeiro) e é obrigatória; o servidor põe a fatura na empresa do cartão e já dá a baixa
+// nele, como no reembolso. Outra forma: volta a lista normal de contas.
+const opcoesCartoesFin = (contas, app, atual) => '<option value="">Qual cartão foi usado?</option>' + contas
+    .filter(k => k.tipo === 'CARTAO')
+    .sort((x, y) => (y.app === app) - (x.app === app) || String(x.nome).localeCompare(String(y.nome)))
+    .map(k => `<option value="${k.id}" ${String(k.id) === String(atual ?? '') ? 'selected' : ''}>${escFin(k.nome)} · ${escFin(k.app)}</option>`).join('')
+const opcoesContaPelaFormaFin = (contas, app, forma, atual) =>
+    forma === '03' ? opcoesCartoesFin(contas, app, atual) : opcoesContasFin(contas, app, atual)
+function formaContaFin(select, app) {
+    const campo = select.closest('.fis-grade')?.querySelector('[name="conta_id"]')
+    if (!campo) return
+    campo.innerHTML = opcoesContaPelaFormaFin(opcoesFinCache?.contas || [], app, select.value)
+    const rotulo = campo.closest('label')?.querySelector('span')
+    if (rotulo) rotulo.textContent = select.value === '03' ? 'Cartão *' : 'Conta'
+}
+
 // ---------------------------------------------------------------- componentes
 
 // Sim/Não sem valor padrão (dropdown que começa em "Escolha…"): o usuário tem que responder.
