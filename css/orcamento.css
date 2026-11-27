@@ -849,3 +849,4 @@
 .orc-dif-tipo > span { font-size: 8px; }
 .orc-dif-tipo.desconto { background: #fbe4e4; color: #b12425; }
 .orc-dif-tipo.acrescimo { background: #e0f1e6; color: #2f7d4f; }
+.orc-dif-tipo small { margin-left: 3px; font-size: 10px; font-weight: 500; opacity: .85; }

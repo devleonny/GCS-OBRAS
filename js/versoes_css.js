@@ -36,7 +36,7 @@ const VERSOES_CSS = {
     "mapa": "565b7d1b",
     "notificacoes": "3a3eec54",
     "ocorrencias": "12c1c4be",
-    "orcamento": "ab993306",
+    "orcamento": "6b816d0b",
     "os": "423f800a",
     "pagamentos": "c8e46975",
     "pdf": "e66db2e0",

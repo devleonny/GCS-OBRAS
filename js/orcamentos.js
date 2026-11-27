@@ -78,8 +78,8 @@ async function telaOrcamentos() {
             'Usuário': { chave: 'usuario' },
             'Responsáveis': { chave: 'responsaveis' },
             'Valor original': { chave: 'total_bruto', tipoPesquisa: 'valor' },
-            'Desc. / Acrés.': {},
-            'Diferença': {},
+            'Desc. / Acrés.': { chave: 'diferenca_pct', tipoPesquisa: 'valor' },
+            'Diferença': { chave: 'diferenca', tipoPesquisa: 'valor' },
             'Total': { chave: 'total_geral', tipoPesquisa: 'valor' },
             'Pedidos': {},
             'Custo até agora': { chave: 'total_pagamentos', tipoPesquisa: 'valor' },
@@ -220,22 +220,21 @@ function barraCustoOrcamento(custo, total) {
     </span>`
 }
 
-// Diferença entre o Total e o Valor original (total_geral − total_bruto): em duas colunas, o tipo (Desconto /
-// Acréscimo) e o valor com sinal e a % sobre o original. Sem valor original salvo, as duas ficam vazias.
-function diferencaOrcamento(bruto, total) {
-    const b = Number(bruto)
-    const t = Number(total) || 0
-    if (!b) return { tipo: '', valor: '' }
-    const dif = Math.round((t - b) * 100) / 100
+// Diferença entre o Total e o Valor original: colunas nativas da mvw_dados_orcamentos (gcs
+// migrations/orcamentos-diferenca.sql), diferenca = total_geral − total_bruto em R$ e diferenca_pct = % sobre o
+// original; negativo = desconto, positivo = acréscimo, nulo sem valor original. Funil: "<0" só descontos, ">0" acréscimos.
+function diferencaOrcamento(diferenca, diferencaPct, bruto) {
+    if (diferenca === null || diferenca === undefined || diferenca === '') return { tipo: '', valor: '' }
+    const dif = Number(diferenca) || 0
     if (!dif) return { tipo: '<span class="orc-dif zero">Sem diferença</span>', valor: '<span class="orc-dif zero">—</span>' }
-    const pct = Math.abs(dif) / b * 100
+    const pct = Math.abs(Number(diferencaPct) || 0)
     const nome = dif > 0 ? 'Acréscimo' : 'Desconto'
     const classe = dif > 0 ? 'acrescimo' : 'desconto'
     const textoPct = pct.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
-    const titulo = `${nome} de ${escaparAtributo(dinheiroTexto(Math.abs(dif)))} (${textoPct}%) sobre ${escaparAtributo(dinheiroTexto(b))}`
+    const titulo = `${nome} de ${escaparAtributo(dinheiroTexto(Math.abs(dif)))} (${textoPct}%)${bruto ? ` sobre ${escaparAtributo(dinheiroTexto(bruto))}` : ''}`
     return {
-        tipo: `<span class="orc-dif-tipo ${classe}" title="${titulo}"><span aria-hidden="true">${dif > 0 ? '▲' : '▼'}</span>${nome}</span>`,
-        valor: `<span class="orc-dif ${classe}" title="${titulo}">${dif > 0 ? '+' : '−'} ${dinheiro(Math.abs(dif))}<small>${textoPct}%</small></span>`
+        tipo: `<span class="orc-dif-tipo ${classe}" title="${titulo}"><span aria-hidden="true">${dif > 0 ? '▲' : '▼'}</span>${nome}<small>${textoPct}%</small></span>`,
+        valor: `<span class="orc-dif ${classe}" title="${titulo}">${dif > 0 ? '+' : '−'} ${dinheiro(Math.abs(dif))}</span>`
     }
 }
 
@@ -256,6 +255,8 @@ async function criarLinhaOrcamento(orcamento) {
         timestamp,
         total_geral,
         total_bruto,
+        diferenca,
+        diferenca_pct,
         lpu_ativa,
         tags,
         cliente,
@@ -345,7 +346,7 @@ async function criarLinhaOrcamento(orcamento) {
     ].join('')
 
     const responsaveis = (Array.isArray(executor) ? executor : [executor]).filter(Boolean).join(', ')
-    const dif = diferencaOrcamento(total_bruto, total_geral)
+    const dif = diferencaOrcamento(diferenca, diferenca_pct, total_bruto)
     const totalPedidos = (pedidos || []).reduce((s, p) => s + (Number(p?.valor) || 0), 0)
     const data = timestamp ? new Date(Number(timestamp)).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''
 
