@@ -984,33 +984,7 @@
     color: #6b7a71;
 }
 
-/* Aba Aprovação da fatura a pagar: resumo do reembolso no topo e os balões do histórico embaixo. */
-.fin-aprovacao {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.fin-aprovacao-resumo {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 8px 40px;
-    font-size: 12.5px;
-    color: #2d3d33;
-}
-
-.fin-aprovacao-resumo span {
-    display: block;
-    margin-bottom: 3px;
-    font-size: 12px;
-    color: #6b7a71;
-}
-
-.fin-aprovacao-resumo .fis-mini {
-    margin-left: auto;
-}
-
+/* Aba Aprovação da fatura a pagar: só a lista dos balões do histórico. */
 .fin-aprovacao-lista {
     display: flex;
     flex-direction: column;

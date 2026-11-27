@@ -1931,17 +1931,8 @@ function abaAprovacaoFin(ap) {
     const vazio = ap.criado === 'Integração'
         ? 'Reembolso importado do Omie: a aprovação foi feita lá e não há histórico no GCS.'
         : 'Nenhuma aprovação registrada neste reembolso.'
-    return `
-        <div class="fin-aprovacao">
-            <div class="fin-aprovacao-resumo">
-                <div><span>Status do reembolso</span><b style="color: ${cor({ status: ap.status })}">${escFin(ap.status || '—')}</b></div>
-                <div><span>Solicitado por</span>${escFin(ap.criado || '—')}</div>
-                <div><span>Solicitado em</span>${escFin(ap.data_registro || '—')}</div>
-                ${ap.aprovado_gerente_por ? `<div><span>Aprovado pelo gerente</span>${escFin(ap.aprovado_gerente_por)}</div>` : ''}
-                <button type="button" class="fis-mini" onclick="abrirDetalhesPagamentos('${escFin(ap.id)}')">Abrir reembolso</button>
-            </div>
-            ${baloes ? `<div class="fin-aprovacao-lista">${baloes}</div>` : `<div class="fis-vazio">${vazio}</div>`}
-        </div>`
+    // Só a lista do histórico, sem resumo nem botões (27/11, a pedido).
+    return baloes ? `<div class="fin-aprovacao-lista">${baloes}</div>` : `<div class="fis-vazio">${vazio}</div>`
 }
 
 // Aba Pagamentos da fatura: lista dos pagamentos à esquerda, totais e os botões Registrar / Cancelar à direita.
