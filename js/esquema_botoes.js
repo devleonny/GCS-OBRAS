@@ -165,6 +165,8 @@ const esquemaBotoes = {
             sub: [
                 { nome: 'Ver Orçamentos', funcao: 'telaOrcamentos', acesso: 'orcamentos.ver', img: 'projeto' },
                 { nome: 'Dashboard', funcao: 'telaDashboardOrcamentos', acesso: 'orcamentos.dashboard', img: 'dashboard' },
+                { nome: 'Pedidos', funcao: 'telaPedidosOrc', acesso: 'orcamentos.pedidos', svg: 'pedidos_orc' },
+                { nome: 'Requisições', funcao: 'telaRequisicoesOrc', acesso: 'orcamentos.requisicoes', svg: 'requisicoes_orc' },
                 {
                     nome: 'Criar Orçamento',
                     acesso: 'orcamentos.criar',

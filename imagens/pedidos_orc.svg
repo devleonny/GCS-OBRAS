@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Orçamentos → Pedidos (27/11/2026): a OC do cliente (folha com linhas) e um carrinho de compra. -->
+  <path d="M10 6h32l8 8v44H10z" fill="#2f7d4f"/>
+  <path d="M42 6v8h8z" fill="#1f5c39"/>
+  <text x="15" y="21" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" fill="#ffd25e">OC</text>
+  <rect x="15" y="27" width="26" height="3" rx="1.5" fill="#fff" opacity=".8"/>
+  <rect x="15" y="34" width="20" height="3" rx="1.5" fill="#fff" opacity=".7"/>
+  <circle cx="47" cy="46" r="13" fill="#ff8f2b" stroke="#fff" stroke-width="2.5"/>
+  <path d="M39.5 40.5h3l2.4 8.5h8.4l2.2-6.2H43.6" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="45.8" cy="53" r="1.8" fill="#fff"/>
+  <circle cx="52" cy="53" r="1.8" fill="#fff"/>
+</svg>

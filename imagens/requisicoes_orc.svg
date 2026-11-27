@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Orçamentos → Requisições (27/11/2026): prancheta com a lista de itens e uma caixa separada. -->
+  <rect x="9" y="9" width="36" height="48" rx="4" fill="#3f6fb6"/>
+  <rect x="19" y="5" width="16" height="9" rx="3" fill="#24467d"/>
+  <rect x="14" y="18" width="26" height="34" rx="2" fill="#fff"/>
+  <circle cx="19" cy="25" r="1.8" fill="#3f6fb6"/><rect x="23" y="23.5" width="14" height="3" rx="1.5" fill="#9bb3d6"/>
+  <circle cx="19" cy="32" r="1.8" fill="#3f6fb6"/><rect x="23" y="30.5" width="12" height="3" rx="1.5" fill="#9bb3d6"/>
+  <circle cx="19" cy="39" r="1.8" fill="#3f6fb6"/><rect x="23" y="37.5" width="10" height="3" rx="1.5" fill="#9bb3d6"/>
+  <path d="M36 42l11-5 11 5v12l-11 5-11-5z" fill="#d9a441" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M36 42l11 5 11-5M47 47v12" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+</svg>
