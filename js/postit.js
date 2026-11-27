@@ -1,3 +1,7 @@
+// Quadro fixo dos concluídos (não existe na tabela quadros, como o "Novos").
+// Concluir leva o post-it para ele; reabrir ou tirar de lá devolve para "Novos"/aberto.
+const QUADRO_CONCLUIDO_PIT = 'CONCLUIDO'
+
 async function telaPIT() {
 
     const acumulado = `
@@ -31,38 +35,42 @@ async function criarQuadros() {
         }
     })
 
+    // Fixos: "Novos" sempre em primeiro e "Concluídos" sempre no fim; os do usuário ficam no meio.
     const quadros = [
-        { id: null, ordem: 0, descricao: 'Novos' },
-        ...(pesqQuadros?.resultados || [])
+        { id: null, ordem: 0, descricao: 'Novos', fixo: true },
+        ...(pesqQuadros?.resultados || []).sort((a, b) => Number(a.ordem) - Number(b.ordem)),
+        { id: QUADRO_CONCLUIDO_PIT, descricao: 'Concluídos', fixo: true }
     ]
-        .sort((a, b) => a.ordem - b.ordem)
 
     // Todos os quadros de vez;
     const quadrosEmMassa = quadros.map(async q => {
 
-        const { id, descricao, ordem } = q || {}
+        const { id, descricao, ordem, fixo } = q || {}
         const chave = id || 'Novos'
 
         // Reserva a posição antes das consultas assíncronas.
         const coluna = document.createElement('div')
-        coluna.className = 'postits-coluna'
+        coluna.className = `postits-coluna${fixo ? ' fixo' : ''}`
         coluna.dataset.quadro = id || ''
         coluna.dataset.ordem = ordem ?? ''
+        if (fixo) coluna.dataset.fixo = '1'
         coluna.ondragover = sobreQuadroPIT
         coluna.ondrop = soltarQuadroPIT
         telaPIT.appendChild(coluna)
 
-        const editar = id
+        const editar = !fixo
             ? `<img src="imagens/pesquisar.svg" title="Editar quadro" draggable="false" onclick="criarQuadro('${id}')">`
             : ''
 
-        // "Novos" fica sempre em primeiro; os demais são arrastados pelo título.
-        const arrastar = id
+        // Os fixos não se movem; os demais são arrastados pelo título.
+        const arrastar = !fixo
             ? `draggable="true" title="Segure e arraste para reorganizar" ondragstart="arrastarQuadroPIT(event)" ondragend="finalizarQuadroPIT()"`
-            : ''
+            : id === QUADRO_CONCLUIDO_PIT
+                ? `title="Quadro fixo: o post-it concluído vem para cá e, reaberto, volta para Novos"`
+                : ''
 
         const btnExtras = `
-            <div class="postits-titulo-quadro${id ? ' arrastavel' : ''}" ${arrastar}>
+            <div class="postits-titulo-quadro${!fixo ? ' arrastavel' : ''}" ${arrastar}>
                 <span>${descricao}</span>
                 ${editar}
             </div>
@@ -332,21 +340,31 @@ async function soltarPIT(event) {
 
     const dados = postitsPIT.get(id)
     const ordemAntes = dados?.ordem ?? null
+    const statusAntes = dados?.status ?? 'N'
     const voltar = posicaoPIT(linha)
     destino.insertBefore(linha, referencia)
+
+    // Entrar em "Concluídos" conclui; sair de lá reabre.
+    const status = quadro === QUADRO_CONCLUIDO_PIT
+        ? 'S'
+        : quadroAntes === QUADRO_CONCLUIDO_PIT ? 'N' : statusAntes
 
     const ordem = ordemEntrePIT(linha.previousElementSibling?.matches('tr[data-pit]') ? linha.previousElementSibling : null, referencia)
     if (dados) {
         dados.quadro = quadro
         dados.ordem = ordem
+        dados.status = status
     }
+    if (status != statusAntes) await redesenharLinhaPIT(linha, dados)
 
-    const desfazer = resposta => {
+    const desfazer = async resposta => {
         voltar()
         if (dados) {
             dados.quadro = quadroAntes
             dados.ordem = ordemAntes
+            dados.status = statusAntes
         }
+        if (status != statusAntes) await redesenharLinhaPIT(linha, dados)
         falhaPIT('mover o post-it', resposta)
     }
 
@@ -355,8 +373,24 @@ async function soltarPIT(event) {
         if (!resposta?.success) return desfazer(resposta)
     }
 
+    if (status != statusAntes) {
+        const resposta = await enviar(`postit/${id}/status`, status)
+        if (!resposta?.success) return desfazer(resposta)
+    }
+
     const resposta = await enviar(`postit/${id}/ordem`, ordem)
-    if (!resposta?.success) desfazer(resposta)
+    if (!resposta?.success) return desfazer(resposta)
+
+    if (status != statusAntes) verificarPostIts()
+}
+
+// Troca o conteúdo do cartão mantendo a mesma linha (o desfazer guarda a referência dela).
+async function redesenharLinhaPIT(linha, dados) {
+    if (!linha || !dados) return
+    const molde = document.createElement('tbody')
+    molde.innerHTML = await linPostIT(dados)
+    const nova = molde.firstElementChild
+    if (nova) linha.innerHTML = nova.innerHTML
 }
 
 let quadroArrastadoPIT = null
@@ -385,7 +419,10 @@ function sobreQuadroPIT(event) {
     if (alvo === arrastado) return
 
     const rect = alvo.getBoundingClientRect()
-    const depois = !alvo.dataset.quadro || event.clientX > rect.left + rect.width / 2
+    // Nada entra antes de "Novos" nem depois de "Concluídos".
+    const depois = alvo.dataset.quadro === QUADRO_CONCLUIDO_PIT
+        ? false
+        : !alvo.dataset.quadro || event.clientX > rect.left + rect.width / 2
     const referencia = depois ? alvo.nextElementSibling : alvo
 
     if (referencia !== arrastado && referencia !== arrastado.nextElementSibling)
@@ -406,7 +443,7 @@ async function finalizarQuadroPIT() {
     arrastado.classList.remove('arrastando')
 
     const colunas = [...document.querySelectorAll('#quadros .postits-coluna')]
-        .filter(coluna => coluna.dataset.quadro)
+        .filter(coluna => coluna.dataset.quadro && !coluna.dataset.fixo)
 
     for (const [indice, coluna] of colunas.entries()) {
         const ordem = indice + 1
@@ -644,9 +681,12 @@ async function mostrarPIT(dados, anterior) {
         nova = molde.firstElementChild
     }
 
-    if (atual && nova) atual.replaceWith(nova)
-    else if (atual) atual.remove()
-    else if (nova) destino.prepend(nova)
+    // Mesmo quadro: troca no lugar; quadro diferente (concluir/reabrir): vai para o topo do novo.
+    if (atual && nova && (!destino || atual.parentElement === destino)) atual.replaceWith(nova)
+    else {
+        atual?.remove()
+        if (nova && destino) destino.prepend(nova)
+    }
 
     return () => {
         nova?.remove()
@@ -656,10 +696,16 @@ async function mostrarPIT(dados, anterior) {
     }
 }
 
-function topoNovosPIT() {
-    const primeira = document.querySelector("#body_Novos > tr[data-pit]")
+function topoQuadroPIT(quadro) {
+    const primeira = document.querySelector(`#body_${quadro || 'Novos'} > tr[data-pit]`)
     const ordem = ordemPIT(primeira)
     return ordem === null ? 1 : ordem - 1
+}
+
+// Quadro que o post-it deve ter pelo status: concluído vai para "Concluídos"; aberto que estava lá volta para "Novos".
+function quadroPeloStatusPIT(status, quadroAtual) {
+    if (status == 'S') return QUADRO_CONCLUIDO_PIT
+    return quadroAtual === QUADRO_CONCLUIDO_PIT ? null : (quadroAtual ?? null)
 }
 
 async function salvarPIT(id) {
@@ -693,13 +739,16 @@ async function salvarPIT(id) {
     }
 
     const anterior = postitsPIT.get(id)
+    const quadroAntes = anterior?.quadro || null
+    const quadro = quadroPeloStatusPIT(campos.status, quadroAntes)
+    const mudouQuadro = !novo && quadro !== quadroAntes
     const local = {
         id,
         ...campos,
         anexos: { ...anterior?.anexos, ...anexos },
-        quadro: anterior?.quadro || null,
-        // Novo entra no topo de "Novos"; editar não mexe na posição.
-        ordem: novo ? topoNovosPIT() : anterior?.ordem ?? null
+        quadro,
+        // Novo entra no topo do quadro; editar não mexe na posição, a não ser que o status troque o quadro.
+        ordem: novo || mudouQuadro ? topoQuadroPIT(quadro) : anterior?.ordem ?? null
     }
 
     removerPopup()
@@ -711,8 +760,8 @@ async function salvarPIT(id) {
         const atualizado = {
             ...local,
             anexos: { ...gravado.anexos, ...local.anexos },
-            quadro: gravado.quadro ?? local.quadro,
-            ordem: gravado.ordem ?? local.ordem
+            quadro: mudouQuadro ? local.quadro : gravado.quadro ?? local.quadro,
+            ordem: mudouQuadro ? local.ordem : gravado.ordem ?? local.ordem
         }
 
         const resposta = await enviar(`postit/${id}`, atualizado)
@@ -734,7 +783,12 @@ async function alternarConcluidoPIT(id) {
     if (!anterior) return
 
     const status = anterior.status == 'S' ? 'N' : 'S'
-    const local = { ...anterior, status }
+    // Concluir leva para "Concluídos"; reabrir de lá devolve para o topo de "Novos".
+    const quadroAntes = anterior.quadro ?? null
+    const quadro = quadroPeloStatusPIT(status, quadroAntes)
+    const mudouQuadro = quadro !== quadroAntes
+    const ordem = mudouQuadro ? topoQuadroPIT(quadro) : anterior.ordem ?? null
+    const local = { ...anterior, status, quadro, ordem }
     const desfazer = await mostrarPIT(local, anterior)
     postitsPIT.set(id, local)
 
@@ -757,8 +811,8 @@ async function alternarConcluidoPIT(id) {
             comentario: origem.comentario || '',
             prazo: origem.prazo || '',
             anexos: origem.anexos || {},
-            quadro: origem.quadro ?? null,
-            ordem: origem.ordem ?? null
+            quadro: mudouQuadro ? quadro : origem.quadro ?? null,
+            ordem: mudouQuadro ? ordem : origem.ordem ?? null
         }
         const resposta = await enviar(`postit/${id}`, atualizado)
         if (!resposta?.success) throw resposta

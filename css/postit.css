@@ -331,6 +331,13 @@
     opacity: 0.4;
 }
 
+/* Quadro fixo dos concluídos: o ✓ do cartão leva para cá. */
+.postits-coluna[data-quadro="CONCLUIDO"] .postits-titulo-quadro span::before {
+    content: '✓';
+    margin-right: 6px;
+    color: #2e8b57;
+}
+
 .postits-coluna [id^="paginacao_"] > div {
     color: #65756b !important;
     font-size: 11px;
