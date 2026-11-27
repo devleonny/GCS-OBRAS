@@ -3090,6 +3090,11 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, pr
         })
         .join('')
 
+    // Novo fluxo num chamado com orçamentos vinculados: escolher de qual orçamento é a aba
+    // (a correção leva o idOrcamento; status e rótulo da aba seguem esse orçamento).
+    const orcamentosChamado = Array.isArray(ocorrencia?.snapshots?.orcamentos) ? ocorrencia.snapshots.orcamentos : []
+    const escolherOrcamento = novoFluxo == 'S' && orcamentosChamado.length > 1
+
     const linhas = [
         ...(novoFluxo
             ? [{
@@ -3099,6 +3104,16 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, pr
                         <span>${preset ? `${nome}: descreva o motivo e escolha quem precisa resolver.` : 'Múltiplas ocorrências'}</span>
                     </div>
                     `
+            }]
+            : []
+        ),
+        ...(escolherOrcamento
+            ? [{
+                texto: 'Fluxo do orçamento',
+                elemento: `
+                    <select id="fluxoOrcamento">
+                        ${orcamentosChamado.map(o => `<option value="${o.id}">${o.contrato}${o.master ? ' (principal)' : ''}</option>`).join('')}
+                    </select>`
             }]
             : []
         ),
@@ -3634,6 +3649,11 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
             atualizado.aba = novoFluxo.dataset.aba == 'S'
                 ? crypto.randomUUID()
                 : novoFluxo.dataset.aba
+
+        // Fluxo de um orçamento do chamado (chamado com vinculados): a aba passa a ser dele.
+        const fluxoOrcamento = document.getElementById('fluxoOrcamento')?.value
+        if (novoFluxo && fluxoOrcamento)
+            atualizado.idOrcamento = fluxoOrcamento
 
         // Recusa do servidor (ex.: garantia encerrada) mantém o formulário aberto.
         const resultado = await enviar(`dados_ocorrencias/${idOcorrencia}/correcoes/${idCorrecao}`, atualizado)
