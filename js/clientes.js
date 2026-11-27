@@ -29,14 +29,37 @@ const aEstados = [
     'TO'
 ]
 
-const tagCliente = nome => {
-    return `
-        <div class="cliente-tag">
-            <span data-nome="${escaparAtributo(nome || '')}" class="etiquetas">
-                ${escaparAtributo(nome || '--')}
-            </span>
-        </div>`
+// Tags na lista de clientes (27/11/2026): mesmo chip das tags de pagamento (js/tags_pagamentos.js: cheio na cor,
+// caixa alta, encolhe com reticências quando a coluna aperta). As tags de cliente são fixas (tagsClientes), então
+// a cor de cada uma fica aqui; tag fora da lista ganha uma cor da paleta pelo nome.
+const CORES_TAGS_CLIENTES = {
+    'CLIENTE': '#8fd3a8',
+    'FUNCIONÁRIO': '#9fc2f0',
+    'FORNECEDOR': '#f0dc7a',
+    'TÉCNICO': '#c3a9ee',
+    'TÉCNICO PARCEIRO': '#f1a7cf',
+    'MOTORISTA': '#f6c177',
+    'TRANSPORTADORA': '#8fd3e0',
+    'EMPRESA': '#9e9e9e',
+    'MATRIZ': '#f4a39a',
+    'CFTV': '#b9dc8c',
+    'CATRACAS': '#f6c177',
+    'INFRA': '#8fd3e0',
+    'ALARME': '#f4a39a'
 }
+
+function corTagCliente(nome) {
+    const chave = String(nome || '').trim().toUpperCase()
+    if (CORES_TAGS_CLIENTES[chave]) return CORES_TAGS_CLIENTES[chave]
+    const paleta = typeof CORES_TAGS_PAG !== 'undefined' ? CORES_TAGS_PAG : ['#9e9e9e']
+    let h = 0
+    for (const c of chave) h = (h * 31 + c.charCodeAt(0)) >>> 0
+    return paleta[h % paleta.length]
+}
+
+const tagCliente = nome => typeof chipTagPag === 'function'
+    ? chipTagPag({ nome: nome || '--', cor: corTagCliente(nome) })
+    : `<span class="tag-pag" style="--tag-fundo: ${corTagCliente(nome)}; --tag-texto: #1f2a24;"><span class="tag-pag-nome">${escaparAtributo(nome || '--')}</span></span>`
 
 // Último painel
 // Endereço sempre em CAIXA ALTA (o banco também força: trigger trg_clientes_endereco_maiusculas).
@@ -310,6 +333,9 @@ async function telaClientes() {
     try {
 
         const pag = 'clientes'
+        // Marcar e baixar em Excel: só quem tem a função na Central de Acessos (cadastros.excel).
+        const marcar = podeMarcarClientes()
+        selecaoClientes.clear()
         const dropdownTags = montarDropdownCheckbox({
             titulo: 'Tags',
             pag,
@@ -347,6 +373,7 @@ async function telaClientes() {
                         <button type="button" onclick="formularioCliente()" title="Novo cadastro de cliente, usuário ou fornecedor">${iconeFin('incluir')} Adicionar cadastro</button>
                         <button type="button" onclick="formularioLinkCadastro()" title="Gerar um link para a pessoa preencher o próprio cadastro">${iconeFin('link')} Link de cadastro</button>
                         <button type="button" onclick="classificarUnidades()" title="Vincular várias unidades a uma empresa de uma vez">${iconeFin('empresa')} Vincular em massa</button>
+                        ${marcar ? `<button type="button" onclick="baixarExcelClientes()" title="Com cadastros marcados, baixa só os marcados; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>` : ''}
                     </div>
                 </header>
                 <div class="fin-corpo${aberto ? '' : ' recolhido'}" data-corpo-cli>
@@ -375,6 +402,7 @@ async function telaClientes() {
             pag,
             base: 'vw_2_clientes',
             colunas: {
+                ...(marcar ? { '': {} } : {}),
                 'Foto': {},
                 'Nome': { chave: 'cadastrais', op: 'includes', principal: true },
                 'Razão social': { chave: 'razao_social' },
@@ -397,6 +425,7 @@ async function telaClientes() {
         })
         // Paginação no rodapé da janela (a do modTab fica escondida neste layout).
         area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-cli></div>')
+        if (marcar) area.querySelector('.modtab')?.insertAdjacentHTML('afterbegin', '<div class="fin-aviso-selecao" data-aviso-cli hidden></div>')
 
         await paginacao(pag)
 
@@ -430,6 +459,17 @@ async function aposCarregarClientes() {
     if (typeof cabecalhoAvancadoTabela === 'function')
         await cabecalhoAvancadoTabela('clientes', { prefKey: 'clientes' })
     if (typeof atualizarBotaoTodosDetalhes === 'function') atualizarBotaoTodosDetalhes(tbody)
+    if (podeMarcarClientes()) {
+        // Caixinha "marcar todos desta página" no título da coluna vazia (a 1ª depois do "+" dos detalhes).
+        const thMarcar = tabela.querySelector(':scope > thead > tr:first-child > th:not(.tabela-coluna-detalhes)')
+        if (thMarcar && !thMarcar.querySelector('[data-marcar-todos-cli]')) {
+            thMarcar.classList.add('cli-col-marcar')
+            thMarcar.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todos-cli title="Marcar todos desta página" aria-label="Marcar todos desta página" onclick="event.stopPropagation(); marcarTodosClientes(this)">'
+        }
+        const filtroMarcar = tabela.querySelector(':scope > thead > tr:nth-child(2) > th:not(.tabela-coluna-detalhes)')
+        if (filtroMarcar?.querySelector('img')) filtroMarcar.innerHTML = ''
+        desenharSelecaoClientes()
+    }
     desenharRodapeClientes(ctrl)
     await atualizarMapa()
 }
@@ -455,6 +495,162 @@ function desenharRodapeClientes(ctrl = controles.clientes) {
             ${botao('próximo ›', pagina + 1, pagina < paginas)}
             ${botao('›|', paginas, pagina < paginas, 'Última página')}
         </div>`
+}
+
+// ---------------------------------------------------------------- Marcar cadastros e baixar em Excel
+// Função cadastros.excel da Central de Acessos. Seleção guardada entre páginas e filtros (como as Notas
+// recebidas, js/fiscal.js): marcar a página inteira mostra o aviso "selecionar todos os N deste filtro".
+const selecaoClientes = new Set()
+
+const podeMarcarClientes = () => typeof pode === 'function' && pode('cadastros.excel')
+
+function marcarCliente(caixa) {
+    if (caixa.checked) selecaoClientes.add(String(caixa.value))
+    else selecaoClientes.delete(String(caixa.value))
+    desenharSelecaoClientes()
+}
+
+function marcarTodosClientes(caixa) {
+    document.querySelectorAll('#bodyClientes [data-marcar-cli]').forEach(c => {
+        c.checked = caixa.checked
+        if (caixa.checked) selecaoClientes.add(String(c.value))
+        else selecaoClientes.delete(String(c.value))
+    })
+    desenharSelecaoClientes()
+}
+
+function limparSelecaoClientes() {
+    selecaoClientes.clear()
+    document.querySelectorAll('#bodyClientes [data-marcar-cli]').forEach(c => { c.checked = false })
+    desenharSelecaoClientes()
+}
+
+// Busca paginada (2000 por vez) com os filtros dados.
+async function buscarTodosClientesFiltro(filtros, ordenar = null) {
+    const linhas = []
+    let pagina = 1, paginas = 1
+    do {
+        const r = await pesquisarDB({ base: 'vw_2_clientes', filtros, ...(ordenar ? { ordenar } : {}), pagina, limite: 2000 })
+        linhas.push(...(r?.resultados || []))
+        paginas = Number(r?.paginas) || 1
+        pagina++
+    } while (pagina <= paginas && pagina <= 50)
+    return linhas
+}
+
+const filtrosTabelaClientes = (ctrl = controles.clientes) => combinarFiltros(ctrl?.filtros, ctrl?.filtrosFixos) || {}
+
+async function selecionarTodosFiltroClientes() {
+    const ctrl = controles.clientes
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const linhas = await buscarTodosClientesFiltro(filtrosTabelaClientes(ctrl))
+        linhas.forEach(c => selecaoClientes.add(String(c.id)))
+        document.querySelectorAll('#bodyClientes [data-marcar-cli]').forEach(c => { c.checked = selecaoClientes.has(String(c.value)) })
+        desenharSelecaoClientes()
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao marcar os cadastros do filtro: ${escaparAtributo(err.message || '')}` })
+    } finally {
+        removerOverlay()
+    }
+}
+
+function desenharSelecaoClientes() {
+    const pagina = [...document.querySelectorAll('#bodyClientes [data-marcar-cli]')]
+    const marcadas = pagina.filter(c => c.checked).length
+    const paginaToda = pagina.length > 0 && marcadas === pagina.length
+    const todas = document.querySelector('[data-marcar-todos-cli]')
+    if (todas) {
+        todas.checked = paginaToda
+        todas.indeterminate = marcadas > 0 && marcadas < pagina.length
+    }
+    const aviso = document.querySelector('[data-aviso-cli]')
+    if (!aviso) return
+    const n = selecaoClientes.size
+    const total = Number(document.getElementById('resultados_clientes')?.textContent) || 0
+    const plural = q => `${q.toLocaleString('pt-BR')} ${q === 1 ? 'cadastro' : 'cadastros'}`
+    const limpar = '<a href="#" onclick="event.preventDefault(); limparSelecaoClientes()">limpar a seleção</a>'
+    aviso.hidden = !(n && paginaToda)
+    aviso.innerHTML = aviso.hidden ? '' : n < total
+        ? `Você selecionou ${plural(n)}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodosFiltroClientes()">selecionar todos os ${plural(total)} deste filtro</a>`
+        : `Você selecionou ${n === total ? 'todos os ' : ''}${plural(n)}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
+}
+
+async function baixarExcelClientes() {
+    if (!podeMarcarClientes()) return popup({ mensagem: 'Você não tem acesso para baixar os cadastros em Excel.' })
+    const ctrl = controles.clientes
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const marcados = [...selecaoClientes]
+        const ordenar = ctrl.ordenar || null
+        let linhas = []
+        if (marcados.length) {
+            // Marcados: em blocos de 500 ids (filtro OR).
+            for (let i = 0; i < marcados.length; i += 500) {
+                const bloco = marcados.slice(i, i + 500)
+                linhas.push(...await buscarTodosClientesFiltro({ id: { modo: 'OR', regras: bloco.map(id => ({ op: '=', value: id })) } }, ordenar))
+            }
+        } else {
+            linhas = await buscarTodosClientesFiltro(filtrosTabelaClientes(ctrl), ordenar)
+        }
+        if (!ordenar) linhas.sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'))
+
+        // Empresa vem como código: troca pelo nome.
+        let empresas = new Map()
+        try {
+            const r = await pesquisarDB({ base: 'empresas', limite: 500 })
+            empresas = new Map((r?.resultados || []).map(e => [String(e.id), e.nome]))
+        } catch { }
+
+        const doc = v => v && typeof docFormatadoFis === 'function' ? docFormatadoFis(v) : (v || '')
+        const dataBr = v => v ? String(v).slice(0, 10).split('-').reverse().join('/') : ''
+        const filtros = typeof descreverFiltrosFin === 'function'
+            ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todos os cadastros)')
+                .replace('tags.*.tag:', 'Tags:').replace(/(^|· )estado:/, '$1Estado:')
+            : ''
+
+        await baixarExcelRelatorioGCS({
+            titulo: 'Clientes, Usuários e Fornecedores',
+            tela: 'Clientes',
+            resumo: `${linhas.length} cadastro(s)`,
+            filtrosTexto: marcados.length ? `Cadastros marcados na tela: ${marcados.length}` : `Filtros: ${filtros}`,
+            linhas,
+            colunas: [
+                { titulo: 'ID', largura: 8, centro: true, valor: c => c.id ?? '' },
+                { titulo: 'Nome fantasia', largura: 36, valor: c => c.nome || '' },
+                { titulo: 'Razão social', largura: 36, valor: c => c.razao_social || '' },
+                { titulo: 'CPF/CNPJ', largura: 19, valor: c => doc(c.cnpj) },
+                { titulo: 'E-mail', largura: 30, valor: c => c.email || '' },
+                { titulo: 'Telefone', largura: 16, valor: c => [c.ddd, c.celular].filter(Boolean).join(' ') },
+                { titulo: 'Tags', largura: 28, valor: c => (c.tags || []).map(t => t?.tag).filter(Boolean).join(', ') },
+                { titulo: 'Empresa', largura: 24, valor: c => empresas.get(String(c.empresa ?? '')) || c.empresa || '' },
+                { titulo: 'Usuário', largura: 16, valor: c => c.usuario || '' },
+                { titulo: 'Permissão', largura: 13, valor: c => c.permissao || '' },
+                { titulo: 'Matrícula', largura: 11, centro: true, valor: c => c.matricula || '' },
+                { titulo: 'Cargo', largura: 18, valor: c => c.cargo || '' },
+                { titulo: 'Desligado', largura: 12, centro: true, valor: c => c.desligado ? (dataBr(c.desligado.data) || 'SIM') : '' },
+                { titulo: 'Endereço', largura: 34, valor: c => c.endereco || '' },
+                { titulo: 'Número', largura: 9, centro: true, valor: c => c.numero || '' },
+                { titulo: 'Complemento', largura: 18, valor: c => c.complemento || '' },
+                { titulo: 'Bairro', largura: 20, valor: c => c.bairro || '' },
+                { titulo: 'Cidade', largura: 22, valor: c => c.cidade || '' },
+                { titulo: 'UF', largura: 5, centro: true, valor: c => c.estado || '' },
+                { titulo: 'CEP', largura: 11, centro: true, valor: c => c.cep || '' },
+                { titulo: 'Código IBGE', largura: 12, centro: true, valor: c => c.codigo_ibge || '' },
+                { titulo: 'Inscrição estadual', largura: 18, valor: c => c.inscricao_estadual || '' },
+                { titulo: 'Inscrição municipal', largura: 18, valor: c => c.inscricao_municipal || '' },
+                { titulo: 'Comentário', largura: 40, valor: c => c.comentario || '' }
+            ]
+        })
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao gerar o Excel: ${escaparAtributo(err.message || '')}` })
+    } finally {
+        removerOverlay()
+    }
 }
 
 async function irPaginaClientes(n) {
@@ -768,6 +964,10 @@ function criarLinhaClienteGCS(cliente) {
     const celulaId = valor => `<td>${valor ? `<span class="fin cliente-id" title="${esc(valor)}">${esc(valor)}</span>` : ''}</td>`
 
     const tds = `
+        ${podeMarcarClientes() ? `<td class="fin-col-marcar cli-col-marcar">
+            <input type="checkbox" class="fin-marcar" data-marcar-cli value="${esc(id)}" ${selecaoClientes.has(String(id)) ? 'checked' : ''}
+                onclick="event.stopPropagation(); marcarCliente(this)" aria-label="Marcar cadastro">
+        </td>` : ''}
         <td class="cli-col-foto"><button type="button" class="cli-foto-botao" title="Abrir cadastro" aria-label="Abrir cadastro"
             data-cliente="${esc(id)}" onclick="formularioCliente(Number(this.dataset.cliente))">
             ${avatarCliente({ foto, nome, empresa })}
@@ -776,7 +976,7 @@ function criarLinhaClienteGCS(cliente) {
         ${texto(razao_social && razao_social !== nome ? razao_social : '')}
         <td class="fin-doc">${esc(documento)}</td>
         ${texto(email)}
-        <td class="fin-obs" title="${esc(nomesTags.join(', '))}"><div class="cli-tags-linha">${nomesTags.map(tagCliente).join('')}</div></td>
+        <td class="fin-obs cli-col-tags" title="${esc(nomesTags.join(', '))}"><div class="fin-tags-celula">${[...nomesTags].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(tagCliente).join('')}</div></td>
         ${celulaId(empresa)}
         ${celulaId(usuario)}
         ${celulaId(permissao)}

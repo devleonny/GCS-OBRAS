@@ -7,7 +7,7 @@ const VERSOES_CSS = {
     "cadastro_publico": "a4259015",
     "cadastros": "0762b591",
     "cartao_faturas": "700bdccb",
-    "clientes": "78585ec3",
+    "clientes": "a6071f21",
     "colaboradores": "8e29bed3",
     "composicoes": "fd6d81f2",
     "comunicados": "c9e16f77",

@@ -743,12 +743,13 @@
 }
 .cli-tela .tabela .cliente-iniciais { font-size: 10px; }
 
-/* Tags em fila, sem quebrar: o que não cabe some atrás das reticências (lista inteira no title). */
-.cli-tela .tabela td .cli-tags-linha {
-    display: flex; flex-wrap: nowrap; gap: 3px; max-width: 260px; overflow: hidden;
-    mask-image: linear-gradient(to right, #000 85%, transparent);
-}
-.cli-tela .tabela td .cli-tags-linha .cliente-tag { flex: none; }
+/* Tags como as das Faturas (css/tags_pagamentos.css .fin-tags-celula): chips na cor, em fila, que encolhem
+   com reticências quando a coluna aperta (lista inteira no title). */
+.cli-tela .tabela td.cli-col-tags { max-width: 260px; }
+
+/* Caixinha de marcar (função cadastros.excel): coluna estreita logo depois do "+" dos detalhes. */
+.cli-tela .tabela th.cli-col-marcar,
+.cli-tela .tabela td.cli-col-marcar { width: 1.6rem; min-width: 1.6rem; padding-inline: 4px; text-align: center; }
 .cli-tela .tabela td .etiqueta-desligado { flex: none; }
 
 /* Detalhes do "+" (endereços e inscrições) continuam quebrando linha. */
