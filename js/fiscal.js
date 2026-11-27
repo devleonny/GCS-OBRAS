@@ -77,7 +77,7 @@ let modoRecFis = 'NFE'
 function seletorModoRecFis() {
     // Mesmo seletor segmentado da empresa nos Fluxos de Vendas/Serviços (.fluxo-chave-empresa, css/fluxo_kanban.css).
     return `<div class="fluxo-chave-empresa" role="group" aria-label="Tipo de documento">
-        ${[['NFE', 'NF-e'], ['CTE', 'CT-e']].map(([m, nome]) => `<button type="button" class="${modoRecFis === m ? 'ativo' : ''}"
+        ${[['NFE', 'NF-e'], ['ITENS', 'Itens das NF-e'], ['CTE', 'CT-e']].map(([m, nome]) => `<button type="button" class="${modoRecFis === m ? 'ativo' : ''}"
             aria-pressed="${modoRecFis === m}" onclick="trocarModoRecFis('${m}')">${nome}</button>`).join('')}</div>`
 }
 
@@ -90,10 +90,11 @@ function trocarModoRecFis(modo) {
 async function telaNotasRecebidas() {
     if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
     if (modoRecFis === 'CTE') return telaCtesRecebidosFis()
+    if (modoRecFis === 'ITENS') return telaItensRecebidosFis()
     selecaoRecFis.clear()
     const consulta = soConsultaFis()
     tela.innerHTML = `
-        <div class="fis-pagina fin-tela fis-emitidas fis-recebidas">
+        <div class="fis-pagina fin-tela fin-uma-linha fis-emitidas fis-recebidas">
             <section class="fin-janela">
                 <header class="fin-janela-topo">
                     <h2>Notas recebidas</h2>
@@ -147,7 +148,8 @@ async function abrirTabelaRecebidas(filtroExtra = null) {
                 'CFOP': { chave: 'cfops' },
                 'CFOP entrada': { chave: 'cfop_entrada' },
                 ...colunasImpostosTelaFis(IMPOSTOS_NFE_FIS),
-                'Itens': { chave: 'itens_pendentes', tipoOrdenacao: 'numero' },
+                'Itens': { chave: 'itens', tipoPesquisa: 'valor' },
+                'Não vinculados': { chave: 'itens_pendentes', tipoPesquisa: 'valor' },
                 'Estoque': { chave: 'estoque_status', tipoPesquisa: 'select' },
                 'Manifestação': { chave: 'manifestacao', tipoPesquisa: 'select' },
                 'Situação': { chave: 'status', tipoPesquisa: 'select' }
@@ -357,7 +359,7 @@ async function baixarExcelRecebidasFis() {
                 { titulo: 'CFOP entrada', largura: 12, centro: true, valor: d => d.cfop_entrada || '' },
                 ...colunasImpostosExcelFis(IMPOSTOS_NFE_FIS),
                 { titulo: 'Itens', largura: 8, centro: true, valor: d => Number(d.itens) || 0 },
-                { titulo: 'A vincular', largura: 10, centro: true, valor: d => Number(d.itens_pendentes) || 0 },
+                { titulo: 'Não vinculados', largura: 14, centro: true, valor: d => Number(d.itens_pendentes) || 0 },
                 { titulo: 'Estoque', largura: 16, valor: d => texto(ESTOQUE_FISCAL, d.estoque_status) },
                 { titulo: 'Manifestação', largura: 16, valor: d => texto(MANIFESTACAO_FISCAL, d.manifestacao) },
                 { titulo: 'Situação', largura: 14, valor: d => texto(STATUS_FISCAL, d.status) },
@@ -471,17 +473,374 @@ function criarLinhaNotaRecebida(d) {
             <td class="fin-centro">${dataFis(d.emissao)}</td>
             <td class="fin-centro">${escFis(d.app)}</td>
             <td class="fin-centro fin-doc">${d.numero ? `<span class="fis-link" onclick="event.stopPropagation(); ${abrir}" title="Abrir a nota">${escFis(d.numero)}</span>` : `<span class="fis-link" onclick="event.stopPropagation(); ${abrir}" title="Abrir a nota">abrir</span>`}</td>
-            <td class="fin-obs fin-nome" title="${escFis(d.participante_nome || '')}"><span class="fin-obs-txt">${escFis(d.participante_nome || '')}</span>${d.devolucao_tipo ? ` ${etiquetaFis(DEVOLUCAO_FISCAL, d.devolucao_tipo)}` : ''}</td>
+            ${celulaFornecedorFis(d)}
             <td class="fin-centro fin-doc">${docFormatadoFis(d.participante_documento)}</td>
             <td class="fis-num">${d.valor_total != null ? dinheiro(d.valor_total) : ''}</td>
             <td class="fin-centro">${escFis(d.cfops || '')}</td>
             <td class="fin-centro">${escFis(d.cfop_entrada || '')}</td>
             ${celulasImpostosTelaFis(IMPOSTOS_NFE_FIS, d)}
-            <td class="fin-centro">${Number(d.itens) || ''}${pend ? ` <small class="fis-pendente">${pend} a vincular</small>` : ''}</td>
+            <td class="fin-centro">${Number(d.itens) || ''}</td>
+            <td class="fin-centro">${pend ? `<span class="fis-pendente">${pend}</span>` : ''}</td>
             <td>${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}</td>
             <td>${etiquetaFis(MANIFESTACAO_FISCAL, d.manifestacao)}</td>
             <td>${etiquetaFis(STATUS_FISCAL, d.status)}</td>
         </tr>`
+}
+
+// Fornecedor numa linha só: o nome corta com reticências e a etiqueta de devolução fica ao lado.
+const celulaFornecedorFis = d => `
+            <td class="fin-obs fin-nome" title="${escFis(d.participante_nome || '')}"><span class="fin-uma-celula"><span class="fin-obs-txt">${escFis(d.participante_nome || '')}</span>${d.devolucao_tipo ? etiquetaFis(DEVOLUCAO_FISCAL, d.devolucao_tipo) : ''}</span></td>`
+
+// ---------------------------------------------------------------- Itens das NF-e recebidas
+// Variação da lista de notas explodida pelos itens (gcs migrations/fiscal-itens-view.sql, vw_fiscal_documento_itens):
+// mesmas colunas da nota + código, descrição, NCM, quantidade, valores e impostos do próprio item. Excel igual.
+const POR_PAGINA_IT_REC_FIS = 50
+const selecaoItRecFis = new Map()   // id do item -> valor_total
+let filtroExtraItRecFis = null
+let somaFiltroItRecFis = null, assinaturaSomaItRecFis = null
+const VINCULO_ITEM_FIS = {
+    PENDENTE: { cor: '#d97706', texto: 'Não vinculado' },
+    VINCULADO: { cor: '#15803d', texto: 'Vinculado' },
+    IGNORADO: { cor: '#64748b', texto: 'Não é estoque' }
+}
+// Mesmos nomes de DESTINOS_FIS (declarado mais abaixo no arquivo).
+const DESTINO_ITEM_FIS = {
+    ESTOQUE: { cor: '#2563eb', texto: 'Estoque' },
+    USO_CONSUMO: { cor: '#7c3aed', texto: 'Uso e consumo' },
+    SERVICO: { cor: '#0f766e', texto: 'Aplicação em serviço' },
+    NAO_GERAR: { cor: '#64748b', texto: 'Não gerar estoque' }
+}
+const qtdItemFis = v => v == null || v === '' ? '' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 4 })
+
+async function telaItensRecebidosFis() {
+    selecaoItRecFis.clear()
+    tela.innerHTML = `
+        <div class="fis-pagina fin-tela fin-uma-linha fis-emitidas fis-recebidas">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Notas recebidas</h2>
+                    ${seletorModoRecFis()}
+                    <div class="fin-barra">
+                        <button type="button" onclick="baixarExcelItensRecFis()" title="Com itens marcados, baixa só os marcados; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Excel</button>
+                        <span data-limpar-it-rec-fis></span>
+                    </div>
+                </header>
+                ${corpoComIndicadoresFis('itens', 'data-tabela-it-rec-fis')}
+            </section>
+        </div>`
+    contadoresItRecFis()
+    await abrirTabelaItensRecFis()
+}
+
+async function abrirTabelaItensRecFis(filtroExtra = null) {
+    const area = document.querySelector('[data-tabela-it-rec-fis]')
+    if (!area) return telaItensRecebidosFis()
+    filtroExtraItRecFis = filtroExtra
+    marcarIndItRecFis()
+    const limpar = document.querySelector('[data-limpar-it-rec-fis]')
+    if (limpar) limpar.innerHTML = filtroExtra ? `<button type="button" onclick="abrirTabelaItensRecFis()">${iconeFin('fechar')} Limpar filtro</button>` : ''
+    try {
+        delete controles.itensRecebidos
+        assinaturaSomaItRecFis = null
+        area.innerHTML = await modTab({
+            base: 'vw_fiscal_documento_itens',
+            pag: 'itensRecebidos',
+            body: 'bodyItensRecebidos',
+            criarLinha: 'criarLinhaItemRecebido',
+            caber: true,
+            limite: POR_PAGINA_IT_REC_FIS,
+            funcaoAdicional: ['aposCarregarItensRecFis'],
+            filtrosFixos: { direcao: { op: '=', value: 'entrada' }, ...(filtroExtra || {}) },
+            ordenar: [{ path: 'emissao', direcao: 'desc' }, { path: 'n_item', direcao: 'asc' }],
+            colunas: {
+                '': {},
+                'Emissão': { chave: 'dia', tipoPesquisa: 'data' },
+                'Empresa': { chave: 'app', tipoPesquisa: 'select' },
+                'Nº': { chave: 'numero' },
+                'Fornecedor': { chave: 'participante_nome' },
+                'CPF/CNPJ': { chave: 'participante_documento' },
+                'Item': { chave: 'n_item', tipoPesquisa: 'valor' },
+                'Código': { chave: 'codigo' },
+                'Descrição': { chave: 'descricao' },
+                'NCM': { chave: 'ncm' },
+                'Un.': { chave: 'unidade', tipoPesquisa: 'select' },
+                'Qtd': { chave: 'quantidade', tipoPesquisa: 'valor' },
+                'Valor unit.': { chave: 'valor_unitario', tipoPesquisa: 'valor' },
+                'Valor': { chave: 'valor_total', tipoPesquisa: 'valor' },
+                'CFOP': { chave: 'cfop' },
+                'CFOP entrada': { chave: 'cfop_entrada' },
+                ...colunasImpostosTelaFis(IMPOSTOS_NFE_FIS),
+                'Vínculo': { chave: 'vinculo', tipoPesquisa: 'select' },
+                'Item do GCS': { chave: 'item_descricao' },
+                'Destino': { chave: 'destino', tipoPesquisa: 'select' },
+                'Estoque': { chave: 'estoque_status', tipoPesquisa: 'select' },
+                'Manifestação': { chave: 'manifestacao', tipoPesquisa: 'select' },
+                'Situação': { chave: 'status', tipoPesquisa: 'select' }
+            }
+        })
+        area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-it-rec-fis></div>')
+        await paginacao('itensRecebidos')
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao abrir os itens das notas recebidas: ${escFis(err.message)}` })
+    }
+}
+
+async function aposCarregarItensRecFis() {
+    const tabela = document.getElementById('bodyItensRecebidos')?.closest('table')
+    if (!tabela) return
+    const th = tabela.querySelector('thead tr:first-child th:first-child')
+    if (th && !th.querySelector('[data-marcar-todas-it-rec]'))
+        th.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todas-it-rec title="Marcar todos desta página" onclick="event.stopPropagation(); marcarTodasItRecFis(this)">'
+    const filtro = tabela.querySelector('thead tr:nth-child(2) th:first-child')
+    if (filtro?.querySelector('img')) filtro.innerHTML = ''
+    if (!tabela.tFoot) {
+        const chaves = Object.values(controles.itensRecebidos?.colunas || {}).map(c => c.chave || '')
+        const linha = tabela.createTFoot().insertRow()
+        linha.className = 'fin-totais'
+        chaves.forEach(chave => {
+            const td = linha.insertCell()
+            if (chave === 'valor_total') { td.dataset.totalItRec = 'S'; td.className = 'fis-num' }
+        })
+        const enchimento = document.createElement('tbody')
+        enchimento.className = 'fin-enchimento'
+        enchimento.innerHTML = `<tr><td colspan="${chaves.length}"></td></tr>`
+        tabela.insertBefore(enchimento, tabela.tFoot)
+    }
+    if (typeof cabecalhoAvancadoTabela === 'function')
+        await cabecalhoAvancadoTabela('itensRecebidos', { prefKey: 'notas_recebidas_itens' })
+    desenharSelecaoItRecFis()
+    desenharRodapeItRecFis()
+    const ctrl = controles.itensRecebidos
+    const filtros = combinarFiltros(ctrl?.filtros, ctrl?.filtrosFixos)
+    const assinatura = JSON.stringify(filtros)
+    if (assinatura === assinaturaSomaItRecFis) return escreverTotalItRecFis()
+    assinaturaSomaItRecFis = assinatura
+    somaFiltroItRecFis = null
+    escreverTotalItRecFis()
+    let soma = null
+    try { soma = Number((await contarPorCampo({ base: 'vw_fiscal_documento_itens', path: 'valor_total', modo: 'soma', filtros }))?.total || 0) } catch { }
+    if (assinatura !== assinaturaSomaItRecFis) return
+    somaFiltroItRecFis = soma
+    escreverTotalItRecFis()
+}
+
+function escreverTotalItRecFis() {
+    const ind = document.querySelector('[data-ind-valor-itens]')
+    if (ind) ind.innerHTML = somaFiltroItRecFis == null ? '—' : dinheiro(somaFiltroItRecFis)
+    const td = document.querySelector('[data-total-it-rec]')
+    if (!td) return
+    const n = selecaoItRecFis.size
+    if (n) {
+        const soma = [...selecaoItRecFis.values()].reduce((s, v) => s + (Number(v) || 0), 0)
+        td.title = `Soma dos ${n} item(ns) marcado(s). Desmarque todos para ver o total do filtro.`
+        td.innerHTML = `<small class="fin-total-rotulo">${n} marcado${n === 1 ? '' : 's'}</small> <span class="fin-sigma">Σ</span> ${dinheiro(Math.round(soma * 100) / 100)}`
+        td.classList.add('fin-total-selecao')
+    } else {
+        td.title = 'Total de todos os itens do filtro'
+        td.innerHTML = `<span class="fin-sigma">Σ</span> ${somaFiltroItRecFis == null ? '—' : dinheiro(somaFiltroItRecFis)}`
+        td.classList.remove('fin-total-selecao')
+    }
+}
+
+function marcarItemRecFis(caixa) {
+    if (caixa.checked) selecaoItRecFis.set(caixa.value, Number(caixa.dataset.valor) || 0)
+    else selecaoItRecFis.delete(caixa.value)
+    desenharSelecaoItRecFis()
+}
+
+function marcarTodasItRecFis(caixa) {
+    document.querySelectorAll('#bodyItensRecebidos [data-marcar-it-rec]').forEach(c => {
+        c.checked = caixa.checked
+        if (caixa.checked) selecaoItRecFis.set(c.value, Number(c.dataset.valor) || 0)
+        else selecaoItRecFis.delete(c.value)
+    })
+    desenharSelecaoItRecFis()
+}
+
+function desenharSelecaoItRecFis() {
+    const pagina = [...document.querySelectorAll('#bodyItensRecebidos [data-marcar-it-rec]')]
+    const marcadas = pagina.filter(c => c.checked).length
+    const todas = document.querySelector('[data-marcar-todas-it-rec]')
+    if (todas) {
+        todas.checked = pagina.length > 0 && marcadas === pagina.length
+        todas.indeterminate = marcadas > 0 && marcadas < pagina.length
+    }
+    escreverTotalItRecFis()
+}
+
+function desenharRodapeItRecFis() {
+    const alvo = document.querySelector('[data-rodape-it-rec-fis]')
+    const ctrl = controles.itensRecebidos
+    if (!alvo || !ctrl) return
+    const total = Number(document.getElementById('resultados_itensRecebidos')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const inicio = total ? (pagina - 1) * POR_PAGINA_IT_REC_FIS + 1 : 0
+    const fim = Math.min(total, pagina * POR_PAGINA_IT_REC_FIS)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaItRecFis(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} ite${total === 1 ? 'm' : 'ns'}</span>${filtrosAtivosRodapeCab(ctrl.pag)}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaItRecFis(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
+        </div>`
+}
+
+async function irPaginaItRecFis(n) {
+    const ctrl = controles.itensRecebidos
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeItRecFis()
+    ctrl.pagina = pagina
+    await paginacao('itensRecebidos')
+}
+
+// Indicadores do painel: vínculo dos itens de todas as notas recebidas (clique filtra) + valor do filtro.
+async function contadoresItRecFis() {
+    const alvo = document.querySelector('[data-cartoes-itens]')
+    if (!alvo) return
+    try {
+        const filtros = { direcao: { op: '=', value: 'entrada' } }
+        const r = await contarPorCampo({ base: 'vw_fiscal_documento_itens', path: 'vinculo', filtros }) || {}
+        if (!document.querySelector('[data-cartoes-itens]')) return
+        const qtd = n => Number(n || 0).toLocaleString('pt-BR')
+        const cartao = (valor, texto, cor, explica) => `
+            <button type="button" class="fis-cred-ind" style="--cor: ${cor}" data-ind-it-rec="${valor}"
+                onclick="filtrarIndItRecFis('${valor}')" title="${escFis(explica)} Clique para filtrar (de novo, tira o filtro).">
+                <span>${texto}</span><b>${qtd(r[valor])}</b><small>${escFis(explica)}</small></button>`
+        alvo.innerHTML = `
+            ${cartao('PENDENTE', 'Não vinculados', '#d97706', 'Itens ainda sem o produto do cadastro.')}
+            ${cartao('VINCULADO', 'Vinculados', '#15803d', 'Itens ligados a um produto do cadastro.')}
+            ${cartao('IGNORADO', 'Não são estoque', '#64748b', 'Marcados como não estoque (frete, serviço, uso imediato).')}
+            <div class="fis-cred-ind" style="--cor: #15803d" title="Soma do Valor de todos os itens dos filtros da tabela">
+                <span>Valor no filtro</span><b data-ind-valor-itens>—</b><small>Soma dos itens dos filtros da tabela.</small></div>`
+        marcarIndItRecFis()
+        escreverTotalItRecFis()
+    } catch (err) {
+        alvo.innerHTML = `<div class="fis-alerta">${escFis(err.message)}</div>`
+    }
+}
+
+function filtrarIndItRecFis(valor) {
+    const atual = filtroExtraItRecFis
+    const mesmo = atual && Object.keys(atual).length === 1 && atual.vinculo?.value === valor
+    return abrirTabelaItensRecFis(mesmo ? null : { vinculo: { op: '=', value: valor } })
+}
+
+function marcarIndItRecFis() {
+    document.querySelectorAll('[data-ind-it-rec]').forEach(b => {
+        const ativo = filtroExtraItRecFis?.vinculo?.value === b.dataset.indItRec
+        b.classList.toggle('ativo', ativo)
+        b.setAttribute('aria-pressed', String(ativo))
+    })
+}
+
+function criarLinhaItemRecebido(d) {
+    const id = escFis(d.id)
+    const abrir = `abrirDocumentoFiscal('${escFis(d.documento_id)}')`
+    const gcs = d.item_id ? `${escFis(d.item_id)} · ${escFis(d.item_descricao || '')}` : ''
+    return `
+        <tr class="fin-linha" ondblclick="${abrir}" title="Duplo clique abre a nota">
+            <td class="fin-col-marcar">
+                <input type="checkbox" class="fin-marcar" data-marcar-it-rec value="${id}" data-valor="${Number(d.valor_total) || 0}" ${selecaoItRecFis.has(String(d.id)) ? 'checked' : ''}
+                    onclick="event.stopPropagation(); marcarItemRecFis(this)" ondblclick="event.stopPropagation()" aria-label="Marcar item">
+            </td>
+            <td class="fin-centro">${dataFis(d.emissao)}</td>
+            <td class="fin-centro">${escFis(d.app)}</td>
+            <td class="fin-centro fin-doc"><span class="fis-link" onclick="event.stopPropagation(); ${abrir}" title="Abrir a nota">${escFis(d.numero || 'abrir')}</span></td>
+            ${celulaFornecedorFis(d)}
+            <td class="fin-centro fin-doc">${docFormatadoFis(d.participante_documento)}</td>
+            <td class="fin-centro">${escFis(d.n_item ?? '')}</td>
+            <td class="fin-centro fin-doc">${escFis(d.codigo || '')}</td>
+            <td class="fin-obs" title="${escFis(d.descricao || '')}"><span class="fin-obs-txt">${escFis(d.descricao || '')}</span></td>
+            <td class="fin-centro">${escFis(d.ncm || '')}</td>
+            <td class="fin-centro">${escFis(d.unidade || '')}</td>
+            <td class="fis-num">${qtdItemFis(d.quantidade)}</td>
+            <td class="fis-num">${d.valor_unitario != null ? dinheiro(d.valor_unitario) : ''}</td>
+            <td class="fis-num">${d.valor_total != null ? dinheiro(d.valor_total) : ''}</td>
+            <td class="fin-centro">${escFis(d.cfop || '')}</td>
+            <td class="fin-centro">${escFis(d.cfop_entrada || '')}</td>
+            ${celulasImpostosTelaFis(IMPOSTOS_NFE_FIS, d)}
+            <td>${etiquetaFis(VINCULO_ITEM_FIS, d.vinculo)}</td>
+            <td class="fin-obs" title="${gcs}"><span class="fin-obs-txt">${gcs}</span></td>
+            <td>${etiquetaFis(DESTINO_ITEM_FIS, d.destino)}</td>
+            <td>${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}</td>
+            <td>${etiquetaFis(MANIFESTACAO_FISCAL, d.manifestacao)}</td>
+            <td>${etiquetaFis(STATUS_FISCAL, d.status)}</td>
+        </tr>`
+}
+
+async function baixarExcelItensRecFis() {
+    const ctrl = controles.itensRecebidos
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const marcados = [...selecaoItRecFis.keys()]
+        const filtros = marcados.length
+            ? { direcao: { op: '=', value: 'entrada' }, id: { modo: 'OR', regras: marcados.map(id => ({ op: '=', value: id })) } }
+            : combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        const linhas = []
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_fiscal_documento_itens', filtros, ordenar: ctrl.ordenar || [{ path: 'emissao', direcao: 'desc' }], pagina, limite: 2000 })
+            linhas.push(...(r?.resultados || []))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 100)
+        const data = v => v ? new Date(`${String(v).slice(0, 10)}T12:00:00Z`) : null
+        const texto = (mapa, s) => mapa?.[s]?.texto || mapa?.[String(s || '').toUpperCase()]?.texto || s || ''
+        const num = v => v == null || v === '' ? null : Number(v)
+        const notas = new Set(linhas.map(d => d.documento_id)).size
+        await baixarExcelRelatorioGCS({
+            titulo: 'Itens das notas recebidas',
+            resumo: `${linhas.length} item(ns) de ${notas} nota(s)`,
+            filtrosTexto: marcados.length ? `Itens marcados na tela: ${marcados.length}` : `Filtros: ${typeof descreverFiltrosFin === 'function' ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todos os itens)') : ''}`,
+            linhas,
+            colunas: [
+                { titulo: 'Emissão', largura: 12, tipo: 'data', valor: d => data(d.emissao) },
+                { titulo: 'Empresa', largura: 9, centro: true, valor: d => d.app || '' },
+                { titulo: 'Nº', largura: 10, centro: true, valor: d => d.numero || '' },
+                { titulo: 'Série', largura: 7, centro: true, valor: d => d.serie || '' },
+                { titulo: 'Fornecedor', largura: 42, valor: d => d.participante_nome || '' },
+                { titulo: 'CPF/CNPJ', largura: 19, valor: d => d.participante_documento ? docFormatadoFis(d.participante_documento) : '' },
+                { titulo: 'Item', largura: 6, centro: true, valor: d => num(d.n_item) },
+                { titulo: 'Código', largura: 16, valor: d => d.codigo || '' },
+                { titulo: 'EAN', largura: 15, valor: d => d.ean && d.ean !== 'SEM GTIN' ? d.ean : '' },
+                { titulo: 'Descrição', largura: 48, valor: d => d.descricao || '' },
+                { titulo: 'NCM', largura: 11, centro: true, valor: d => d.ncm || '' },
+                { titulo: 'CEST', largura: 10, centro: true, valor: d => d.cest || '' },
+                { titulo: 'Unidade', largura: 8, centro: true, valor: d => d.unidade || '' },
+                { titulo: 'Quantidade', largura: 11, valor: d => num(d.quantidade) },
+                { titulo: 'Valor unitário', largura: 15, tipo: 'moeda', valor: d => num(d.valor_unitario) },
+                { titulo: 'Valor', largura: 15, tipo: 'moeda', soma: true, valor: d => Number(d.valor_total) || 0 },
+                { titulo: 'Desconto', largura: 13, tipo: 'moeda', soma: true, valor: d => num(d.desconto) },
+                { titulo: 'Frete', largura: 13, tipo: 'moeda', soma: true, valor: d => num(d.frete) },
+                { titulo: 'CFOP', largura: 8, centro: true, valor: d => d.cfop || '' },
+                { titulo: 'CFOP entrada', largura: 12, centro: true, valor: d => d.cfop_entrada || '' },
+                { titulo: 'CST ICMS', largura: 9, centro: true, valor: d => d.cst_icms || '' },
+                ...colunasImpostosExcelFis(IMPOSTOS_NFE_FIS),
+                { titulo: 'Vínculo', largura: 14, valor: d => texto(VINCULO_ITEM_FIS, d.vinculo) },
+                { titulo: 'Código do GCS', largura: 12, centro: true, valor: d => d.item_id || '' },
+                { titulo: 'Item do GCS', largura: 42, valor: d => d.item_descricao || '' },
+                { titulo: 'Destino', largura: 18, valor: d => texto(DESTINO_ITEM_FIS, d.destino) },
+                { titulo: 'Estoque', largura: 16, valor: d => texto(ESTOQUE_FISCAL, d.estoque_status) },
+                { titulo: 'Manifestação', largura: 16, valor: d => texto(MANIFESTACAO_FISCAL, d.manifestacao) },
+                { titulo: 'Situação', largura: 14, valor: d => texto(STATUS_FISCAL, d.status) },
+                { titulo: 'Chave', largura: 48, valor: d => d.chave || '' }
+            ]
+        })
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao gerar o Excel: ${escFis(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
 }
 
 async function importarXmlsRecebidos(input) {

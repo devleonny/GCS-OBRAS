@@ -1123,6 +1123,16 @@
 .fin-tela td.fin-obs > .fin-obs-txt,
 .fin-tela td.fin-obs > small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* Padrão do layout financeiro para listas/relatórios novos: toda linha da tabela com 1 linha de altura.
+   Pôr a classe fin-uma-linha junto da fin-tela. Nada quebra linha: texto comprido corta com "..." (td.fin-obs +
+   span.fin-obs-txt, texto inteiro no title) e etiqueta ao lado do texto vai num span.fin-uma-celula. */
+.fin-uma-linha .tabela > tbody > tr > td { white-space: nowrap; }
+.fin-uma-linha .tabela > tbody > tr > td.fin-obs { max-width: 280px; }
+.fin-uma-linha td.fin-obs > .fin-uma-celula { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.fin-uma-linha td.fin-obs > .fin-uma-celula > .fin-obs-txt { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fin-uma-linha td.fin-obs > .fin-uma-celula > :not(.fin-obs-txt) { flex: none; }
+.fin-uma-linha .tabela > tbody > tr > td .fis-etiqueta { white-space: nowrap; }
+
 /* Até o cabeçalho avançado (funil, ordem e colunas recolhidas do usuário) ficar pronto, a tabela não aparece:
    sem o "pisca" dos filtros antigos nem das colunas trocando de lugar. O carregando continua visível. */
 .fin-tela .tabela:not(.cab-avancado) > thead,
