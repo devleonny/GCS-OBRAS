@@ -1297,7 +1297,8 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
         ['parcelas', 'Parcelas', Boolean(t)],
         ['repeticoes', 'Repetições', nova || Boolean(t && !cancelada)],
         ['repeticao', 'Repetição', Boolean(rec)],
-        ['pagamentos', pagar ? 'Pagamentos' : 'Recebimentos', Boolean(t)]
+        ['pagamentos', pagar ? 'Pagamentos' : 'Recebimentos', Boolean(t)],
+        ['aprovacao', 'Aprovação', Boolean(t && pagar)]
     ].filter(a => a[2])
     if (!abas.some(a => a[0] === aba)) aba = 'detalhes'
 
@@ -1391,6 +1392,11 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                         ${t ? `
                         <div class="fin-aba" data-painel-aba="pagamentos" ${aba === 'pagamentos' ? '' : 'hidden'}>
                             ${abaPagamentosFin(t, baixas, pagar, cancelada)}
+                        </div>` : ''}
+
+                        ${t && pagar ? `
+                        <div class="fin-aba" data-painel-aba="aprovacao" ${aba === 'aprovacao' ? '' : 'hidden'}>
+                            ${abaAprovacaoFin(dados?.aprovacao)}
                         </div>` : ''}
                     </div>
                     <div class="fin-lateral">
@@ -1895,6 +1901,47 @@ async function anexarFin(input) {
 function removerAnexoFin(i) {
     anexosFormFin.splice(i, 1)
     desenharAnexosFin()
+}
+
+// Aba Aprovação da fatura a pagar (27/11/2026, a pedido): o histórico de aprovação do reembolso que a gerou, em
+// ordem do mais antigo ao mais novo, com os balões do detalhe do pagamento (cor pelo status) e as autorizações
+// de setor. Fatura sem reembolso (manual, nota, lote...) ou título do Omie sem aprovação no GCS: avisa.
+function abaAprovacaoFin(ap) {
+    if (!ap) return '<div class="fis-vazio">Esta fatura não veio de um reembolso: não há aprovação para mostrar.</div>'
+    const quando = s => {
+        const m = String(s || '').match(/(\d{2})\/(\d{2})\/(\d{4})\D*(\d{2})?:?(\d{2})?:?(\d{2})?/)
+        return m ? new Date(+m[3], m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)).getTime() : 0
+    }
+    const cor = h => typeof imagemEspecifica === 'function' ? imagemEspecifica(h).cor : '#222'
+    const historico = Object.values(ap.historico || {})
+        .filter(h => h && typeof h === 'object')
+        .sort((a, b) => quando(a.data) - quando(b.data))
+    const autorizacoes = (Array.isArray(ap.distribuicao) ? ap.distribuicao : [])
+        .map(d => d?.autorizacao).filter(a => a?.aprovado_por)
+    const balao = (status, quem, data, texto, c) => `
+        <div class="pagamento-detalhe-aprovacao" style="--cor: ${c}">
+            <div><b>${escFin(status || '')}</b><small>${escFin([quem, data].filter(Boolean).join(' · '))}</small></div>
+            ${String(texto || '').trim() ? `<p>${escFin(texto)}</p>` : ''}
+        </div>`
+    const baloes = [
+        ...historico.map(h => balao(h.status, h.usuario, h.data, h.justificativa, cor(h))),
+        ...autorizacoes.map(a => balao('Autorização do setor', a.aprovado_por,
+            a.aprovado_em ? new Date(a.aprovado_em).toLocaleString('pt-BR') : '', a.comentario, '#4CAF50'))
+    ].join('')
+    const vazio = ap.criado === 'Integração'
+        ? 'Reembolso importado do Omie: a aprovação foi feita lá e não há histórico no GCS.'
+        : 'Nenhuma aprovação registrada neste reembolso.'
+    return `
+        <div class="fin-aprovacao">
+            <div class="fin-aprovacao-resumo">
+                <div><span>Status do reembolso</span><b style="color: ${cor({ status: ap.status })}">${escFin(ap.status || '—')}</b></div>
+                <div><span>Solicitado por</span>${escFin(ap.criado || '—')}</div>
+                <div><span>Solicitado em</span>${escFin(ap.data_registro || '—')}</div>
+                ${ap.aprovado_gerente_por ? `<div><span>Aprovado pelo gerente</span>${escFin(ap.aprovado_gerente_por)}</div>` : ''}
+                <button type="button" class="fis-mini" onclick="abrirDetalhesPagamentos('${escFin(ap.id)}')">Abrir reembolso</button>
+            </div>
+            ${baloes ? `<div class="fin-aprovacao-lista">${baloes}</div>` : `<div class="fis-vazio">${vazio}</div>`}
+        </div>`
 }
 
 // Aba Pagamentos da fatura: lista dos pagamentos à esquerda, totais e os botões Registrar / Cancelar à direita.
