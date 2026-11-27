@@ -224,6 +224,8 @@ async function criarElementosIniciais() {
 
         </div>`
 
+    ajustarAlturaPendencias()
+
     if(!blocos)
         await atribuirFuncoesJogo()
 
@@ -231,6 +233,42 @@ async function criarElementosIniciais() {
     if (typeof verificarAniversarios === 'function')
         verificarAniversarios()
 
+}
+
+// Os blocos de pendências da tela inicial descem até o fim da janela: a altura máxima é o
+// espaço que sobra abaixo do topo de cada bloco, descontados os espaçamentos de baixo dos
+// contêineres em volta. Com os blocos empilhados (tela em pé) fica o limite do CSS.
+function ajustarAlturaPendencias() {
+
+    const blocos = [...document.querySelectorAll('.planoFundo .bloco-pendencias')]
+    if (!blocos.length)
+        return
+
+    const lado = blocos.every(b => Math.abs(b.getBoundingClientRect().top - blocos[0].getBoundingClientRect().top) < 2)
+
+    for (const bloco of blocos) {
+
+        if (!lado) {
+            bloco.style.maxHeight = ''
+            continue
+        }
+
+        let folga = 0
+        for (let el = bloco; el && el !== document.body; el = el.parentElement) {
+            const est = getComputedStyle(el)
+            folga += parseFloat(est.marginBottom) || 0
+            if (el !== bloco)
+                folga += (parseFloat(est.paddingBottom) || 0) + (parseFloat(est.borderBottomWidth) || 0)
+        }
+
+        const topo = bloco.getBoundingClientRect().top + window.scrollY
+        bloco.style.maxHeight = `${Math.max(200, window.innerHeight - topo - folga)}px`
+    }
+
+    if (!window._alturaPendenciasLigada) {
+        window._alturaPendenciasLigada = true
+        window.addEventListener('resize', ajustarAlturaPendencias)
+    }
 }
 
 async function filtrarMinhasOcorrencias(st) {
