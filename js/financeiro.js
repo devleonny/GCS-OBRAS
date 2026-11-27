@@ -1037,7 +1037,7 @@ async function empresaLoteFin() {
     fecharPopupsLoteFin()
     let op
     try { op = await carregarOpcoesFin() } catch (err) { return popup({ mensagem: mensagemErroEst(err) }) }
-    const app = op.empresas[0]?.app || ''
+    const app = ''
     popup({
         titulo: `Mudar empresa de ${selecaoFin.size} fatura(s)`,
         linhas: [{
@@ -1046,10 +1046,10 @@ async function empresaLoteFin() {
                     <div class="fis-grade">
                         <label class="fis-campo"><span>Nova empresa *</span>
                             <select class="fis-input" name="app" onchange="this.closest('[data-lote-empresa]').querySelector('[name=conta_id]').innerHTML = opcoesContasFin(opcoesFinCache.contas, this.value, '')">
-                                ${opcoesEmpresasFin(op.empresas, app)}
+                                <option value="">Selecione</option>${opcoesEmpresasFin(op.empresas, app)}
                             </select></label>
                         <label class="fis-campo fis-largo"><span>Conta corrente</span>
-                            <select class="fis-input" name="conta_id">${opcoesContasFin(op.contas, app, '')}</select></label>
+                            <select class="fis-input" name="conta_id"><option value="">Escolha a empresa primeiro</option></select></label>
                     </div>
                     <small class="fis-dica">Vale para pagas e em aberto. Os ${termoFin('pagamento')}s já lançados passam para a conta da empresa nova. As que já são dessa empresa ficam como estão.</small>
                 </div>`
