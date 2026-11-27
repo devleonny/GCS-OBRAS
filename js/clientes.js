@@ -944,10 +944,10 @@ async function formularioCliente(idCliente) {
         {
             // Usuário fica oculto aqui (obVal e verificarDisponibilidade leem do painel);
             // o rodapé mostra o valor em balão (cliente-rodape).
-            texto: 'Nome',
+            texto: 'Nome fantasia',
             elemento: `
             <textarea
-            placeholder="Nome Completo"
+            placeholder="Nome fantasia"
             maxlength="60"
             ${!usuario ? `oninput="verificarDisponibilidade(this)"` : ''}
             name="nome">${nome || ''}</textarea>
