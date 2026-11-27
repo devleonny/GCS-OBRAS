@@ -4906,6 +4906,11 @@ function formularioDevolucaoFis({ origem, participante: part = {}, itens, operac
                 <legend><span class="fis-num-passo">2</span> Operação</legend>
                 <div class="fis-grade">
                     ${campoFis('Operação', comAjustePerfilFis(`<select class="fis-input" name="operacao_id">${opcoesFis(operacoes.map(x => [x.id, `${x.descricao} (${x.cfop_interno}/${x.cfop_interestadual})`]), inicial.operacao_id || operacao_sugerida)}</select>`, 'operacao'), 'fis-largo')}
+                    ${campoFis('CFOP', `<div class="fis-com-ajuste">
+                        <input type="hidden" name="cfop" value="${escFis(soDigFis(o.cfop))}">
+                        <span data-cfop-devolucao>${htmlCfopDevolucaoFis(o.cfop)}</span>
+                        <button type="button" class="fis-mini" onclick="digitarCfopDevolucaoFis(this)" title="Digitar o CFOP só desta nota (o perfil da operação não muda)">Digitar CFOP</button>
+                    </div>`)}
                 </div>
                 ${operacoes.length ? '' : '<div class="fis-erros">Nenhuma operação de devolução cadastrada para esta empresa (Configuração fiscal → Operações).</div>'}
             </fieldset>
@@ -4951,6 +4956,30 @@ function formularioDevolucaoFis({ origem, participante: part = {}, itens, operac
     agendarPreviaFis()
 }
 
+// CFOP digitado na devolução: vale só para esta nota (opcoes.cfop); vazio = o CFOP do perfil da operação
+// (dentro/fora da UF). O servidor confere entrada (1/2/3) × saída (5/6/7) e avisa se a UF não bate.
+function htmlCfopDevolucaoFis(cfop) {
+    const c = soDigFis(cfop)
+    return c ? `<b>${escFis(c)}</b> <small>(digitado)</small>` : '<small>o do perfil da operação</small>'
+}
+
+async function digitarCfopDevolucaoFis(botao) {
+    const form = botao.closest('[data-form-devolucao]')
+    const campo = form?.querySelector('[name="cfop"]')
+    if (!campo) return
+    const texto = await pedirTextoPopup({
+        titulo: 'CFOP da devolução',
+        mensagem: 'CFOP de todos os itens desta nota (4 dígitos).<br><small>Saída para o fornecedor: 5, 6 ou 7. Entrada própria (devolução de venda): 1, 2 ou 3. Deixe vazio para voltar ao CFOP do perfil da operação.</small>',
+        textoConfirmar: 'Aplicar', minimo: 0, maximo: 4, valor: campo.value
+    })
+    if (texto === null) return
+    const cfop = soDigFis(texto)
+    if (cfop && !/^[123567]\d{3}$/.test(cfop)) return popup({ mensagem: 'CFOP: 4 dígitos, começando por 1, 2 ou 3 (entrada) ou 5, 6 ou 7 (saída).' })
+    campo.value = cfop
+    form.querySelector('[data-cfop-devolucao]').innerHTML = htmlCfopDevolucaoFis(cfop)
+    agendarPreviaFis()
+}
+
 function devolverTudoFis(botao, tudo) {
     const form = botao.closest('[data-form-devolucao]')
     form.querySelectorAll('[data-devolver]:not(:disabled)').forEach(input => { input.value = tudo ? input.dataset.maximo : '' })
@@ -4975,6 +5004,7 @@ function lerDevolucaoFis(form) {
         },
         opcoes: {
             modalidade_frete: v('modalidade_frete'),
+            cfop: v('cfop') || undefined,
             informacoes_complementares: v('informacoes_complementares'),
             transportador: transportadora ? {
                 id: transportadora.id, nome: transportadora.razao_social || transportadora.nome, documento: soDigFis(transportadora.cnpj),
