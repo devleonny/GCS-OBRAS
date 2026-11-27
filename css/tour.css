@@ -1,0 +1,86 @@
+/* Passo a passo de primeira vez (js/tour.js, 27/11/2026): overlay escuro, círculo no alvo, balão com a explicação. */
+.tour-raiz {
+    position: fixed;
+    inset: 0;
+    z-index: 1000000;
+    font-family: inherit;
+}
+
+/* Bloqueia cliques na tela por baixo enquanto o tour está aberto. */
+.tour-bloqueio { position: absolute; inset: 0; background: transparent; }
+.tour-raiz.sem-alvo .tour-bloqueio { background: rgba(16, 28, 21, .62); }
+
+/* O "buraco": a sombra gigante escurece tudo menos o círculo. */
+.tour-foco {
+    position: fixed;
+    border-radius: 50%;
+    box-shadow: 0 0 0 200vmax rgba(16, 28, 21, .62);
+    outline: 3px solid #8fd3a8;
+    outline-offset: 2px;
+    pointer-events: none;
+    transition: left 260ms ease, top 260ms ease, width 260ms ease, height 260ms ease;
+}
+.tour-foco::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid #8fd3a8;
+    opacity: 0;
+    animation: tour-pulso 1.8s ease-out infinite;
+}
+@keyframes tour-pulso {
+    0% { transform: scale(.94); opacity: .9; }
+    100% { transform: scale(1.12); opacity: 0; }
+}
+
+.tour-balao {
+    position: fixed;
+    width: min(360px, calc(100vw - 24px));
+    box-sizing: border-box;
+    padding: 14px 16px 12px;
+    border-radius: 10px;
+    background: #fff;
+    color: #24312a;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .28);
+    outline: none;
+    transition: left 260ms ease, top 260ms ease;
+}
+.tour-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tour-contagem { color: #6b7a72; font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+.tour-pular {
+    margin: 0; padding: 2px 4px; border: 0; background: transparent; box-shadow: none;
+    color: #6b7a72; font-size: 11px; text-decoration: underline; cursor: pointer;
+}
+.tour-pular:hover { color: #b12425; background: transparent; }
+.tour-titulo { margin: 0 0 6px; color: #356443; font-size: 15px; font-weight: 700; }
+.tour-texto { font-size: 13px; line-height: 1.5; }
+.tour-texto p { margin: 0 0 6px; }
+.tour-texto b { color: #24312a; }
+.tour-texto kbd {
+    padding: 0 4px; border: 1px solid #cfd8d3; border-radius: 3px; background: #f4f7f5;
+    font-family: inherit; font-size: 11px;
+}
+
+.tour-pontos { display: flex; gap: 4px; justify-content: center; margin: 10px 0 8px; }
+.tour-pontos i { width: 6px; height: 6px; border-radius: 50%; background: #d9e2dc; }
+.tour-pontos i.visto { background: #8fd3a8; }
+.tour-pontos i.ativo { width: 16px; border-radius: 3px; background: #2f7d4f; }
+
+.tour-botoes { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tour-botoes button {
+    margin: 0; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; box-shadow: none;
+}
+.tour-voltar { border: 1px solid #cfd8d3; background: #fff; color: #3d4b44; }
+.tour-voltar:hover { background: #f0f6f2; }
+.tour-proximo { border: 1px solid #2f7d4f; background: #2f7d4f; color: #fff; font-weight: 600; }
+.tour-proximo:hover { background: #276b43; }
+
+@media (prefers-reduced-motion: reduce) {
+    .tour-foco, .tour-balao { transition: none; }
+    .tour-foco::after { animation: none; }
+}
+
+/* Alvo grande: retângulo arredondado no lugar da elipse. */
+.tour-foco.retangulo,
+.tour-foco.retangulo::after { border-radius: 14px; }

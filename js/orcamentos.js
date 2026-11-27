@@ -21,6 +21,82 @@ function formatacaoPagina() {
 
 }
 
+// Passo a passo da primeira vez nesta tela (js/tour.js): aparece sozinho uma vez por usuário; o botão Tour reabre.
+const primeiraLinhaOrc = seletor => () => document.querySelector(`#linhas > tr.fin-linha ${seletor}`)
+
+const TOUR_ORCAMENTOS = [
+    {
+        titulo: 'Bem-vindo aos Orçamentos',
+        texto: '<p>Aqui ficam todos os orçamentos, um por linha.</p><p>Em poucos passos mostramos as principais ferramentas da tela. Dá para pular a qualquer momento e rever depois pelo botão <b>Tour</b>.</p>'
+    },
+    {
+        alvo: '.orc-tela .fin-barra',
+        titulo: 'Ações da tela',
+        texto: '<p><b>Em edição</b> abre os orçamentos que você está montando neste aparelho.</p><p><b>Baixar Excel</b> baixa os orçamentos marcados ou, sem marcação, todos os do filtro.</p>'
+    },
+    {
+        alvo: '.orc-tela .orc-status-bloco',
+        antes: () => { if (document.querySelector('[data-corpo-orc]')?.classList.contains('recolhido')) alternarPainelOrcamentos() },
+        titulo: 'Status',
+        texto: '<p>O status do orçamento é o status do chamado. Clique em um para ver só os orçamentos dele; <b>TODOS</b> volta a lista inteira.</p><p>A setinha ao lado recolhe esta bandeja e dá mais espaço para a tabela.</p>'
+    },
+    {
+        alvo: '.orc-tela .tabela > thead',
+        titulo: 'Filtros nas colunas',
+        texto: '<p>Cada coluna tem o seu <b>funil</b> para pesquisar. Nas colunas de dinheiro dá para buscar o valor: <kbd>123,52</kbd>, <kbd>&gt;1000</kbd>, <kbd>&lt;0</kbd> ou <kbd>100 a 200</kbd>.</p><p>Clicando no título você ordena, arrasta para mudar a ordem ou esconde a coluna.</p>'
+    },
+    {
+        alvo: primeiraLinhaOrc('td.tabela-coluna-detalhes'),
+        titulo: 'Detalhes',
+        texto: '<p>O <b>+</b> abre os detalhes do orçamento: custos, vínculos, pedidos, notas e parcelas.</p>'
+    },
+    {
+        alvo: '.orc-tela th.orc-col-marcar',
+        titulo: 'Marcar orçamentos',
+        texto: '<p>Marque os orçamentos para somar só eles no rodapé ou baixar só eles no Excel.</p><p>A caixinha do título marca a página; depois aparece a opção de marcar <b>todos do filtro</b>.</p>'
+    },
+    {
+        alvo: primeiraLinhaOrc('.orc-atalhos'),
+        titulo: 'Atalhos do orçamento',
+        texto: '<p>A <b>lupa</b> (ou um clique na linha) abre os atalhos: editar, duplicar, histórico, PDF, Excel do orçamento, painel de custos, vincular e o resto do que dá para fazer com ele.</p>'
+    },
+    {
+        alvo: primeiraLinhaOrc('td.orc-col-empresa'),
+        titulo: 'Cliente',
+        texto: '<p>A empresa do cliente, com a foto, e logo depois o cliente, o CNPJ e a cidade.</p>'
+    },
+    {
+        alvo: primeiraLinhaOrc('td.orc-col-tags'),
+        titulo: 'Tags',
+        texto: '<p>Clique nas tags para incluir, tirar ou criar. Quando não cabem, terminam em "..." e a lista inteira aparece ao passar o mouse.</p>'
+    },
+    {
+        alvo: primeiraLinhaOrc('td.orc-col-dif-tipo'),
+        titulo: 'Desconto ou acréscimo',
+        texto: '<p>Mostra se o total ficou abaixo (<b>Desconto</b>) ou acima (<b>Acréscimo</b>) do valor original, com a porcentagem. A coluna <b>Diferença</b>, ao lado, traz o valor em R$.</p>'
+    },
+    {
+        alvo: primeiraLinhaOrc('td.orc-col-custo'),
+        titulo: 'Custo até agora',
+        texto: '<p>Quanto já foi gasto no orçamento e a % do total. A barrinha fica <b>amarela</b> a partir de 30% e <b>vermelha</b> a partir de 40%.</p>'
+    },
+    {
+        alvo: '.orc-tela .tabela > tfoot',
+        titulo: 'Totais',
+        texto: '<p>O rodapé soma as colunas de valor de <b>todos os orçamentos do filtro</b>, de todas as páginas. Com orçamentos marcados, fica azul e soma só os marcados.</p>'
+    },
+    {
+        alvo: '[data-rodape-orc]',
+        titulo: 'Páginas',
+        texto: '<p>Aqui você vê quantos orçamentos o filtro trouxe e troca de página.</p>'
+    },
+    {
+        alvo: '[data-tour-orc]',
+        titulo: 'Pronto!',
+        texto: '<p>Para ver este passo a passo de novo, é só clicar em <b>Tour</b>.</p>'
+    }
+]
+
 async function telaOrcamentos() {
 
     const pag = 'orcamentos'
@@ -44,6 +120,7 @@ async function telaOrcamentos() {
                     <div class="fin-barra">
                         ${podeCriar ? `<button type="button" onclick="painelEdicao()" title="Orçamentos em edição neste aparelho">${iconeFin('editar')} Em edição</button>` : ''}
                         ${podeExcel ? `<button type="button" onclick="baixarExcelOrcamentos()" title="Com orçamentos marcados, baixa só os marcados; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Baixar Excel</button>` : ''}
+                        <button type="button" data-tour-orc onclick="iniciarTour('orcamentos', TOUR_ORCAMENTOS)" title="Passo a passo das principais ferramentas desta tela">${iconeFin('ajuda')} Tour</button>
                     </div>
                 </header>
                 <div class="fin-corpo${aberto ? '' : ' recolhido'}" data-corpo-orc>
@@ -108,6 +185,9 @@ async function telaOrcamentos() {
 
     removerOverlay()
     await paginacao(pag)
+
+    // Primeira vez do usuário nesta tela: passo a passo (js/tour.js); depois só pelo botão Tour.
+    if (typeof tourPrimeiraVez === 'function') tourPrimeiraVez('orcamentos', TOUR_ORCAMENTOS)
 
 }
 
