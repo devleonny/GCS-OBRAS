@@ -1065,7 +1065,12 @@ async function excluirLoteFin() {
     if (ok) executarLoteFin({ acao: 'excluir' })
 }
 
+// Trava contra duplo clique: o botão do popup é um onclick simples e o 2º clique reenviava o lote (27/11:
+// a 1ª chamada trocava a empresa e a 2ª respondia "0 fatura(s)... já é da AC" por cima do resultado certo).
+let loteEmAndamentoFin = false
 async function executarLoteFin(corpo, botao = null, ids = null) {
+    if (loteEmAndamentoFin) return
+    loteEmAndamentoFin = true
     try {
         overlayAguarde()
         const r = await apiFin('lote', { ...corpo, ids: ids || [...selecaoFin] })
@@ -1074,7 +1079,7 @@ async function executarLoteFin(corpo, botao = null, ids = null) {
         const verbo = { baixar: corpo.acao === 'baixar' && tipoFaturasFin === 'RECEBER' ? 'recebida(s)' : 'paga(s)', vencimento: 'com vencimento novo', empresa: `passada(s) para a ${escFin(corpo.app || '')}`, excluir: 'excluída(s)', cancelar: `com o ${termoFin('pagamento')} cancelado` }[corpo.acao]
         popup({
             titulo: ids ? 'Fatura' : 'Faturas marcadas',
-            mensagem: `<b>${r.feitas} fatura(s) ${verbo}.</b>${r.puladas.length ? `<br>${r.puladas.length} ficaram de fora:<ul class="fis-lista">${r.puladas.map(p => `<li>${escFin(p.fatura)}: ${escFin(p.motivo)}</li>`).join('')}</ul>` : ''}`,
+            mensagem: `<b>${r.feitas ? `${r.feitas} fatura(s) ${verbo}.` : 'Nenhuma fatura foi alterada.'}</b>${r.puladas.length ? `<br>${r.feitas ? `${r.puladas.length} das marcadas ficaram de fora` : 'Motivo de cada uma'}:<ul class="fis-lista">${r.puladas.map(p => `<li>${escFin(p.fatura)}: ${escFin(p.motivo)}</li>`).join('')}</ul>` : ''}`,
             imagem: r.puladas.length ? undefined : 'imagens/concluido.png'
         })
         if (!ids) { selecaoFin.clear(); valoresSelecaoFin.clear() }
@@ -1084,6 +1089,8 @@ async function executarLoteFin(corpo, botao = null, ids = null) {
     } catch (err) {
         removerOverlay()
         popup({ mensagem: mensagemErroEst(err) })
+    } finally {
+        loteEmAndamentoFin = false
     }
 }
 
