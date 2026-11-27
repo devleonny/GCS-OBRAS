@@ -259,7 +259,7 @@ function criarLinhaControleFat(d) {
             <td class="ctf-corta"><button type="button" class="ctf-setor ${d.setor === 'SEM SETOR' ? 'vazio' : ''}" title="${escFin(d.setor)} · ${d.responsavel_id ? 'clique para corrigir o setor de quem pediu (vale para todas as notas dele)' : 'responsável sem cadastro: o setor não se corrige por aqui'}"
                 ${d.responsavel_id ? `onclick="event.stopPropagation(); escolherSetorControleFat('${id}')"` : 'disabled'}>${escFin(d.setor)}</button></td>
             ${corta(d.responsavel)}
-            ${corta(d.grupo)}
+            <td class="ctf-corta" title="${escFin(d.grupo || '')}"><span>${d.grupo_foto ? `<img class="ctf-empresa-foto" src="${escFin(urlFotoCliente(d.grupo_foto))}" alt="" loading="lazy" onerror="this.remove()">` : ''}${escFin(d.grupo || '')}</span></td>
             ${corta(d.cliente, 'ctf-largo')}
             <td class="ctf-corta" title="${escFin(Number(d.orcamentos_extras) ? `${d.orcamento} e mais ${d.orcamentos_extras} orçamento(s) no rateio da nota` : d.orcamento || '')}"><span>${escFin(d.orcamento || '')}${Number(d.orcamentos_extras) ? ` <small class="ctf-modelo">+${d.orcamentos_extras}</small>` : ''}</span></td>
             <td class="fis-num">${dinheiro(d.valor)}</td>
