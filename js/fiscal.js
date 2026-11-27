@@ -579,6 +579,7 @@ async function abrirTabelaItensRecFis(filtroExtra = null) {
             }
         })
         area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-it-rec-fis></div>')
+        area.querySelector('.modtab')?.insertAdjacentHTML('afterbegin', '<div class="fin-aviso-selecao" data-aviso-it-rec-fis hidden></div>')
         await paginacao('itensRecebidos')
     } catch (err) {
         console.error(err)
@@ -658,13 +659,53 @@ function marcarTodasItRecFis(caixa) {
     desenharSelecaoItRecFis()
 }
 
+function limparSelecaoItRecFis() {
+    selecaoItRecFis.clear()
+    document.querySelectorAll('#bodyItensRecebidos [data-marcar-it-rec]').forEach(c => { c.checked = false })
+    desenharSelecaoItRecFis()
+}
+
+async function selecionarTodosFiltroItRecFis() {
+    const ctrl = controles.itensRecebidos
+    if (!ctrl) return
+    overlayAguarde()
+    try {
+        const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+        let pagina = 1, paginas = 1
+        do {
+            const r = await pesquisarDB({ base: 'vw_fiscal_documento_itens', filtros, pagina, limite: 2000 })
+            ;(r?.resultados || []).forEach(d => selecaoItRecFis.set(String(d.id), Number(d.valor_total) || 0))
+            paginas = Number(r?.paginas) || 1
+            pagina++
+        } while (pagina <= paginas && pagina <= 50)
+        document.querySelectorAll('#bodyItensRecebidos [data-marcar-it-rec]').forEach(c => { c.checked = selecaoItRecFis.has(c.value) })
+        desenharSelecaoItRecFis()
+    } catch (err) {
+        popup({ mensagem: `Falha ao marcar os itens do filtro: ${escFis(err.message)}` })
+    } finally {
+        removerOverlay()
+    }
+}
+
 function desenharSelecaoItRecFis() {
     const pagina = [...document.querySelectorAll('#bodyItensRecebidos [data-marcar-it-rec]')]
     const marcadas = pagina.filter(c => c.checked).length
+    const paginaToda = pagina.length > 0 && marcadas === pagina.length
     const todas = document.querySelector('[data-marcar-todas-it-rec]')
     if (todas) {
-        todas.checked = pagina.length > 0 && marcadas === pagina.length
+        todas.checked = paginaToda
         todas.indeterminate = marcadas > 0 && marcadas < pagina.length
+    }
+    const aviso = document.querySelector('[data-aviso-it-rec-fis]')
+    if (aviso) {
+        const n = selecaoItRecFis.size
+        const total = Number(document.getElementById('resultados_itensRecebidos')?.textContent) || 0
+        const plural = q => `${q.toLocaleString('pt-BR')} ${q === 1 ? 'item' : 'itens'}`
+        const limpar = '<a href="#" onclick="event.preventDefault(); limparSelecaoItRecFis()">limpar a seleção</a>'
+        aviso.hidden = !(n && paginaToda)
+        aviso.innerHTML = aviso.hidden ? '' : n < total
+            ? `Você selecionou ${plural(n)}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodosFiltroItRecFis()">selecionar todos os ${plural(total)} deste filtro</a>`
+            : `Você selecionou ${n === total ? 'todos os ' : ''}${plural(n)}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
     }
     escreverTotalItRecFis()
 }
