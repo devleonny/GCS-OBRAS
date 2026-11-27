@@ -167,8 +167,8 @@
 
 /* Abas do detalhe: botões em pílula; a escolhida fica cheia de verde. */
 /* Grade: as abas com a mesma largura, alinhadas em colunas, o "Fora" na sequência (sem ficar solto à direita). */
-.cc-abas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; padding: 10px 12px; background: #fff; border-bottom: 1px solid #e6ece8; }
-.cc-aba { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 12px; border: 1px solid #dfe7e2; border-radius: 999px; background: #f6f9f7; color: #4f5d55; font-size: 12.5px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: background 120ms, border-color 120ms, color 120ms; }
+.cc-abas { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; background: #fff; border-bottom: 1px solid #e6ece8; }
+.cc-aba { flex: 1 0 auto; min-width: 150px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 12px; border: 1px solid #dfe7e2; border-radius: 999px; background: #f6f9f7; color: #4f5d55; font-size: 12.5px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: background 120ms, border-color 120ms, color 120ms; }
 .cc-aba .fin-icone { width: 15px; height: 15px; }
 .cc-aba em { font-style: normal; min-width: 18px; padding: 0 6px; border-radius: 999px; background: #e3eae6; color: #4f5d55; font-size: 11px; line-height: 18px; text-align: center; }
 .cc-aba:hover { border-color: #b9cdbf; background: #eef6f0; color: var(--fin-verde, #356443); }
