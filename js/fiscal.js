@@ -44,6 +44,8 @@ const DEVOLUCAO_FISCAL = {
     CLIENTE: { cor: '#b45309', texto: 'Devolução do cliente', explica: 'Devolução emitida pelo cliente, da nossa venda' },
     CLIENTE_ENTRADA: { cor: '#b45309', texto: 'Devolução (entrada própria)', explica: 'NF-e de entrada própria: devolução da nossa venda' }
 }
+// Coluna "Devolvida" das listas (gcs migrations/fiscal-devolvida-filtro.sql): Sim = a nota tem devolução válida ligada.
+const celulaDevolvidaFis = d => `<td class="fin-centro">${d.devolvida === 'Sim' ? etiquetaEst('Devolvida', '#8e44ad') : ''}</td>`
 const ORIGENS_MERCADORIA = {
     0: '0 · Nacional', 1: '1 · Estrangeira (importação direta)', 2: '2 · Estrangeira (mercado interno)',
     3: '3 · Nacional, importação > 40%', 4: '4 · Nacional, processos básicos', 5: '5 · Nacional, importação ≤ 40%',
@@ -152,7 +154,8 @@ async function abrirTabelaRecebidas(filtroExtra = null) {
                 'Não vinculados': { chave: 'itens_pendentes', tipoPesquisa: 'valor' },
                 'Estoque': { chave: 'estoque_status', tipoPesquisa: 'select' },
                 'Manifestação': { chave: 'manifestacao', tipoPesquisa: 'select' },
-                'Situação': { chave: 'status', tipoPesquisa: 'select' }
+                'Situação': { chave: 'status', tipoPesquisa: 'select' },
+                'Devolvida': { chave: 'devolvida', tipoPesquisa: 'select' }
             }
         })
         area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-rec-fis></div>')
@@ -363,6 +366,7 @@ async function baixarExcelRecebidasFis() {
                 { titulo: 'Estoque', largura: 16, valor: d => texto(ESTOQUE_FISCAL, d.estoque_status) },
                 { titulo: 'Manifestação', largura: 16, valor: d => texto(MANIFESTACAO_FISCAL, d.manifestacao) },
                 { titulo: 'Situação', largura: 14, valor: d => texto(STATUS_FISCAL, d.status) },
+                { titulo: 'Devolvida', largura: 11, centro: true, valor: d => d.devolvida || '' },
                 { titulo: 'Chave', largura: 48, valor: d => d.chave || '' }
             ]
         })
@@ -484,6 +488,7 @@ function criarLinhaNotaRecebida(d) {
             <td>${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}</td>
             <td>${etiquetaFis(MANIFESTACAO_FISCAL, d.manifestacao)}</td>
             <td>${etiquetaFis(STATUS_FISCAL, d.status)}</td>
+            ${celulaDevolvidaFis(d)}
         </tr>`
 }
 
@@ -2598,7 +2603,9 @@ async function abrirTabelaEmitidas(filtroExtra = null) {
                 ...colunasImpostosTelaFis(impostosEmitFis()),
                 'Situação': { chave: 'status', tipoPesquisa: 'select' },
                 ...(nfse ? {} : { 'Estoque': { chave: 'estoque_status', tipoPesquisa: 'select' } }),
-                'Origem': { chave: 'ambiente', tipoPesquisa: 'select' }
+                'Origem': { chave: 'ambiente', tipoPesquisa: 'select' },
+                // NFS-e não tem devolução (o caminho é cancelar).
+                ...(nfse ? {} : { 'Devolvida': { chave: 'devolvida', tipoPesquisa: 'select' } })
             }
         })
         area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-emit-fis></div>')
@@ -2841,7 +2848,8 @@ async function baixarExcelEmitidasFis() {
                 ...colunasImpostosExcelFis(modeloEmitidasFis === 'NFSE' ? IMPOSTOS_NFSE_FIS : modeloEmitidasFis === 'NFE' ? IMPOSTOS_NFE_FIS : [...IMPOSTOS_NFE_FIS, ...IMPOSTOS_NFSE_FIS]),
                 { titulo: 'Situação', largura: 14, valor: d => textoStatus(d.status) },
                 ...(nfse ? [] : [{ titulo: 'Estoque', largura: 14, valor: d => textoEstoque(d.estoque_status) }]),
-                { titulo: 'Origem', largura: 13, valor: d => ORIGEM_EMIT_FIS[d.ambiente] || d.ambiente || '' }
+                { titulo: 'Origem', largura: 13, valor: d => ORIGEM_EMIT_FIS[d.ambiente] || d.ambiente || '' },
+                ...(nfse ? [] : [{ titulo: 'Devolvida', largura: 11, centro: true, valor: d => d.devolvida || '' }])
             ]
         })
     } catch (err) {
@@ -3080,6 +3088,7 @@ function criarLinhaNotaEmitida(d) {
             <td>${etiquetaFis(STATUS_FISCAL, d.status)}</td>
             ${nfse ? '' : `<td>${etiquetaFis(ESTOQUE_FISCAL, d.estoque_status)}</td>`}
             <td>${d.ambiente === 'homologacao' ? etiquetaEst('Homologação', '#d97706') : d.ambiente === 'producao' ? etiquetaEst('Produção', '#15803d') : d.ambiente === 'omie' ? etiquetaEst('Omie', '#7c3aed') : escFis(d.ambiente || '')}</td>
+            ${nfse ? '' : celulaDevolvidaFis(d)}
         </tr>`
 }
 
