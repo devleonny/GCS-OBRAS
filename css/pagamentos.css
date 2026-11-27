@@ -1436,6 +1436,43 @@
     gap: 5px;
 }
 
+/* "+" da linha: resumo da LPU Parceiro do pagamento. */
+.pagamentos-referencias-detalhes .pagamento-lpu-linha {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #1f2a24;
+}
+.pagamentos-referencias-detalhes .pagamento-lpu-pct {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #2e7d4f;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    font-style: normal;
+    white-space: nowrap;
+}
+.pagamentos-referencias-detalhes .pagamento-lpu-barra {
+    height: 6px;
+    border-radius: 999px;
+    background: #e3ece6;
+    overflow: hidden;
+}
+.pagamentos-referencias-detalhes .pagamento-lpu-barra i {
+    display: block;
+    height: 100%;
+    background: #2e7d4f;
+}
+.pagamentos-referencias-detalhes .pagamento-lpu-parceiro small { color: #5b6b61; }
+.pagamentos-referencias-detalhes .pagamento-lpu-parceiro button {
+    align-self: flex-start;
+    margin: 0;
+    padding: 3px 12px;
+    font-size: 12px;
+}
+
 .pagamentos-referencias-detalhes .pag-orc-tag {
     white-space: nowrap;
     padding: 3px 9px 3px 7px;

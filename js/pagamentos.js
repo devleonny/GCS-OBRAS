@@ -263,6 +263,7 @@ async function criarLinhaPagamento(pagamento) {
             <section><strong>Categorias</strong>${spanCategorias ? `<div class="pagamento-lista-baloes">${spanCategorias}</div>` : '<small class="pagamento-detalhe-vazio">Sem categorias</small>'}</section>
             <section><strong>Departamentos</strong>${deps ? `<div class="listagem-departamentos">${deps}</div>` : '<small class="pagamento-detalhe-vazio">Sem departamentos</small>'}</section>
             ${departamentosTags.length ? `<section hidden><strong>Tags dos orçamentos</strong><div class="pagamento-tags-orcamento" data-departamentos="${escaparAtributo(JSON.stringify(departamentosTags))}"></div></section>` : ''}
+            ${secaoLpuParceiroPagamento(pagamento, valor_documento)}
         </div>
         ${detalhesExtrasPagamento(pagamento)}`
     }
@@ -311,6 +312,28 @@ async function preencherTagsPagamentos() {
             .join('')
         caixa.parentElement.hidden = !vistas.size
     }
+}
+
+// Pagamento de uma LPU Parceiro: % já pago do combinado (vw_reembolsos.lpu_parceiro,
+// migrations/reembolsos-lpu-parceiro.sql — mesma conta do popup "Pagamentos da LPU Parceiro").
+function secaoLpuParceiroPagamento(pagamento, valorPagamento) {
+    const lpu = pagamento?.lpu_parceiro
+    if (!lpu?.id) return ''
+    const total = Number(lpu.total || 0)
+    const pago = Number(lpu.pago || 0)
+    const pct = Math.min(Number(lpu.pct || 0), 100)
+    const pctEste = total > 0 ? (Number(valorPagamento || 0) / total) * 100 : 0
+    const fmt = n => Number(n || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+    return `<section class="pagamento-lpu-parceiro">
+        <strong>LPU Parceiro${lpu.departamento ? ` · ${escaparAtributo(lpu.departamento)}` : ''}</strong>
+        <div class="pagamento-lpu-linha">
+            <em class="pagamento-lpu-pct" title="Percentual já pago do combinado">${fmt(lpu.pct)}% pago</em>
+            <span>${dinheiro(pago)} de ${dinheiro(total)}</span>
+        </div>
+        <div class="pagamento-lpu-barra"><i style="width: ${pct}%"></i></div>
+        <small>Este pagamento: ${dinheiro(valorPagamento || 0)} (${fmt(pctEste)}% do combinado)</small>
+        <button type="button" onclick="historicoPagamentosParceiro('${escaparAtributo(lpu.id)}')">Ver pagamentos da LPU</button>
+    </section>`
 }
 
 // Linha de detalhes da lista: observação, aprovações (histórico) e anexos, só para leitura.
