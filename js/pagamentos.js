@@ -493,7 +493,9 @@ async function abrirDetalhesPagamentos(id) {
             </div>
         `
         const { permissao, usuario } = acesso
-        const { pagamento, orcamentos: vinculados, lpu_parceiro: idLpuParceiro, comprovantes = [] } = await carregarDetalhesPagamento(id)
+        const { pagamento, orcamentos: vinculados, lpu_parceiro: idLpuParceiro, lpu_resumo: lpuResumo, comprovantes = [] } = await carregarDetalhesPagamento(id)
+        // Mesmo bloco de progresso da LPU do "+" da lista.
+        const secaoLpu = secaoLpuParceiroPagamento({ lpu_parceiro: lpuResumo }, parametroPagamento(pagamento).valor_documento)
 
         const valoresPorCategoria = (pagamento?.snapshots?.categorias || [])
             .map(({ categoria, valor }) =>
@@ -619,6 +621,8 @@ async function abrirDetalhesPagamentos(id) {
                 ${modListagem(
             modelo('Valor Total do Pagamento', `<span class="valor-total-pagamento">${dinheiro(parametroPagamento(pagamento).valor_documento)}</span>`)
         )}
+
+                ${secaoLpu ? `<div class="pagamentos-referencias-detalhes pag-lpu-detalhe">${secaoLpu}</div>` : ''}
 
                 ${modListagem(
             modelo('Por Departamento', deps)

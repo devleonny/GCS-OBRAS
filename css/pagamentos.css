@@ -1436,6 +1436,12 @@
     gap: 5px;
 }
 
+/* Detalhes do Pagamento (lupa): mesmo bloco da LPU, ocupando a largura. */
+.detalhes-pagamento > .pag-lpu-detalhe {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 /* "+" da linha: resumo da LPU Parceiro do pagamento. */
 .pagamentos-referencias-detalhes .pagamento-lpu-linha {
     display: flex;
