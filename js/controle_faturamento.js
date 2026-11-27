@@ -248,16 +248,16 @@ function alternarPainelControleFat() {
 function criarLinhaControleFat(d) {
     dadosControleFat.set(String(d.id), d)
     const id = escFin(d.id)
-    const primeiraFatura = String(d.titulos || '').split(',')[0]
     const titulo = [
         d.substituta ? `Substituída pela ${d.substituta}` : '',
-        Number(d.faturas) ? `${d.faturas} fatura(s) a receber · duplo clique abre` : 'Sem fatura a receber ligada',
-        d.orc_venda_direta ? 'Orçamento de venda direta' : ''
+        Number(d.faturas) ? `${d.faturas} fatura(s) a receber` : 'Sem fatura a receber ligada',
+        d.orc_venda_direta ? 'Orçamento de venda direta' : '',
+        'Clique para ver onde corrigir cada informação'
     ].filter(Boolean).join(' · ')
     // Uma linha de texto por nota: o que não cabe termina em "..." (texto inteiro no título, ao passar o mouse).
     const corta = (texto, classe = '') => `<td class="ctf-corta ${classe}" title="${escFin(texto || '')}"><span>${escFin(texto || '')}</span></td>`
     return `
-        <tr class="fin-linha ctf-linha" title="${escFin(titulo)}" ${primeiraFatura ? `ondblclick="abrirFaturaFin('${escFin(primeiraFatura)}')"` : ''}>
+        <tr class="fin-linha ctf-linha" title="${escFin(titulo)}" onclick="atalhosControleFat('${id}', event)">
             <td class="fin-col-marcar">
                 <input type="checkbox" class="fin-marcar" data-marcar-ctf value="${id}" ${selecaoControleFat.has(String(d.id)) ? 'checked' : ''}
                     onclick="event.stopPropagation(); marcarNotaControleFat(this)" ondblclick="event.stopPropagation()" aria-label="Marcar nota">
@@ -284,6 +284,50 @@ function criarLinhaControleFat(d) {
             ${corta(d.lpu_ativa)}
             <td>${d.fonte === 'GCS' ? 'GCS' : 'Omie / avulsa'}</td>
         </tr>`
+}
+
+// ------------------------------------------------------------ atalhos: onde corrigir cada informação da nota
+// A tabela só lê (vw_controle_faturamento): clicar na linha mostra para onde ir e o que se corrige em cada lugar.
+function atalhosControleFat(idLinha, event) {
+    if (event?.target?.closest('input, button, a, select')) return
+    const d = dadosControleFat.get(String(idLinha))
+    if (!d) return
+    const faturas = String(d.titulos || '').split(',').filter(Boolean)
+    const item = (icone, titulo, detalhe, acao, { ativo = true, motivo = '' } = {}) => `
+        <button type="button" class="ctf-atalho" ${ativo ? `onclick="fecharAtalhosControleFat(this); ${acao}"` : 'disabled'} title="${escFin(ativo ? titulo : motivo)}">
+            ${iconeFin(icone)}
+            <span><b>${escFin(titulo)}</b><small>${escFin(ativo ? detalhe : motivo)}</small></span>
+        </button>`
+    const gcs = d.fonte === 'GCS'
+    const lista = [
+        ...(faturas.length
+            ? faturas.map((f, i) => item('pagamento', `Fatura a receber${faturas.length > 1 ? ` ${i + 1} de ${faturas.length}` : ''}`,
+                'Recebimento, vencimento, valor, juros/desconto, categoria e cancelamento', `abrirFaturaFin('${escFin(f)}')`))
+            : [item('pagamento', 'Fatura a receber', '', '', { ativo: false, motivo: 'Nenhuma fatura a receber ligada a esta nota (aparece como SEM FATURA)' })]),
+        item('check', 'Conciliação Bancária', 'Dar a baixa pelo crédito do extrato do banco (o jeito certo de marcar como recebida)', 'telaConciliacaoFin()'),
+        gcs
+            ? item('danfe', 'Nota fiscal no GCS', 'Ver a nota, DANFE/XML, cancelar e carta de correção', `abrirDocumentoFiscal('${escFin(d.id)}')`)
+            : item('danfe', 'Nota fiscal', '', '', { ativo: false, motivo: 'Nota do Omie: só consulta. Número, data, cliente e ORC vêm do documento oficial; para corrigir, fale com o adm.' }),
+        item('ver', 'Orçamento', 'Histórico do orçamento, itens, valores e notas ligadas', `abrirEsquemaPorContratoFis('${escFin(d.orcamento || '')}')`,
+            { ativo: !!d.orcamento, motivo: 'Nota sem orçamento ligado' }),
+        item('relogio', 'Chamado', 'Status e correções do chamado do orçamento', `abrirChamadoDoStatus('${escFin(d.orcamento || '')}')`,
+            { ativo: !!d.orcamento, motivo: 'Nota sem orçamento ligado' }),
+        item('editar', 'Cadastro do cliente', 'Nome, CNPJ e a Empresa do cliente (coluna Empresa e a foto)', `formularioCliente('${escFin(d.cliente_id || '')}')`,
+            { ativo: !!d.cliente_id, motivo: 'O CNPJ da nota não está em nenhum cadastro' }),
+        item('pessoa', 'Setor do responsável', `${d.responsavel || 'Responsável'}: setor na ficha do RH (vale para todas as notas dele)`, `escolherSetorControleFat('${escFin(d.id)}')`,
+            { ativo: !!d.responsavel_id, motivo: 'Responsável do orçamento sem cadastro' })
+    ]
+    popup({
+        titulo: `${d.modelo} ${d.numero || ''} · ${d.app || ''}`,
+        linhas: [
+            { elemento: `<div class="ctf-atalhos-topo"><b>${escFin(d.cliente || '')}</b><small>${dataFin(d.dia_emissao)} · ${dinheiro(d.valor)} · ${escFin(d.situacao)}</small></div>` },
+            { elemento: `<p class="ctf-atalhos-dica">Esta tabela só mostra. Escolha onde corrigir:</p><div class="ctf-atalhos">${lista.join('')}</div>` }
+        ]
+    })
+}
+
+function fecharAtalhosControleFat(botao) {
+    removerPopup(botao.closest('.popup')?.id)
 }
 
 async function aposCarregarControleFat() {

@@ -18,6 +18,22 @@
 .ctf-tela .tabela > tbody td.ctf-corta > .ctf-setor { display: inline-block; box-sizing: border-box; }
 .ctf-tela .tabela > tbody td.ctf-corta > .fin-sit { display: inline-flex; }
 .ctf-modelo { font-size: 0.68rem; color: #6b7a72; }
+/* Atalhos da linha (clique): para onde ir corrigir cada informação da nota. */
+.ctf-linha { cursor: pointer; }
+.ctf-atalhos-topo { display: flex; flex-direction: column; gap: 2px; }
+.ctf-atalhos-topo small { color: #5b6b62; }
+.ctf-atalhos-dica { margin: 4px 0 6px; font-size: 12px; color: #5b6b62; }
+.ctf-atalhos { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 6px; max-width: 560px; }
+.ctf-atalho {
+    display: flex; align-items: flex-start; gap: 8px; text-align: left; padding: 8px 10px; cursor: pointer;
+    background: #fff; border: 1px solid #d6e0da; border-radius: 8px; color: #1f2a24;
+}
+.ctf-atalho:hover:not(:disabled) { background: #f0faf3; border-color: #9fd3ae; }
+.ctf-atalho:disabled { cursor: default; opacity: 0.55; }
+.ctf-atalho .fin-icone { width: 18px; height: 18px; flex: 0 0 auto; margin-top: 1px; color: #2e7d4f; }
+.ctf-atalho span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ctf-atalho small { font-size: 11px; color: #5b6b62; white-space: normal; }
+@media (max-width: 600px) { .ctf-atalhos { grid-template-columns: 1fr; } }
 /* Foto da empresa do cadastro ao lado do nome: pequena, com moldura, sem aumentar a altura da linha. */
 .ctf-empresa-foto {
     width: 18px; height: 18px; object-fit: contain; vertical-align: middle; margin: -2px 6px 0 0;
