@@ -340,7 +340,8 @@ if (janelasIndependentesLigadas()) {
     document.addEventListener('pointerdown', evento => {
         // [data-flutuante]: listas/menus de um campo da janela que ficam no body (posição fixa),
         // fora do .popup; clicar neles é usar a janela, não clicar na página.
-        if (evento.target.closest?.('#barra-janelas, .aguarde, [data-flutuante]')) return
+        // .balao-pilha: o balão de aviso do topo (fechar pelo × ou clicar nele não mexe nas janelas).
+        if (evento.target.closest?.('#barra-janelas, .aguarde, [data-flutuante], .balao-pilha')) return
         const janela = evento.target.closest?.('body > .popup')
         if (!janela) {
             // Clique na página (fora das janelas): minimiza todas para a barra do rodapé.
