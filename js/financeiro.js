@@ -2302,15 +2302,12 @@ async function formularioBaixaRapidaFin(id) {
         return popup({ mensagem: mensagemErroEst(err) })
     }
     const pagar = t.tipo === 'PAGAR'
-    // Vencimento diferente de hoje (27/11/2026, a pedido): pergunta antes se o pagamento foi no vencimento ou hoje.
-    // Vencimento no futuro não entra: o pagamento não pode ter data futura, então vale hoje.
+    // Vencimento já passado (27/11/2026, a pedido): seletor com a sugestão "No vencimento" ou "Hoje" no próprio popup;
+    // a data também pode ser digitada. Vencimento hoje ou futuro: só hoje (o pagamento não pode ter data futura).
     const vencimento = String(t.vencimento || '').slice(0, 10)
-    let dataBaixa = hojeFin()
-    if (vencimento && vencimento < dataBaixa) {
-        const escolha = await escolherDataBaixaFin(vencimento, pagar)
-        if (!escolha) return
-        dataBaixa = escolha
-    }
+    const hoje = hojeFin()
+    const sugereVencimento = Boolean(vencimento && vencimento < hoje)
+    const dataBaixa = sugereVencimento ? vencimento : hoje
     const contas = op.contas.filter(k => contaAceitaFin(k, t.app))
     const padrao = t.conta_id || contaPadraoAppFin(contas, t.app)?.id
     popup({
@@ -2327,7 +2324,12 @@ async function formularioBaixaRapidaFin(id) {
                         <label class="fis-campo fis-largo"><span>Conta corrente *</span><select class="fis-input" name="conta_id">
                             ${contas.length ? contas.map(k => `<option value="${k.id}" ${k.id === padrao ? 'selected' : ''}>${escFin(k.nome)}${k.padrao ? ' (padrão)' : ''}</option>`).join('') : '<option value="">Nenhuma conta desta empresa</option>'}
                         </select></label>
-                        <label class="fis-campo"><span>Data real ${pagar ? 'do pagamento' : 'do recebimento'} *</span><input class="fis-input" type="date" name="data" max="${hojeFin()}" value="${dataBaixa}"></label>
+                        ${sugereVencimento ? `<label class="fis-campo"><span>Quando ${pagar ? 'foi pago' : 'foi recebido'}</span><select class="fis-input" name="quando" onchange="sugestaoDataBaixaFin(this)">
+                            <option value="${vencimento}" selected>No vencimento · ${dataFin(vencimento)}</option>
+                            <option value="${hoje}">Hoje · ${dataFin(hoje)}</option>
+                            <option value="">Outra data</option>
+                        </select></label>` : ''}
+                        <label class="fis-campo"><span>Data real ${pagar ? 'do pagamento' : 'do recebimento'} *</span><input class="fis-input" type="date" name="data" max="${hoje}" value="${dataBaixa}" oninput="dataBaixaDigitadaFin(this)"></label>
                     </div>
                     <small class="fis-dica">Quita o que falta da fatura. Parcial, desconto, juros ou multa: aba ${pagar ? 'Pagamentos' : 'Recebimentos'} da fatura → Registrar ${pagar ? 'pagamento' : 'recebimento'}.</small>
                 </div>`
@@ -2336,30 +2338,18 @@ async function formularioBaixaRapidaFin(id) {
     })
 }
 
-// Pergunta do Pagar agora: data do vencimento ou hoje. Resolve com a data (aaaa-mm-dd) ou null se fechar.
-function escolherDataBaixaFin(vencimento, pagar) {
-    return new Promise(resolve => {
-        const chave = crypto.randomUUID()
-        const hoje = hojeFin()
-        const id = popup({
-            titulo: `Data do ${pagar ? 'pagamento' : 'recebimento'}`,
-            modal: true,
-            mensagem: `O vencimento (${dataFin(vencimento)}) não é hoje (${dataFin(hoje)}). ${pagar ? 'Foi pago' : 'Foi recebido'} em qual data?`,
-            botoes: [
-                { id: `venc-${chave}`, texto: `No vencimento · ${dataFin(vencimento)}` },
-                { id: `hoje-${chave}`, texto: `Hoje · ${dataFin(hoje)}` }
-            ]
-        })
-        const observador = new MutationObserver(() => { if (!document.getElementById(id)) fim(null) })
-        function fim(data) {
-            observador.disconnect()
-            removerPopup(id)
-            resolve(data)
-        }
-        document.getElementById(`venc-${chave}`).addEventListener('click', () => fim(vencimento), { once: true })
-        document.getElementById(`hoje-${chave}`).addEventListener('click', () => fim(hoje), { once: true })
-        observador.observe(document.body, { childList: true })
-    })
+// Seletor do Pagar agora: a sugestão escolhida vai para a data; "Outra data" deixa a data para digitar.
+function sugestaoDataBaixaFin(select) {
+    const data = select.closest('[data-form-baixa-rapida]').querySelector('[name="data"]')
+    if (select.value) data.value = select.value
+    else data.focus()
+}
+
+// Data digitada: o seletor acompanha (vencimento, hoje ou outra data).
+function dataBaixaDigitadaFin(input) {
+    const select = input.closest('[data-form-baixa-rapida]').querySelector('[name="quando"]')
+    if (!select) return
+    select.value = [...select.options].some(o => o.value && o.value === input.value) ? input.value : ''
 }
 
 async function salvarBaixaRapidaFin(botao) {
