@@ -229,7 +229,7 @@ function diferencaOrcamento(diferenca, diferencaPct, bruto) {
     if (!dif) return { tipo: '<span class="orc-dif zero">Sem diferença</span>', valor: '<span class="orc-dif zero">—</span>' }
     const pct = Math.abs(Number(diferencaPct) || 0)
     const nome = dif > 0 ? 'Acréscimo' : 'Desconto'
-    const classe = dif > 0 ? 'acrescimo' : 'desconto'
+    const classe = dif > 0 ? 'orc-acres' : 'orc-desc'
     const textoPct = pct.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
     const titulo = `${nome} de ${escaparAtributo(dinheiroTexto(Math.abs(dif)))} (${textoPct}%)${bruto ? ` sobre ${escaparAtributo(dinheiroTexto(bruto))}` : ''}`
     return {

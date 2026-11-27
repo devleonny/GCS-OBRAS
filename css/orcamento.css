@@ -746,8 +746,8 @@
 .orc-dif { display: inline-flex; align-items: baseline; gap: 3px; white-space: nowrap; }
 .orc-dif small { font-size: 10px; opacity: .8; }
 .orc-dif-seta { font-size: 8px; }
-.orc-dif.desconto { color: #b12425; }
-.orc-dif.acrescimo { color: #2f7d4f; }
+.orc-dif.orc-desc { color: #b12425; }
+.orc-dif.orc-acres { color: #2f7d4f; }
 .orc-dif.zero,
 .orc-custo.vazio { color: #b3bdb7; }
 
@@ -847,6 +847,6 @@
     font-size: 11px; line-height: 18px; font-weight: 600; white-space: nowrap;
 }
 .orc-dif-tipo > span { font-size: 8px; }
-.orc-dif-tipo.desconto { background: #fbe4e4; color: #b12425; }
-.orc-dif-tipo.acrescimo { background: #e0f1e6; color: #2f7d4f; }
+.orc-dif-tipo.orc-desc { background: #fbe4e4; color: #b12425; }
+.orc-dif-tipo.orc-acres { background: #e0f1e6; color: #2f7d4f; }
 .orc-dif-tipo small { margin-left: 3px; font-size: 10px; font-weight: 500; opacity: .85; }
