@@ -25,6 +25,8 @@ async function telaOrcamentos() {
 
     const pag = 'orcamentos'
     selecaoOrcamentos.clear()
+    // Menu lateral principal recolhido ao abrir: a tabela e a bandeja precisam da largura.
+    if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
 
     // No celular a bandeja é uma gaveta por cima da tabela: começa fechada.
     if (window.matchMedia?.('(max-width: 800px)').matches) estadoTelaOrcamentos.painel = false
