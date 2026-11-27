@@ -973,7 +973,14 @@ function desenharSelecaoFin() {
     desenharPainelFin()
 }
 
+// Um popup de ação em lote por vez: abrir outro (ou o mesmo de novo) fecha o que estava aberto.
+function fecharPopupsLoteFin() {
+    document.querySelectorAll('[data-lote-baixa], [data-lote-vencimento], [data-lote-empresa]')
+        .forEach(f => removerPopup(f.closest('.popup')?.id))
+}
+
 async function baixaLoteFin() {
+    fecharPopupsLoteFin()
     let op
     try { op = await carregarOpcoesFin() } catch (err) { return popup({ mensagem: mensagemErroEst(err) }) }
     const pagar = tipoFaturasFin === 'PAGAR'
@@ -1004,6 +1011,7 @@ function confirmarBaixaLoteFin(botao) {
 }
 
 function vencimentoLoteFin() {
+    fecharPopupsLoteFin()
     popup({
         titulo: `Mudar vencimento de ${selecaoFin.size} fatura(s)`,
         linhas: [{
@@ -1026,6 +1034,7 @@ function confirmarVencimentoLoteFin(botao) {
 // Troca a empresa (app) das marcadas, como no formulário: vale em qualquer situação; a conta passa a ser a
 // escolhida ou a padrão da empresa nova, e os pagamentos/recebimentos vão para ela.
 async function empresaLoteFin() {
+    fecharPopupsLoteFin()
     let op
     try { op = await carregarOpcoesFin() } catch (err) { return popup({ mensagem: mensagemErroEst(err) }) }
     const app = op.empresas[0]?.app || ''
@@ -1076,10 +1085,13 @@ async function executarLoteFin(corpo, botao = null, ids = null) {
         const r = await apiFin('lote', { ...corpo, ids: ids || [...selecaoFin] })
         removerOverlay()
         if (botao) removerPopup(botao.closest('.popup')?.id)
+        fecharPopupsLoteFin()
+        // Só um aviso de resultado na tela: o anterior sai quando chega o novo.
+        document.querySelectorAll('.balao-aviso').forEach(b => { if (b.querySelector('[data-resultado-lote-fin]')) b.remove() })
         const verbo = { baixar: corpo.acao === 'baixar' && tipoFaturasFin === 'RECEBER' ? 'recebida(s)' : 'paga(s)', vencimento: 'com vencimento novo', empresa: `passada(s) para a ${escFin(corpo.app || '')}`, excluir: 'excluída(s)', cancelar: `com o ${termoFin('pagamento')} cancelado` }[corpo.acao]
         popup({
             titulo: ids ? 'Fatura' : 'Faturas marcadas',
-            mensagem: `<b>${r.feitas ? `${r.feitas} fatura(s) ${verbo}.` : 'Nenhuma fatura foi alterada.'}</b>${r.puladas.length ? `<br>${r.feitas ? `${r.puladas.length} das marcadas ficaram de fora` : 'Motivo de cada uma'}:<ul class="fis-lista">${r.puladas.map(p => `<li>${escFin(p.fatura)}: ${escFin(p.motivo)}</li>`).join('')}</ul>` : ''}`,
+            mensagem: `<span data-resultado-lote-fin hidden></span><b>${r.feitas ?`${r.feitas} fatura(s) ${verbo}.` : 'Nenhuma fatura foi alterada.'}</b>${r.puladas.length ? `<br>${r.feitas ? `${r.puladas.length} das marcadas ficaram de fora` : 'Motivo de cada uma'}:<ul class="fis-lista">${r.puladas.map(p => `<li>${escFin(p.fatura)}: ${escFin(p.motivo)}</li>`).join('')}</ul>` : ''}`,
             imagem: r.puladas.length ? undefined : 'imagens/concluido.png'
         })
         if (!ids) { selecaoFin.clear(); valoresSelecaoFin.clear() }
