@@ -25,6 +25,7 @@ async function telaOrcamentos() {
 
     const pag = 'orcamentos'
     selecaoOrcamentos.clear()
+    assinaturaTotaisOrc = null
     // Menu lateral principal recolhido ao abrir: a tabela e a bandeja precisam da largura.
     if (typeof recolherMenuPrincipalFin === 'function') recolherMenuPrincipalFin()
 
@@ -127,6 +128,7 @@ async function aposCarregarOrcamentos() {
     const expandir = tabela.closest('.modtab')?.querySelector('.topo-tabela [data-expandir-todos]')
     const thDetalhes = tabela.querySelector(':scope > thead > tr:first-child > th.tabela-coluna-detalhes')
     if (expandir && thDetalhes) thDetalhes.appendChild(expandir)
+    prepararTotaisOrcamentos(tabela)
     if (typeof cabecalhoAvancadoTabela === 'function')
         await cabecalhoAvancadoTabela('orcamentos', { prefKey: 'orcamentos' })
     if (typeof atualizarBotaoTodosDetalhes === 'function') atualizarBotaoTodosDetalhes(tbody)
@@ -140,6 +142,7 @@ async function aposCarregarOrcamentos() {
     if (filtroMarcar?.querySelector('img')) filtroMarcar.innerHTML = ''
     desenharSelecaoOrcamentos()
     desenharRodapeOrcamentos(ctrl)
+    totaisOrcamentos(false)
     formatacaoPagina()
     await carregarToolbar()
 }
@@ -353,6 +356,7 @@ async function criarLinhaOrcamento(orcamento) {
         : ''
     const documento = cnpj && typeof docFormatadoFis === 'function' ? docFormatadoFis(cnpj) : (cnpj || '')
     const qtdeReq = Number(qtde_requisicoes) || 0
+    valoresOrcamentos.set(String(id), valoresTotaisOrc(orcamento))
 
     const tds = `
         <td class="fin-col-marcar orc-col-marcar">
@@ -560,6 +564,74 @@ async function filtrarToolbar(campo) {
 
 }
 
+// ---------------------------------------------------------------- totais embaixo das colunas de valor
+// Como nas Faturas (js/financeiro.js totaisFaturasFin): sem marcação, somam TODO o filtro da tabela (todas as páginas,
+// soma no servidor pelo contar-por-campo); com orçamentos marcados, somam só os marcados (de qualquer página).
+// A soma do filtro só recalcula quando o filtro muda.
+const COLUNAS_TOTAL_ORC = ['total_bruto', 'diferenca', 'total_geral', 'total_pedidos', 'total_requisicoes', 'total_pagamentos']
+const valoresTotaisOrc = o => Object.fromEntries(COLUNAS_TOTAL_ORC.map(k => [k, o?.[k]]))
+// id -> valores somados: preenchido ao desenhar as linhas e ao "selecionar todos do filtro".
+const valoresOrcamentos = new Map()
+let assinaturaTotaisOrc = null
+let somasFiltroOrc = null
+
+// Rodapé na ordem ORIGINAL das colunas (data-col = índice do modTab, com o "+" dos detalhes no 0): criado antes do
+// cabecalhoAvancadoTabela, que reordena e esconde as células do tfoot junto com as colunas.
+function prepararTotaisOrcamentos(tabela) {
+    if (!tabela || tabela.tFoot) return
+    const desloca = controles.orcamentos?.detalhes ? 1 : 0
+    const chaves = [...Array(desloca).fill(''), ...Object.values(controles.orcamentos?.colunas || {}).map(c => c?.chave || '')]
+    const linha = tabela.createTFoot().insertRow()
+    linha.className = 'fin-totais'
+    chaves.forEach((chave, i) => {
+        const td = linha.insertCell()
+        td.dataset.col = i
+        if (COLUNAS_TOTAL_ORC.includes(chave)) {
+            td.dataset.totalOrc = chave
+            td.className = 'fin-valor'
+        }
+    })
+}
+
+function escreverTotaisOrcamentos() {
+    const marcadas = selecaoOrcamentos.size
+    COLUNAS_TOTAL_ORC.forEach((chave, i) => {
+        const td = document.querySelector(`[data-total-orc="${chave}"]`)
+        if (!td) return
+        if (marcadas) {
+            let soma = 0, faltam = 0
+            selecaoOrcamentos.forEach(id => {
+                const v = valoresOrcamentos.get(id)
+                if (!v) return faltam++
+                soma += Number(v[chave]) || 0
+            })
+            td.title = `Soma dos ${marcadas} orçamento(s) marcado(s)${faltam ? ` (${faltam} sem valor carregado)` : ''}. Desmarque todos para ver o total do filtro.`
+            td.innerHTML = `${i === 0 ? `<small class="fin-total-rotulo">${marcadas} marcado${marcadas === 1 ? '' : 's'}</small> ` : ''}<span class="fin-sigma">Σ</span> ${dinheiro(Math.round(soma * 100) / 100)}`
+            td.classList.add('fin-total-selecao')
+        } else {
+            td.title = 'Total de todos os orçamentos do filtro'
+            td.innerHTML = `<span class="fin-sigma">Σ</span> ${somasFiltroOrc?.[i] == null ? '—' : dinheiro(somasFiltroOrc[i])}`
+            td.classList.remove('fin-total-selecao')
+        }
+    })
+}
+
+async function totaisOrcamentos(forcar = true) {
+    const ctrl = controles.orcamentos
+    if (!ctrl || !document.querySelector('[data-total-orc]')) return
+    const filtros = combinarFiltros(ctrl.filtros, ctrl.filtrosFixos) || {}
+    const assinatura = JSON.stringify(filtros)
+    if (!forcar && assinatura === assinaturaTotaisOrc) return escreverTotaisOrcamentos()
+    assinaturaTotaisOrc = assinatura
+    escreverTotaisOrcamentos()
+    const somas = await Promise.all(COLUNAS_TOTAL_ORC.map(async path => {
+        try { return Number((await contarPorCampo({ base: 'mvw_dados_orcamentos', path, modo: 'soma', filtros }))?.total || 0) } catch { return null }
+    }))
+    if (assinatura !== assinaturaTotaisOrc) return
+    somasFiltroOrc = somas
+    escreverTotaisOrcamentos()
+}
+
 // ---------------------------------------------------------------- Marcar orçamentos e baixar em Excel
 // Seleção guardada entre páginas e filtros (como Clientes e Notas recebidas): marcar a página inteira mostra o aviso
 // "selecionar todos os N deste filtro". O Excel baixa os marcados ou, sem marcação, tudo o que os filtros trazem.
@@ -608,7 +680,7 @@ async function selecionarTodosFiltroOrcamentos() {
     overlayAguarde()
     try {
         const linhas = await buscarTodosOrcamentosFiltro(filtrosTabelaOrcamentos(ctrl))
-        linhas.forEach(o => selecaoOrcamentos.add(String(o.id)))
+        linhas.forEach(o => { selecaoOrcamentos.add(String(o.id)); valoresOrcamentos.set(String(o.id), valoresTotaisOrc(o)) })
         document.querySelectorAll('#linhas [data-marcar-orc]').forEach(c => { c.checked = selecaoOrcamentos.has(String(c.value)) })
         desenharSelecaoOrcamentos()
     } catch (err) {
@@ -628,6 +700,7 @@ function desenharSelecaoOrcamentos() {
         todas.checked = paginaToda
         todas.indeterminate = marcadas > 0 && marcadas < pagina.length
     }
+    escreverTotaisOrcamentos()
     const aviso = document.querySelector('[data-aviso-orc]')
     if (!aviso) return
     const n = selecaoOrcamentos.size
