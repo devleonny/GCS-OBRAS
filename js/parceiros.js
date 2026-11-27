@@ -428,14 +428,14 @@ async function historicoPagamentosParceiro(id) {
             <td>${dinheiro(linha.valor)}</td>
             <td>${escaparAtributo(linha.statusAtual)}</td>
             <td>${escaparAtributo(linha.comentario || (linha.legado ? 'Fluxo anterior' : ''))}</td>
-            <td>
+            <td><div class="parceiro-acoes">
                 ${linha.pagamento ? `<button onclick="abrirDetalhesPagamentos('${linha.id}')">Ver pagamento</button>` : ''}
                 ${linha.ocorrencia_id ? `<button onclick="irOcorrenciaParceiro('${linha.ocorrencia_id}', '${linha.id}')">Ver correções</button>` : ''}
                 ${linha.status === STATUS_PARCEIRO_DEVOLVIDA ? `<button onclick="removerTodosPopups(); formularioCorrecaoParceiro('${id}', '${linha.id}')">Corrigir e reenviar</button>` : ''}
                 ${!linha.legado && !linha.pagamento && !linha.encerrada && linha.status !== STATUS_PARCEIRO_DEVOLVIDA ? `<button onclick="cancelarSolicitacaoParceiro('${id}', '${linha.id}')">Cancelar solicitação</button>` : ''}
                 ${podeAjustarValorParceiro(c.parceiro, linha) ? `<button onclick="ajustarValorParceiro('${id}', '${linha.id}')">Ajustar valor</button>` : ''}
                 ${/^(PAGO|RECEBIDO)$/i.test(String(linha.statusAtual).trim()) ? `<span title="Pagamento já pago: o valor não pode mais ser alterado. Para pagar a diferença, solicite um pagamento parcial complementar." style="opacity: 0.75;">🔒 Pago, sem ajuste</span>` : ''}
-            </td></tr>`).join('')
+            </div></td></tr>`).join('')
         popup({ titulo: 'Pagamentos da LPU Parceiro', elemento: `<div class="parceiro-historico">
             <div class="parceiro-indicadores">${indicadores}</div>
             <div class="parceiro-historico-tabela"><table class="tabela"><thead><tr><th>Solicitado em</th><th>Valor</th><th>Status</th><th>Etapa / motivo</th><th>Ações</th></tr></thead><tbody>${linhas || '<tr><td colspan="5">Nenhum pagamento solicitado.</td></tr>'}</tbody></table></div>

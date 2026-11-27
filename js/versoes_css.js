@@ -49,7 +49,7 @@ const VERSOES_CSS = {
     "relatorios": "06e520d8",
     "rh": "e5988f9d",
     "seletor-cores": "c0e10ff3",
-    "status": "3f2b3318",
+    "status": "9e54b1f7",
     "tabelas-parceiro": "22c15cc9",
     "tabelas": "c7f23522",
     "tags_pagamentos": "3dd031a5",

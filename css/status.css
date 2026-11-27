@@ -386,3 +386,11 @@
 .parceiro-historico-tabela .tabela tbody td { background: #ffffff; }
 .parceiro-historico-tabela .tabela tbody tr:hover td { background: #f1f7f3; }
 .parceiro-historico td { overflow-wrap: anywhere; }
+.parceiro-acoes {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+.parceiro-acoes button { margin: 0; white-space: nowrap; }
+.parceiro-acoes span { white-space: nowrap; overflow-wrap: normal; }
