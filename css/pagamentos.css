@@ -1387,7 +1387,10 @@
     gap: 0.5rem;
     padding: 1rem;
     max-width: 28rem;
+    box-sizing: border-box;
     text-align: center;
+    overflow-x: hidden;
+    overflow-wrap: anywhere;
 }
 
 .autorizacao-dep textarea {
