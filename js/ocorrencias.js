@@ -290,9 +290,9 @@ function carregarCorrecoes(ocorrencia) {
             return ''
 
         return `
-        <div style="${horizontal}; gap: 1rem; margin-bottom: 5px; width: 100%;">
-            <label style="width: 30%; text-align: right;"><b>${valor1}</b></label>
-            <div style="width: 70%; text-align: left;">${valor2}</div>
+        <div class="correcao-campo">
+            <label>${valor1}</label>
+            <div>${valor2}</div>
         </div>`
     }
 
@@ -349,7 +349,7 @@ function carregarCorrecoes(ocorrencia) {
         const edicao = !fluxoParceiro && (usuario == acesso.usuario || autE.includes(acesso.permissao))
             ? `
                 <button onclick="formularioCorrecao('${idOcorrencia}', '${idCorrecao}')">Editar</button>
-                <button style="background-color: #B12425;" onclick="confirmarExclusao('${idOcorrencia}', '${idCorrecao}')">Excluir</button>
+                <button class="correcao-btn-excluir" onclick="confirmarExclusao('${idOcorrencia}', '${idCorrecao}')">Excluir</button>
             `
             : ''
 
@@ -368,7 +368,7 @@ function carregarCorrecoes(ocorrencia) {
             .join('')
 
         const imgR = (usuario == acesso.usuario || autE.includes(acesso.permissao))
-            ? `<button onclick="reagendarCorrecao('${idOcorrencia}', '${idCorrecao}')" style="background-color: #249f41; color: white;">Reagendar</button>`
+            ? `<button class="correcao-btn-reagendar" onclick="reagendarCorrecao('${idOcorrencia}', '${idCorrecao}')">Reagendar</button>`
             : ''
 
         const anexos = Object
@@ -382,9 +382,13 @@ function carregarCorrecoes(ocorrencia) {
 
         const imagensExistentes = imagens !== ''
             ? `<div class="fotos" style="display: flex;">${imagens}</div>`
-            : '<img src="imagens/img.png" style="width: 4rem;">'
+            : '<img src="imagens/img.png" class="correcao-sem-foto" alt="Sem fotos">'
 
         const labelTipoCorrecao = formatacaoTipoCorrecao(tipoCorrecaoNome)
+        // Cor da faixa do cartão: mesma regra da etiqueta do status (formatacaoTipoCorrecao).
+        const estiloCorrecao = statusSolucionados.includes(tipoCorrecaoNome)
+            ? 'fin'
+            : ['CANCELADO', 'PAGAMENTO DE PARCEIRO REPROVADO'].includes(tipoCorrecaoNome) ? 'na' : 'and'
 
         // Pagamento de parceiro
         const aprovacaoParceiro = descricao && descricao.includes('🟢 Pagamento aprovado')
@@ -432,13 +436,14 @@ function carregarCorrecoes(ocorrencia) {
         const blocoRodape = (pagamentoParceiro || aprovacaoParceiro || registroAutomaticoParceiro)
             ? ''
             : `
-            <div style="${horizontal}">
+            <div class="correcao-rodape">
 
-                <div style="${horizontal}; gap: 2px; padding: 0.5rem;"> 
+                <div class="correcao-acoes">
                     ${edicao}
-                    <img 
+                    <img
                         src="imagens/anexo.png"
-                        style="cursor:pointer;"
+                        class="correcao-anexar"
+                        title="Anexar arquivos"
                         onclick="document.getElementById('inputArquivos_${idCorrecao}').click()">
                     <input
                         type="file"
@@ -448,7 +453,7 @@ function carregarCorrecoes(ocorrencia) {
                         onchange="salvarAnexosCorrecoes(this, '${idOcorrencia}', '${idCorrecao}')">
                 </div>
 
-                <div style="${vertical}; padding: 0.5rem;">
+                <div class="correcao-midias">
                     ${imagensExistentes}
                     <div id="anexos" class="local-anexos">
                         ${anexos}
@@ -461,9 +466,17 @@ function carregarCorrecoes(ocorrencia) {
         divsCorrecoesPorAba[aba] ??= []
 
         divsCorrecoesPorAba[aba].push(`
-            <div class="detalhes-correcoes-1" data-correcao="${tipoCorrecao}">
+            <div class="detalhes-correcoes-1 correcao-${estiloCorrecao}" data-correcao="${tipoCorrecao}">
 
-                <div style="${vertical}; width: 90%; padding: 0.5rem;">
+                <div class="correcao-topo">
+                    ${labelTipoCorrecao}
+                    <div class="correcao-autor">
+                        <b>${usuario || ''}</b>
+                        <span>${data || ''}</span>
+                    </div>
+                </div>
+
+                <div class="correcao-corpo">
 
                     ${btnAprovar}
                     ${btnCorrigir}
@@ -491,15 +504,11 @@ function carregarCorrecoes(ocorrencia) {
 
                     ${modelo('Turno', turno)}
 
-                    ${modelo('Solicitante', `<span>${usuario || ''}</span>`)}
-
                     ${modelo('Permissão', [].concat(permissaoCorrecao || []).filter(Boolean).join(', '))}
 
                     ${listaExecutores.length ? modelo('Executores', `<span>${listaExecutores.join(', ')}</span>`) : ''}
                     ${(tecnico && tecnico.length) ? modelo('Técnicos', tecnico.map(t => `<span data-rastreio-usuario="${escaparAtributo(t)}"${/^d{4}-d{2}-d{2}$/.test(dtCorrecao || '') ? ` data-rastreio-de="${dtCorrecao}" data-rastreio-ate="${/^d{4}-d{2}-d{2}$/.test(dtCorrecaoFinal || '') ? dtCorrecaoFinal : dtCorrecao}"` : ''}>${t}</span>`).join(', ')) : ''}
-                    ${modelo('Correção', labelTipoCorrecao)}
                     ${modelo('Descrição', `<div style="white-space: pre-wrap;">${descricao || ''}</div>`)}
-                    ${modelo('Criado em', `<span>${data || ''}</span>`)}
                     ${tipoCorrecao === '4Zmd3' && !permCham.includes(permissao)
                         // Envio do Controle Logístico ligado a esta requisição (js/logistica.js → carregarEnviosRequisicoesLog).
                         ? `<div class="log-envio-req" data-envio-req="${idCorrecao}" data-chamado="${idOcorrencia}"></div>`
@@ -535,8 +544,7 @@ function carregarCorrecoes(ocorrencia) {
             return `<div 
                 id="aba_${idOcorrencia}_${aba}" 
                 onclick="exibirAba('${idOcorrencia}', '${aba}')" 
-                style="opacity: ${aba == abaInicial ? 1 : 0.5};"
-                class="aba-correcao">${abas?.[aba]?.orcamento ? `<span class="aba-orcamento">${abas[aba].orcamento}</span>` : ''}${formatacaoTipoCorrecao(st)}</div>`
+                class="aba-correcao${aba == abaInicial ? ' ativa' : ''}">${abas?.[aba]?.orcamento ? `<span class="aba-orcamento">${abas[aba].orcamento}</span>` : ''}${formatacaoTipoCorrecao(st)}</div>`
         })
     )]
 
@@ -551,7 +559,7 @@ function carregarCorrecoes(ocorrencia) {
             <div class="toolbar-janela" id="janela_${idOcorrencia}">
                 <div class="toolbar-trilho" id="toolbarAbas">
                     ${abasHTML.join('')}
-                    ${correcoes ? `<button onclick="formularioCorrecao('${idOcorrencia}', null, 'S')">Novo fluxo</button>` : ''}
+                    ${correcoes ? `<button class="aba-novo-fluxo" onclick="formularioCorrecao('${idOcorrencia}', null, 'S')">+ Novo fluxo</button>` : ''}
                 </div>
             </div>
 
@@ -920,10 +928,10 @@ function exibirAba(idOcorrencia, aba) {
     const abas = [...document.querySelectorAll(`[id^="aba_${idOcorrencia}_"]`)]
 
     for (const aba of abas)
-        aba.style.opacity = 0.5
+        aba.classList.remove('ativa')
 
     document.getElementById(`${idOcorrencia}_${aba}`).style.display = ''
-    document.getElementById(`aba_${idOcorrencia}_${aba}`).style.opacity = 1
+    document.getElementById(`aba_${idOcorrencia}_${aba}`).classList.add('ativa')
 
 }
 
