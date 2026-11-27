@@ -24,6 +24,7 @@ function formatacaoPagina() {
 async function telaOrcamentos() {
 
     const pag = 'orcamentos'
+    selecaoOrcamentos.clear()
 
     // No celular a bandeja é uma gaveta por cima da tabela: começa fechada.
     if (window.matchMedia?.('(max-width: 800px)').matches) estadoTelaOrcamentos.painel = false
@@ -39,7 +40,7 @@ async function telaOrcamentos() {
                     <h2>Orçamentos</h2>
                     <div class="fin-barra">
                         ${podeCriar ? `<button type="button" onclick="painelEdicao()" title="Orçamentos em edição neste aparelho">${iconeFin('editar')} Em edição</button>` : ''}
-                        ${podeExcel ? `<button type="button" onclick="baixarExcelOrcamentos()" title="Baixar os orçamentos em Excel">${iconeFin('excel')} Excel</button>` : ''}
+                        ${podeExcel ? `<button type="button" onclick="baixarExcelOrcamentos()" title="Com orçamentos marcados, baixa só os marcados; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Baixar Excel</button>` : ''}
                     </div>
                 </header>
                 <div class="fin-corpo${aberto ? '' : ' recolhido'}" data-corpo-orc>
@@ -68,6 +69,7 @@ async function telaOrcamentos() {
         base: 'mvw_dados_orcamentos',
         // Status do orçamento = status do chamado (22/11/2026): os das abas do chamado; sem chamado, SEM STATUS.
         colunas: {
+            '': {},
             'Alteração': {},
             'LPU': { chave: 'lpu_ativa' },
             'Status': { chave: 'nomes_status' },
@@ -94,6 +96,7 @@ async function telaOrcamentos() {
     })
     // Paginação no rodapé da janela (a do modTab fica escondida neste layout).
     area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-orc></div>')
+    area.querySelector('.modtab')?.insertAdjacentHTML('afterbegin', '<div class="fin-aviso-selecao" data-aviso-orc hidden></div>')
 
     removerOverlay()
     await paginacao(pag)
@@ -121,6 +124,15 @@ async function aposCarregarOrcamentos() {
     if (typeof cabecalhoAvancadoTabela === 'function')
         await cabecalhoAvancadoTabela('orcamentos', { prefKey: 'orcamentos' })
     if (typeof atualizarBotaoTodosDetalhes === 'function') atualizarBotaoTodosDetalhes(tbody)
+    // Caixinha "marcar todos desta página" no título da coluna vazia (a 1ª depois do "+" dos detalhes).
+    const thMarcar = tabela.querySelector(':scope > thead > tr:first-child > th:not(.tabela-coluna-detalhes)')
+    if (thMarcar && !thMarcar.querySelector('[data-marcar-todos-orc]')) {
+        thMarcar.classList.add('orc-col-marcar')
+        thMarcar.innerHTML = '<input type="checkbox" class="fin-marcar" data-marcar-todos-orc title="Marcar todos desta página" aria-label="Marcar todos desta página" onclick="event.stopPropagation(); marcarTodosOrcamentos(this)">'
+    }
+    const filtroMarcar = tabela.querySelector(':scope > thead > tr:nth-child(2) > th:not(.tabela-coluna-detalhes)')
+    if (filtroMarcar?.querySelector('img')) filtroMarcar.innerHTML = ''
+    desenharSelecaoOrcamentos()
     desenharRodapeOrcamentos(ctrl)
     formatacaoPagina()
     await carregarToolbar()
@@ -351,6 +363,10 @@ async function criarLinhaOrcamento(orcamento) {
     const data = timestamp ? new Date(Number(timestamp)).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''
 
     const tds = `
+        <td class="fin-col-marcar orc-col-marcar">
+            <input type="checkbox" class="fin-marcar" data-marcar-orc value="${esc(id)}" ${selecaoOrcamentos.has(String(id)) ? 'checked' : ''}
+                onclick="event.stopPropagation(); marcarOrcamento(this)" aria-label="Marcar orçamento">
+        </td>
         <td class="orc-col-data">${esc(data)}</td>
         ${texto(lpu_ativa)}
         <td class="fin-obs orc-col-status" title="${esc(listaStatus.join(', ') || 'SEM STATUS')}"><div class="fin-tags-celula">${chipsStatus}</div></td>
@@ -547,23 +563,150 @@ async function filtrarToolbar(campo) {
 
 }
 
-async function baixarExcelOrcamentos() {
+// ---------------------------------------------------------------- Marcar orçamentos e baixar em Excel
+// Seleção guardada entre páginas e filtros (como Clientes e Notas recebidas): marcar a página inteira mostra o aviso
+// "selecionar todos os N deste filtro". O Excel baixa os marcados ou, sem marcação, tudo o que os filtros trazem.
+// Base leve vw_orcamentos_excel (gcs migrations/orcamentos-excel-view.sql): a mvw da tela sem as composições.
+const selecaoOrcamentos = new Set()
 
+function marcarOrcamento(caixa) {
+    if (caixa.checked) selecaoOrcamentos.add(String(caixa.value))
+    else selecaoOrcamentos.delete(String(caixa.value))
+    desenharSelecaoOrcamentos()
+}
+
+function marcarTodosOrcamentos(caixa) {
+    document.querySelectorAll('#linhas [data-marcar-orc]').forEach(c => {
+        c.checked = caixa.checked
+        if (caixa.checked) selecaoOrcamentos.add(String(c.value))
+        else selecaoOrcamentos.delete(String(c.value))
+    })
+    desenharSelecaoOrcamentos()
+}
+
+function limparSelecaoOrcamentos() {
+    selecaoOrcamentos.clear()
+    document.querySelectorAll('#linhas [data-marcar-orc]').forEach(c => { c.checked = false })
+    desenharSelecaoOrcamentos()
+}
+
+// Busca paginada (2000 por vez) com os filtros dados.
+async function buscarTodosOrcamentosFiltro(filtros, ordenar = null) {
+    const linhas = []
+    let pagina = 1, paginas = 1
+    do {
+        const r = await pesquisarDB({ base: 'vw_orcamentos_excel', filtros, ...(ordenar ? { ordenar } : {}), pagina, limite: 2000 })
+        linhas.push(...(r?.resultados || []))
+        paginas = Number(r?.paginas) || 1
+        pagina++
+    } while (pagina <= paginas && pagina <= 50)
+    return linhas
+}
+
+const filtrosTabelaOrcamentos = (ctrl = controles.orcamentos) => combinarFiltros(ctrl?.filtros, ctrl?.filtrosFixos) || {}
+
+async function selecionarTodosFiltroOrcamentos() {
+    const ctrl = controles.orcamentos
+    if (!ctrl) return
     overlayAguarde()
-
-    const dados = {
-        base: "vw_relatorio_orcamentos",
-        titulo: `Orçamentos_${agoraServidor()}`,
-        formatacao: {
-            datas: ['Última alteração'], // Transforma em DD/MM/AAAA
-            moedas: ["Total Geral"]      // Transforma em R$
-        }
+    try {
+        const linhas = await buscarTodosOrcamentosFiltro(filtrosTabelaOrcamentos(ctrl))
+        linhas.forEach(o => selecaoOrcamentos.add(String(o.id)))
+        document.querySelectorAll('#linhas [data-marcar-orc]').forEach(c => { c.checked = selecaoOrcamentos.has(String(c.value)) })
+        desenharSelecaoOrcamentos()
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao marcar os orçamentos do filtro: ${escaparAtributo(err.message || '')}` })
+    } finally {
+        removerOverlay()
     }
+}
 
-    await baixarRelatorioExcel(dados)
+function desenharSelecaoOrcamentos() {
+    const pagina = [...document.querySelectorAll('#linhas [data-marcar-orc]')]
+    const marcadas = pagina.filter(c => c.checked).length
+    const paginaToda = pagina.length > 0 && marcadas === pagina.length
+    const todas = document.querySelector('[data-marcar-todos-orc]')
+    if (todas) {
+        todas.checked = paginaToda
+        todas.indeterminate = marcadas > 0 && marcadas < pagina.length
+    }
+    const aviso = document.querySelector('[data-aviso-orc]')
+    if (!aviso) return
+    const n = selecaoOrcamentos.size
+    const total = Number(document.getElementById('resultados_orcamentos')?.textContent) || 0
+    const plural = q => `${q.toLocaleString('pt-BR')} ${q === 1 ? 'orçamento' : 'orçamentos'}`
+    const limpar = '<a href="#" onclick="event.preventDefault(); limparSelecaoOrcamentos()">limpar a seleção</a>'
+    aviso.hidden = !(n && paginaToda)
+    aviso.innerHTML = aviso.hidden ? '' : n < total
+        ? `Você selecionou ${plural(n)}. Você pode ${limpar} ou <a href="#" onclick="event.preventDefault(); selecionarTodosFiltroOrcamentos()">selecionar todos os ${plural(total)} deste filtro</a>`
+        : `Você selecionou ${n === total ? 'todos os ' : ''}${plural(n)}${n === total ? ' deste filtro' : ''}. Você pode ${limpar}`
+}
 
-    removerOverlay()
+async function baixarExcelOrcamentos() {
+    if (typeof pode === 'function' && !pode('orcamentos.excel'))
+        return popup({ mensagem: 'Você não tem acesso para baixar os orçamentos em Excel.' })
+    const ctrl = controles.orcamentos
+    overlayAguarde()
+    try {
+        const marcados = [...selecaoOrcamentos]
+        const ordenar = ctrl?.ordenar || null
+        let linhas = []
+        if (marcados.length) {
+            // Marcados: em blocos de 500 ids (filtro OR).
+            for (let i = 0; i < marcados.length; i += 500) {
+                const bloco = marcados.slice(i, i + 500)
+                linhas.push(...await buscarTodosOrcamentosFiltro({ id: { modo: 'OR', regras: bloco.map(id => ({ op: '=', value: id })) } }, ordenar))
+            }
+        } else {
+            linhas = await buscarTodosOrcamentosFiltro(filtrosTabelaOrcamentos(ctrl), ordenar)
+        }
+        if (!ordenar) linhas.sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0))
 
+        const filtros = ctrl && typeof descreverFiltrosFin === 'function'
+            ? descreverFiltrosFin(ctrl).replace('nenhum (todas as faturas)', 'nenhum (todos os orçamentos)')
+            : ''
+        const num = v => (v === null || v === undefined || v === '') ? '' : Number(v) || 0
+        const lista = v => (Array.isArray(v) ? v : [v]).filter(Boolean).join(', ')
+        const somaPedidos = o => (o.pedidos || []).reduce((s, p) => s + (Number(p?.valor) || 0), 0)
+
+        await baixarExcelRelatorioGCS({
+            titulo: 'Orçamentos',
+            tela: 'Orçamentos',
+            resumo: `${linhas.length} orçamento(s)`,
+            filtrosTexto: marcados.length ? `Orçamentos marcados na tela: ${marcados.length}` : `Filtros: ${filtros}`,
+            linhas,
+            colunas: [
+                { titulo: 'Última alteração', largura: 13, tipo: 'data', valor: o => o.timestamp ? new Date(Number(o.timestamp)) : '' },
+                { titulo: 'Contrato', largura: 14, valor: o => o.dados_orcam?.contrato || '' },
+                { titulo: 'Revisão', largura: 9, centro: true, valor: o => o.revisoes?.atual || '' },
+                { titulo: 'Venda direta', largura: 8, centro: true, valor: o => o.dados_orcam?.venda_direta ? 'Sim' : '' },
+                { titulo: 'LPU', largura: 16, valor: o => o.lpu_ativa || '' },
+                { titulo: 'Status', largura: 26, valor: o => lista(o.nomes_status) || 'SEM STATUS' },
+                { titulo: 'Tags', largura: 26, valor: o => (o.tags || []).map(t => t?.nome).filter(Boolean).join(', ') },
+                { titulo: 'Cliente', largura: 34, valor: o => o.cliente || '' },
+                { titulo: 'Cidade', largura: 20, valor: o => o.cidade || '' },
+                { titulo: 'Usuário', largura: 16, valor: o => o.usuario || '' },
+                { titulo: 'Responsáveis', largura: 26, valor: o => lista(o.dados_orcam?.executor) },
+                { titulo: 'Vinculados', largura: 20, valor: o => lista(o.vinculados) },
+                { titulo: 'Valor original', largura: 15, tipo: 'moeda', soma: true, valor: o => num(o.total_bruto) },
+                { titulo: 'Desc. / Acrés.', largura: 12, centro: true, valor: o => Number(o.diferenca) < 0 ? 'Desconto' : Number(o.diferenca) > 0 ? 'Acréscimo' : '' },
+                { titulo: 'Diferença %', largura: 11, valor: o => num(o.diferenca_pct) },
+                { titulo: 'Diferença', largura: 14, tipo: 'moeda', soma: true, valor: o => num(o.diferenca) },
+                { titulo: 'Total', largura: 15, tipo: 'moeda', soma: true, valor: o => Number(o.total_geral) || 0 },
+                { titulo: 'Pedidos', largura: 15, tipo: 'moeda', soma: true, valor: o => somaPedidos(o) },
+                { titulo: 'Nº dos pedidos', largura: 22, valor: o => (o.pedidos || []).map(p => p?.pedido).filter(Boolean).join(', ') },
+                { titulo: 'Notas', largura: 22, valor: o => (o.notas || []).map(n => n?.n_nota).filter(Boolean).join(', ') },
+                { titulo: 'Custo até agora', largura: 15, tipo: 'moeda', soma: true, valor: o => Number(o.total_pagamentos) || 0 },
+                { titulo: 'Custo % do total', largura: 11, valor: o => Number(o.total_geral) ? Math.round(Number(o.total_pagamentos || 0) / Number(o.total_geral) * 1000) / 10 : '' }
+            ]
+        })
+    } catch (err) {
+        console.error(err)
+        popup({ mensagem: `Falha ao gerar o Excel: ${escaparAtributo(err.message || '')}` })
+    } finally {
+        removerOverlay()
+    }
 }
 
 // Status do orçamento = status do chamado (22/11/2026, a pedido): o orçamento mostra os status das abas do

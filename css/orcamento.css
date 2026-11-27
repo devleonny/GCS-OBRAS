@@ -850,3 +850,7 @@
 .orc-dif-tipo.orc-desc { background: #fbe4e4; color: #b12425; }
 .orc-dif-tipo.orc-acres { background: #e0f1e6; color: #2f7d4f; }
 .orc-dif-tipo small { margin-left: 3px; font-size: 10px; font-weight: 500; opacity: .85; }
+
+/* Caixinha de marcar: coluna estreita logo depois do "+" dos detalhes. */
+.orc-tela .tabela th.orc-col-marcar,
+.orc-tela .tabela td.orc-col-marcar { width: 1.6rem; min-width: 1.6rem; padding-inline: 4px; text-align: center; }
