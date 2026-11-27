@@ -1,5 +1,10 @@
 /* Controle de Faturamento (js/controle_faturamento.js): layout financeiro (.fin-tela) com os totais na bandeja da direita (classes cf-* das Faturas do Cartão). */
-.ctf-tela .fin-barra select { height: 30px; border: 1px solid #cfd8d3; border-radius: 6px; padding: 0 8px; background: #fff; }
+/* Ano da emissão no topo da bandeja; some com a bandeja recolhida. */
+.ctf-ano { display: flex; flex-direction: column; gap: 3px; padding: 4px 6px 8px; }
+.ctf-ano small { color: #5b6b62; font-size: 11px; }
+.ctf-ano select { width: 100%; height: 30px; border: 1px solid #cfd8d3; border-radius: 6px; padding: 0 8px; background: #fff; }
+.fin-corpo.recolhido .ctf-ano { display: none; }
+@media (max-width: 800px) { .fin-corpo.recolhido .ctf-ano { display: flex; } }
 .ctf-area { padding: 8px 12px 12px; min-height: 0; }
 /* Uma linha de texto por nota: nada quebra nem empilha; o que não cabe termina em "..." (texto inteiro no título). */
 .ctf-tela .tabela > tbody td { white-space: nowrap; line-height: 1.25; }

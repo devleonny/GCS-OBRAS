@@ -38,17 +38,12 @@ function abrirControleFaturamento() {
 async function telaControleFaturamento() {
     dadosControleFat.clear()
     assinaturaTotaisControleFat = null
-    const anoAtual = new Date().getFullYear()
-    const anos = [anoAtual, anoAtual - 1, anoAtual - 2].map(String)
     tela.innerHTML = `
         <div class="fis-pagina fin-tela ctf-tela">
             <section class="fin-janela">
                 <header class="fin-janela-topo">
                     <h2>Controle de Faturamento</h2>
                     <div class="fin-barra">
-                        <select aria-label="Ano da emissão" onchange="estadoControleFat.ano = this.value; telaControleFaturamento()">
-                            ${[...anos, 'todos'].map(a => `<option value="${a}" ${a === estadoControleFat.ano ? 'selected' : ''}>${a === 'todos' ? 'Todos os anos' : `Emitidas em ${a}`}</option>`).join('')}
-                        </select>
                         <button type="button" onclick="baixarExcelControleFat()" title="Com notas marcadas, baixa só as marcadas; sem marcação, todas as notas dos filtros aplicados">${iconeFin('excel')} Excel</button>
                     </div>
                 </header>
@@ -131,7 +126,16 @@ function painelControleFat(t = estadoControleFat.totais) {
         </div>
         <button type="button" class="fin-acao" title="Desmarcar todas" onclick="limparSelecaoControleFat()">${iconeFin('fechar')}<span>Desmarcar todas</span></button>
         <hr>` : ''
-    return `${marcadas}
+    const anoAtual = new Date().getFullYear()
+    const anos = [anoAtual, anoAtual - 1, anoAtual - 2].map(String)
+    // Ano da emissão (filtro fixo da tabela), no topo da bandeja.
+    const ano = `
+        <label class="ctf-ano"><small>Emissão</small>
+            <select aria-label="Ano da emissão" onchange="estadoControleFat.ano = this.value; telaControleFaturamento()">
+                ${[...anos, 'todos'].map(a => `<option value="${a}" ${a === estadoControleFat.ano ? 'selected' : ''}>${a === 'todos' ? 'Todos os anos' : `Emitidas em ${a}`}</option>`).join('')}
+            </select>
+        </label>`
+    return `${ano}${marcadas}
         <div class="fin-painel-cabeca" title="Totais com os filtros da tabela">
             <span class="fin-avatar">R$</span>
             <div class="fin-painel-texto"><b>Totais do filtro</b>
