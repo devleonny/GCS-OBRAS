@@ -371,6 +371,7 @@ const ICONES_FIN = {
     fechar: '<path d="M6 6l12 12M18 6L6 18"/>',
     baixar: '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/>',
     raio: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+    empresa: '<path d="M4 21V5l8-3v19M12 9h8v12M3 21h18"/><path d="M7 8h2M7 12h2M7 16h2M15 13h2M15 17h2"/>',
     danfe: '<path d="M4 4l17 8-17 8 3-8z"/><path d="M7 12h6"/>',
     seta: '<path d="M10 7l5 5-5 5"/>',
     salvar: '<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9a4 4 0 0 1 0 9"/><path d="M12 12v8M9 15l3-3 3 3"/>',
@@ -787,6 +788,7 @@ function desenharPainelFin() {
             ${cabeca(String(selecaoFin.size), `${selecaoFin.size} fatura(s) marcada(s)`, '<small>As ações valem para todas as marcadas.</small>')}
             ${acao('raio', pagar ? 'Pagar agora' : 'Receber agora', 'baixaLoteFin()')}
             ${acao('vencimento', 'Mudar vencimento', 'vencimentoLoteFin()')}
+            ${acao('empresa', 'Mudar empresa', 'empresaLoteFin()')}
             <hr>
             ${acao('cancelar', `Cancelar ${termoFin('pagamento')}`, 'cancelarPagamentosFin()', { perigo: true })}
             ${acao('excluir', 'Excluir', 'excluirLoteFin()', { perigo: true })}
@@ -1021,6 +1023,39 @@ function confirmarVencimentoLoteFin(botao) {
     return executarLoteFin({ acao: 'vencimento', vencimento }, botao)
 }
 
+// Troca a empresa (app) das marcadas, como no formulário: vale em qualquer situação; a conta passa a ser a
+// escolhida ou a padrão da empresa nova, e os pagamentos/recebimentos vão para ela.
+async function empresaLoteFin() {
+    let op
+    try { op = await carregarOpcoesFin() } catch (err) { return popup({ mensagem: mensagemErroEst(err) }) }
+    const app = op.empresas[0]?.app || ''
+    popup({
+        titulo: `Mudar empresa de ${selecaoFin.size} fatura(s)`,
+        linhas: [{
+            elemento: `
+                <div class="fis-form" data-lote-empresa>
+                    <div class="fis-grade">
+                        <label class="fis-campo"><span>Nova empresa *</span>
+                            <select class="fis-input" name="app" onchange="this.closest('[data-lote-empresa]').querySelector('[name=conta_id]').innerHTML = opcoesContasFin(opcoesFinCache.contas, this.value, '')">
+                                ${opcoesEmpresasFin(op.empresas, app)}
+                            </select></label>
+                        <label class="fis-campo fis-largo"><span>Conta corrente</span>
+                            <select class="fis-input" name="conta_id">${opcoesContasFin(op.contas, app, '')}</select></label>
+                    </div>
+                    <small class="fis-dica">Vale para pagas e em aberto. Os ${termoFin('pagamento')}s já lançados passam para a conta da empresa nova. As que já são dessa empresa ficam como estão.</small>
+                </div>`
+        }],
+        botoes: [{ texto: 'Mudar empresa', img: 'concluido', funcao: 'confirmarEmpresaLoteFin(this)' }]
+    })
+}
+
+function confirmarEmpresaLoteFin(botao) {
+    const form = document.querySelector('[data-lote-empresa]')
+    const app = form.querySelector('[name="app"]').value
+    if (!app) return popup({ mensagem: 'Escolha a empresa.' })
+    return executarLoteFin({ acao: 'empresa', app, conta_id: form.querySelector('[name="conta_id"]').value || null }, botao)
+}
+
 async function excluirLoteFin() {
     const ok = await confirmarPopup({
         titulo: `Excluir ${selecaoFin.size} fatura(s)`,
@@ -1036,7 +1071,7 @@ async function executarLoteFin(corpo, botao = null, ids = null) {
         const r = await apiFin('lote', { ...corpo, ids: ids || [...selecaoFin] })
         removerOverlay()
         if (botao) removerPopup(botao.closest('.popup')?.id)
-        const verbo = { baixar: corpo.acao === 'baixar' && tipoFaturasFin === 'RECEBER' ? 'recebida(s)' : 'paga(s)', vencimento: 'com vencimento novo', excluir: 'excluída(s)', cancelar: `com o ${termoFin('pagamento')} cancelado` }[corpo.acao]
+        const verbo = { baixar: corpo.acao === 'baixar' && tipoFaturasFin === 'RECEBER' ? 'recebida(s)' : 'paga(s)', vencimento: 'com vencimento novo', empresa: `passada(s) para a ${escFin(corpo.app || '')}`, excluir: 'excluída(s)', cancelar: `com o ${termoFin('pagamento')} cancelado` }[corpo.acao]
         popup({
             titulo: ids ? 'Fatura' : 'Faturas marcadas',
             mensagem: `<b>${r.feitas} fatura(s) ${verbo}.</b>${r.puladas.length ? `<br>${r.puladas.length} ficaram de fora:<ul class="fis-lista">${r.puladas.map(p => `<li>${escFin(p.fatura)}: ${escFin(p.motivo)}</li>`).join('')}</ul>` : ''}`,
