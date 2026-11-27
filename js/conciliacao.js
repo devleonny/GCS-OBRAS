@@ -429,7 +429,8 @@ function filtrarLinhasConc(linhas) {
         && (!termo || normalFin(`${l.descricao} ${l.documento || ''} ${Math.abs(l.valor).toFixed(2).replace('.', ',')} ${Math.abs(l.valor).toFixed(2)}`).includes(termo)))
 }
 
-function desenharConciliarConc() {
+// Painel da direita (situações, saldos, fechar): separado para a atualização ao vivo trocar só ele.
+function painelConciliarConc() {
     const d = dadosConc
     const c = d.conta
     const todas = linhasConc()
@@ -482,6 +483,13 @@ function desenharConciliarConc() {
         ${c.conferida_ate ? acaoPainelCartaoFin('voltar', `Reabrir (até ${dataFin(c.conferida_ate)})`, 'reabrirPeriodoConc()') : ''}
         <hr>
         ${acaoPainelCartaoFin('voltar', 'Todas as contas', 'telaContasConc()')}`
+    return painel
+}
+
+function desenharConciliarConc() {
+    const d = dadosConc
+    const c = d.conta
+    const painel = painelConciliarConc()
     tela.innerHTML = janelaConc(`Conciliar · ${escFin(c.nome)}`, `
         <div data-conciliar>
             ${(d.faltam_dias || []).length ? `<div class="cf-faixa cf-falta">Falta extrato de ${d.faltam_dias.slice(0, 4).map(f => f.de === f.ate ? dataFin(f.de) : `${dataFin(f.de)} a ${dataFin(f.ate)}`).join(', ')}${d.faltam_dias.length > 4 ? '…' : ''}: importe esses dias para poder fechar.</div>` : ''}
@@ -776,7 +784,7 @@ function cliqueLinhaConc(ev, chave) {
     if (caixa) caixa.innerHTML = '<p class="cc-explica cc-escolha">Escolha uma linha à esquerda para ver as opções.</p>'
 }
 
-async function escolherGrupoConc() {
+async function escolherGrupoConc(silencioso = false) {
     const todas = linhasConc()
     const ls = estadoConc.multi.map(k => todas.find(x => x.chave === k)).filter(Boolean)
     const caixa = document.querySelector('[data-detalhe-conc]')
@@ -789,16 +797,18 @@ async function escolherGrupoConc() {
             <span class="cc-tags">${ls.map(l => `<span class="cc-tag cc-tag-azul" title="${escFin(l.descricao || '')}">${dataFin(l.data).slice(0, 5)} · ${dinheiro(Math.abs(l.valor))}<button type="button" class="cc-tag-tirar" title="Tirar do grupo" onclick="cliqueLinhaConc({ ctrlKey: true, preventDefault() {} }, '${l.chave}')">×</button></span>`).join('')}</span>
             <small class="cc-cinza">Marque as faturas ou baixas que somam o total. Ctrl + clique na lista junta ou tira linhas.</small>
         </div>`
-    caixa.innerHTML = `${cabeca}${vazioConc('relogio', 'Procurando faturas e baixas…')}`
+    const guardado = silencioso && detalheConc?.grupo?.join(',') === ls.map(l => l.id).join(',') ? guardarDetalheConc() : null
+    if (!guardado) caixa.innerHTML = `${cabeca}${vazioConc('relogio', 'Procurando faturas e baixas…')}`
     const ids = ls.map(l => l.id)
     let det
     try {
         det = await apiFin('conciliacao/linha', { id: ids[0], ids })
     } catch (err) {
-        caixa.innerHTML = `${cabeca}<p class="cc-explica">${escFin(mensagemErroEst(err))}</p>`
+        if (!guardado) caixa.innerHTML = `${cabeca}<p class="cc-explica">${escFin(mensagemErroEst(err))}</p>`
         return
     }
     if (estadoConc.multi.join(',') !== marca) return
+    if (guardado && document.activeElement?.closest?.('[data-detalhe-conc]') && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return adiarVivoConc()
     detalheConc = det
     detalheConc.grupo = ids
     detalheConc.sugestoes = []
@@ -807,10 +817,11 @@ async function escolherGrupoConc() {
         estadoConc.aba = detalheConc.combinacao ? 'faturas' : detalheConc.baixas.length ? 'baixas' : 'faturas'
         estadoConc.abaDe = `g:${marca}`
     }
-    desenharDetalheConc()
+    if (guardado) restaurarDetalheConc(guardado)
+    else desenharDetalheConc()
 }
 
-async function escolherLinhaConc(chave, redesenhar = true) {
+async function escolherLinhaConc(chave, redesenhar = true, silencioso = false) {
     estadoConc.sel = chave
     if (redesenhar) pintarLinhasConc()
     const l = linhasConc().find(x => x.chave === chave)
@@ -849,14 +860,20 @@ async function escolherLinhaConc(chave, redesenhar = true) {
         return
     }
     if (l.fechada) { caixa.innerHTML = `${cabeca}${vazioConc('vencimento', 'Período fechado.')}`; return }
-    caixa.innerHTML = `${cabeca}${vazioConc('relogio', 'Procurando faturas e baixas…')}`
+    // Atualização ao vivo da mesma linha: sem o "Procurando…", e o que a pessoa marcou/buscou volta depois.
+    const guardado = silencioso && !detalheConc?.grupo && detalheConc?.linha?.id === l.id && caixa.querySelector('.cc-abas') ? guardarDetalheConc() : null
+    if (guardado && estadoConc.aba === 'lancar') return
+    if (!guardado) caixa.innerHTML = `${cabeca}${vazioConc('relogio', 'Procurando faturas e baixas…')}`
+    let det
     try {
-        detalheConc = await apiFin('conciliacao/linha', { id: l.id })
+        det = await apiFin('conciliacao/linha', { id: l.id })
     } catch (err) {
-        caixa.innerHTML = `${cabeca}<p class="cc-explica">${escFin(mensagemErroEst(err))}</p>`
+        if (!guardado) caixa.innerHTML = `${cabeca}<p class="cc-explica">${escFin(mensagemErroEst(err))}</p>`
         return
     }
     if (estadoConc.sel !== chave) return
+    if (guardado && document.activeElement?.closest?.('[data-detalhe-conc]') && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return adiarVivoConc()
+    detalheConc = det
     detalheConc.sugestoes = l.sugestoes || []
     detalheConc.cabeca = cabeca
     if (!estadoConc.aba || estadoConc.abaDe !== chave) {
@@ -864,7 +881,105 @@ async function escolherLinhaConc(chave, redesenhar = true) {
             : detalheConc.transferencias.length ? 'transferencia' : detalheConc.baixas.length ? 'baixas' : 'lancar'
         estadoConc.abaDe = chave
     }
+    if (guardado) restaurarDetalheConc(guardado)
+    else desenharDetalheConc()
+}
+
+// ---- atualização ao vivo (27/11/2026, a pedido): fatura, pagamento, conta corrente ou empresa mudou em qualquer
+// tela (por qualquer pessoa) → o servidor avisa pelo websocket (vw_fin_titulos / vw_fin_contas) e esta tela
+// recarrega sozinha: lista, painel e a linha aberta, sem tirar ninguém do lugar.
+
+// O que o detalhe tem e não pode perder: faturas marcadas e a busca, baixas marcadas, filtros das listas,
+// destino da transferência e a rolagem.
+function guardarDetalheConc() {
+    const caixa = document.querySelector('[data-detalhe-conc]')
+    if (!caixa || !detalheConc) return null
+    if (estadoConc.aba === 'faturas' && caixa.querySelector('[data-marcar-faturas]')) guardarMarcadasFatConc()
+    return {
+        det: detalheConc,
+        baixas: [...caixa.querySelectorAll('[data-marcar-baixas] input:checked')].map(i => i.value),
+        lista: ['[data-busca-lista]', '[data-de-lista]', '[data-ate-lista]'].map(s => [s, caixa.querySelector(s)?.value || '']),
+        destino: caixa.querySelector('[data-destino-conc]')?.value || null,
+        rolagem: ['[data-detalhe-conc]', '.cc-aba-corpo', '[data-marcar-faturas]', '[data-marcar-baixas]'].map(s => [s, document.querySelector(s)?.scrollTop || 0])
+    }
+}
+
+function restaurarDetalheConc(g) {
+    const antigo = g.det
+    const novo = detalheConc
+    novo.diaFat = antigo.diaFat
+    novo.buscaFat = antigo.buscaFat
+    // Marcadas que ainda estão em aberto (estão nas candidatas novas ou na busca, que roda de novo abaixo).
+    novo.marcadasFat = antigo.marcadasFat
+    const buscando = Boolean(novo.buscaFat && (novo.buscaFat.busca.trim() || novo.buscaFat.de || novo.buscaFat.ate))
+    if (novo.marcadasFat && !buscando) {
+        const abertas = new Set(novo.faturas.map(f => String(f.id)))
+        novo.marcadasFat = new Map([...novo.marcadasFat].filter(([id]) => abertas.has(id)))
+    }
+    // Enquanto a busca refaz, a lista mostra o resultado anterior (sem piscar).
+    if (buscando) { novo.faturasBusca = antigo.faturasBusca; novo.fatPorId = antigo.fatPorId; novo.vivo = true }
     desenharDetalheConc()
+    const caixa = document.querySelector('[data-detalhe-conc]')
+    if (!caixa) return
+    if (g.baixas.length) {
+        const marcar = new Set(g.baixas)
+        caixa.querySelectorAll('[data-marcar-baixas] input[type=checkbox]').forEach(i => { i.checked = marcar.has(i.value) })
+        somarMarcadasConc()
+    }
+    let filtrou = false
+    g.lista.forEach(([s, v]) => { const i = caixa.querySelector(s); if (i && v) { i.value = v; filtrou = i } })
+    if (filtrou) filtrarListaConc(filtrou, caixa.querySelector('[data-marcar-baixas]') ? '[data-marcar-baixas]' : '[data-lista-casadas]')
+    if (g.destino) { const d = caixa.querySelector('[data-destino-conc]'); if (d && [...d.options].some(o => o.value === g.destino)) d.value = g.destino }
+    g.rolagem.forEach(([s, y]) => { const el = document.querySelector(s); if (el) el.scrollTop = y })
+    if (estadoConc.aba === 'faturas' && buscando) buscarFaturasConc()
+}
+
+let timerVivoConc = null
+let vivoEmCursoConc = false
+// A pessoa está digitando no detalhe (valor a baixar, busca, data): espera ela sair do campo.
+function adiarVivoConc() {
+    clearTimeout(timerVivoConc)
+    timerVivoConc = setTimeout(atualizarAoVivoConc, 2500)
+}
+
+// Chamada pelo js/websocket.js quando muda fatura/pagamento/conta.
+async function atualizarAoVivoConc() {
+    clearTimeout(timerVivoConc)
+    if (!document.querySelector('.cc-tela-conciliar') || !estadoConc.conta || !dadosConc) return
+    // Ação desta tela em andamento (o fim dela já recarrega) ou outra atualização no meio: tenta de novo daqui a pouco.
+    if (vivoEmCursoConc || sOverlay) return adiarVivoConc()
+    const ativo = document.activeElement
+    const digitando = ativo && /^(INPUT|TEXTAREA|SELECT)$/.test(ativo.tagName) && ativo.closest('.cc-tela-conciliar')
+    vivoEmCursoConc = true
+    try {
+        const conta = estadoConc.conta, mes = dadosConc.mes
+        const dados = await apiFin('conciliacao/linhas', { conta_bancaria_id: conta, mes })
+        if (!document.querySelector('.cc-tela-conciliar') || estadoConc.conta !== conta || dadosConc.mes !== mes) return
+        dadosConc = dados
+        const linhas = linhasConc()
+        // Lista da esquerda: só a tabela (a busca e o calendário ficam como estão).
+        const tabela = document.querySelector('[data-tabela-conc]')
+        const y = tabela?.scrollTop || 0
+        desenharTabelaConc()
+        if (tabela) tabela.scrollTop = y
+        // Painel da direita: troca se ninguém está mexendo nele (data de fechar).
+        const painel = document.querySelector('.cc-tela .fin-painel')
+        if (painel && !(digitando && painel.contains(ativo))) {
+            const yp = painel.scrollTop
+            painel.innerHTML = painelConciliarConc()
+            painel.scrollTop = yp
+        }
+        estadoConc.multi = estadoConc.multi.filter(k => podeJuntarConc(linhas.find(l => l.chave === k)))
+        if (estadoConc.multi.length < 2) estadoConc.multi = []
+        pintarLinhasConc()
+        // Linha aberta: a mesma continua aberta, com os dados novos (ou mostra que foi resolvida por outra pessoa).
+        if (estadoConc.multi.length > 1) await escolherGrupoConc(true)
+        else if (estadoConc.sel && linhas.some(l => l.chave === estadoConc.sel)) await escolherLinhaConc(estadoConc.sel, false, true)
+    } catch (err) {
+        console.warn('Conciliação ao vivo:', err?.message || err)
+    } finally {
+        vivoEmCursoConc = false
+    }
 }
 
 function desenharDetalheConc() {
@@ -874,7 +989,7 @@ function desenharDetalheConc() {
     const abs = Math.abs(l.valor)
     const abas = [
         ['sugestao', 'raio', 'Sugestões', sugestoes.length, sugestoes.length],
-        ['faturas', 'baixa', 'Faturas', faturas.length, true],
+        ['faturas', 'baixa', 'Faturas', (detalheConc.faturasBusca || faturas).length, true],
         ['baixas', 'check', 'Baixas lançadas', baixas.length, true],
         ['lancar', 'incluir', l.valor < 0 ? 'Lançar despesa' : 'Lançar receita', null, !grupo],
         ['transferencia', 'repetir', 'Transferência', transferencias.length, !grupo]
@@ -914,7 +1029,15 @@ function desenharDetalheConc() {
                 <button type="button" class="fis-botao" data-casar-marcadas disabled onclick="casarMarcadasConc(${l.id})">Casar</button>
             </div>`
     } else if (aba === 'faturas') {
-        const b = detalheConc.buscaFat || (detalheConc.buscaFat = { busca: '', de: '', ate: '' })
+        // Abre filtrada pelo vencimento no dia da linha (no grupo, do primeiro ao último dia) (27/11/2026, a pedido).
+        // Fatura em aberto não tem data de pagamento: o vencimento é a data que ela tem. Limpar mostra as parecidas
+        // (valor ou favorecido) de qualquer vencimento.
+        if (!detalheConc.buscaFat) {
+            detalheConc.diaFat = { de: (l.datas || [l.data])[0], ate: l.data }
+            detalheConc.buscaFat = { busca: '', ...detalheConc.diaFat }
+            detalheConc.buscarFat = true
+        }
+        const b = detalheConc.buscaFat
         const buscando = Boolean(b.busca.trim() || b.de || b.ate)
         if (!detalheConc.marcadasFat) {
             // Com baixa sugerida, o pagamento já está lançado: não pré-marca fatura (baixaria outra parcela em dobro).
@@ -923,13 +1046,13 @@ function desenharDetalheConc() {
         }
         corpo = `
             ${sugestoes.length ? `<p class="cc-explica"><b>Atenção:</b> já existe baixa lançada que bate com esta linha (aba Sugestões). Baixar uma fatura aqui cria outro pagamento.</p>` : ''}
-            <p class="cc-explica">${buscando ? `Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto encontradas pela busca (as marcadas ficam no topo).`
-                : `Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto com valor parecido ou do mesmo favorecido.${combinacao ? ' <b>Já marcadas as que somam exatamente o valor.</b>' : ''} Não achou? Busque abaixo.`} A baixa sai com a data da linha${grupo ? ' mais recente' : ''} (${dataFin(l.data)}).</p>
+            <p class="cc-explica" data-explica-fat>${explicaFaturasConc()}</p>
             <div class="cc-busca-faturas">
                 <input class="fis-input" type="search" data-busca-fat placeholder="Buscar favorecido, CPF/CNPJ, nº, descrição ou valor…" value="${escFin(b.busca)}" oninput="filtrarFaturasConc()">
                 <label class="cc-busca-data" title="Vencimento a partir de"><span>Vence de</span><input class="fis-input" type="date" data-de-fat value="${escFin(b.de)}" onchange="filtrarFaturasConc(true)" onkeydown="tabParaAteConc(event, '[data-ate-fat]')"></label>
                 <label class="cc-busca-data" title="Vencimento até"><span>até</span><input class="fis-input" type="date" data-ate-fat value="${escFin(b.ate)}" onchange="filtrarFaturasConc(true)"></label>
-                <button type="button" class="fis-mini" data-limpar-fat ${buscando ? '' : 'hidden'} onclick="limparBuscaFaturasConc()">Limpar</button>
+                <button type="button" class="fis-mini" data-limpar-fat ${buscando ? '' : 'hidden'} onclick="limparBuscaFaturasConc()" title="Ver as de valor parecido ou do mesmo favorecido, de qualquer vencimento">Limpar</button>
+                <button type="button" class="fis-mini" data-dia-fat ${faturasDoDiaConc() ? 'hidden' : ''} onclick="faturasDoDiaFiltroConc()">Do dia ${escFin(rotuloDiaFatConc())}</button>
             </div>
             <div class="cc-lista" data-marcar-faturas>${listaFaturasConc()}</div>`
         rodape = `<div class="cc-rodape-detalhe cc-rodape-faturas" data-ajuste-faturas></div>`
@@ -967,13 +1090,46 @@ function desenharDetalheConc() {
     }
     caixa.innerHTML = `${cabeca}
         <div class="cc-abas" role="tablist">${abas.filter(a => a[4]).map(([k, ic, t, n]) => `
-            <button type="button" role="tab" aria-selected="${aba === k}" class="cc-aba ${aba === k ? 'ativo' : ''}" onclick="if (estadoConc.aba === 'faturas') guardarMarcadasFatConc(); estadoConc.aba = '${k}'; desenharDetalheConc()">
+            <button type="button" role="tab" data-aba="${k}" aria-selected="${aba === k}" class="cc-aba ${aba === k ? 'ativo' : ''}" onclick="if (estadoConc.aba === 'faturas') guardarMarcadasFatConc(); estadoConc.aba = '${k}'; desenharDetalheConc()">
                 ${iconeFin(ic)}<span>${t}</span>${n != null ? `<em>${n}</em>` : ''}</button>`).join('')}
             ${grupo ? '' : `<button type="button" class="cc-aba cc-aba-ignorar" onclick="ignorarLinhaConc(${l.id})" title="Marcar como fora do Financeiro">${iconeFin('cancelar')}<span>Fora</span></button>`}
         </div>
         <div class="cc-aba-corpo">${corpo}</div>
         ${rodape}`
-    if (aba === 'faturas') somarFaturasConc()
+    if (aba === 'faturas') {
+        somarFaturasConc()
+        if (detalheConc.buscarFat) { detalheConc.buscarFat = false; buscarFaturasConc() }
+    }
+}
+
+const rotuloDiaFatConc = () => {
+    const d = detalheConc?.diaFat
+    if (!d) return ''
+    return d.de === d.ate ? dataFin(d.de).slice(0, 5) : `${dataFin(d.de).slice(0, 5)} a ${dataFin(d.ate).slice(0, 5)}`
+}
+
+// A busca está no filtro inicial: só o vencimento no dia da linha, sem texto.
+const faturasDoDiaConc = () => {
+    const b = detalheConc?.buscaFat, d = detalheConc?.diaFat
+    return Boolean(b && d && !b.busca.trim() && b.de === d.de && b.ate === d.ate)
+}
+
+function explicaFaturasConc() {
+    const { linha: l, tipo, combinacao, grupo, buscaFat: b } = detalheConc
+    const nome = `Faturas ${tipo === 'RECEBER' ? 'a receber' : 'a pagar'} em aberto`
+    const buscando = Boolean(b.busca.trim() || b.de || b.ate)
+    const texto = faturasDoDiaConc() ? `${nome} que vencem ${detalheConc.diaFat.de === detalheConc.diaFat.ate ? 'em' : 'de'} ${rotuloDiaFatConc()} (dia da linha). <b>Limpar</b> mostra as de valor parecido ou do mesmo favorecido, de qualquer vencimento.`
+        : buscando ? `${nome} encontradas pela busca (as marcadas ficam no topo).`
+        : `${nome} com valor parecido ou do mesmo favorecido.${combinacao ? ' <b>Já marcadas as que somam exatamente o valor.</b>' : ''} Não achou? Busque abaixo.`
+    return `${texto} A baixa sai com a data da linha${grupo ? ' mais recente' : ''} (${dataFin(l.data)}).`
+}
+
+function faturasDoDiaFiltroConc() {
+    const d = detalheConc?.diaFat
+    if (!d) return
+    const campos = { '[data-busca-fat]': '', '[data-de-fat]': d.de, '[data-ate-fat]': d.ate }
+    Object.entries(campos).forEach(([s, v]) => { const i = document.querySelector(s); if (i) i.value = v })
+    filtrarFaturasConc(true)
 }
 
 // Itens da aba Faturas: sem busca, as candidatas do servidor; com busca, o resultado dela. As marcadas
@@ -986,9 +1142,12 @@ function listaFaturasConc() {
     const res = detalheConc.faturasBusca
     ;(res || []).forEach(f => porId.set(String(f.id), f))
     const marcadas = detalheConc.marcadasFat
-    const base = res || faturas
+    const b = detalheConc.buscaFat
+    // Busca pedida e ainda sem resposta (abrir já filtrado pelo dia): só as marcadas e o aviso, sem piscar as candidatas.
+    const esperando = !res && Boolean(b && (b.busca.trim() || b.de || b.ate))
+    const base = esperando ? [] : res || faturas
     const lista = [...[...marcadas.keys()].filter(id => !base.some(f => String(f.id) === id)).map(id => porId.get(id)).filter(Boolean), ...base]
-    return lista.map(f => {
+    const itens = lista.map(f => {
         const marcada = marcadas.has(String(f.id))
         return itemConc({
             nome: f.participante_nome, marcar: true,
@@ -999,7 +1158,10 @@ function listaFaturasConc() {
             depois: `<span class="cc-item-campo"><input class="fis-input fis-num cc-valor" type="number" step="0.01" min="0.01" value="${marcada ? marcadas.get(String(f.id)) : f.saldo.toFixed(2)}" data-saldo="${f.saldo}" oninput="somarFaturasConc()" title="Valor a baixar (saldo ${escFin(dinheiroTexto(f.saldo))})">
                 <button type="button" class="fis-mini" onclick="event.preventDefault(); abrirFaturaFin(${f.id})">Ver</button></span>`
         })
-    }).join('') || (res ? vazioConc('baixa', 'Nenhuma fatura em aberto com essa busca. Se já foi paga no GCS, procure na aba "Baixas lançadas".')
+    }).join('')
+    if (esperando) return `${itens}${vazioConc('relogio', 'Procurando faturas…')}`
+    return itens || (res && faturasDoDiaConc() ? vazioConc('baixa', `Nenhuma fatura em aberto vencendo em ${rotuloDiaFatConc()}. Clique em Limpar para ver as de valor parecido ou do mesmo favorecido, de qualquer vencimento.`)
+        : res ? vazioConc('baixa', 'Nenhuma fatura em aberto com essa busca. Se já foi paga no GCS, procure na aba "Baixas lançadas".')
         : vazioConc('baixa', 'Nenhuma fatura em aberto parecida. Busque acima ou use "Lançar" se não existir fatura.'))
 }
 
@@ -1020,6 +1182,13 @@ function redesenharListaFatConc() {
     const b = detalheConc.buscaFat
     const limpar = document.querySelector('[data-limpar-fat]')
     if (limpar) limpar.hidden = !(b.busca.trim() || b.de || b.ate)
+    const doDia = document.querySelector('[data-dia-fat]')
+    if (doDia) doDia.hidden = faturasDoDiaConc()
+    const explica = document.querySelector('[data-explica-fat]')
+    if (explica) explica.innerHTML = explicaFaturasConc()
+    // Contador da aba: o que a lista mostra agora (filtro do dia, busca ou as candidatas).
+    const em = document.querySelector('.cc-aba[data-aba="faturas"] em')
+    if (em) em.textContent = (detalheConc.faturasBusca || detalheConc.faturas).length
     somarFaturasConc()
 }
 
@@ -1047,6 +1216,17 @@ async function buscarFaturasConc() {
         const r = await apiFin('conciliacao/faturas', { id: det.linha.id, busca: b.busca, de: b.de, ate: b.ate })
         if (detalheConc !== det || det.pedidoFat !== pedido) return
         det.faturasBusca = r.faturas || []
+        // Busca refeita pela atualização ao vivo: marcada que não está mais em aberto (paga/excluída por alguém) sai.
+        if (det.vivo) {
+            det.vivo = false
+            det.fatPorId = new Map()
+            guardarMarcadasFatConc()
+            const abertas = new Set([...det.faturas, ...det.faturasBusca].map(f => String(f.id)))
+            det.marcadasFat = new Map([...det.marcadasFat].filter(([id]) => abertas.has(id)))
+            document.querySelector('[data-marcar-faturas]')?.classList.remove('cc-carregando')
+            redesenharListaFatConc()
+            return
+        }
     } catch (err) {
         if (detalheConc !== det || det.pedidoFat !== pedido) return
         det.faturasBusca = []

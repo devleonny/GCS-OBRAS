@@ -347,6 +347,12 @@ async function executarAtualizacaoWS() {
             tarefas.push(() => carregarFluxo())
 
 
+        // Conciliação bancária aberta (js/conciliacao.js): fatura, pagamento, conta corrente ou empresa mudou em
+        // qualquer tela → lista, painel e linha aberta se atualizam sem perder o que está marcado.
+        if (document.querySelector('.cc-tela-conciliar') && typeof atualizarAoVivoConc === 'function'
+            && (atualizarTodas || ['vw_fin_titulos', 'vw_fin_contas', 'fin_titulos', 'fin_baixas', 'lista_pagamentos'].some(t => tabelas.has(t))))
+            tarefas.push(() => atualizarAoVivoConc())
+
         // Preço salvo/confirmado: o painel "Preços a confirmar" aberto se atualiza (js/precos_vencidos.js).
         if ((tabelas.has('dados_composicoes') || atualizarTodas) && typeof recarregarPrecosVencidos === 'function')
             tarefas.push(() => recarregarPrecosVencidos())
