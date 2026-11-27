@@ -1280,6 +1280,8 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
     const comPagamento = Number(t?.pago) > 0
     const livre = manual && !cancelada && !comPagamento
     const travaVencimento = rec || comPagamento || cancelada
+    // Data de pagamento no cabeçalho (27/11/2026, a pedido): a do último pagamento ativo; sem pagamento, igual ao vencimento.
+    const baixaRecente = baixas.filter(b => !b.estornada && b.data).sort((a, b) => String(b.data).localeCompare(String(a.data)))[0] || null
     anexosFormFin = Array.isArray(t?.anexos) ? [...t.anexos] : []
     const quando = (em, por) => em ? `Em ${new Date(em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}${por ? ` por ${escFin(por)}` : ''}` : '—'
     const avisos = [
@@ -1327,6 +1329,8 @@ async function formularioFaturaFin(tipo, id = null, recorrenciaId = null, aba = 
                                         data-pagamentos="${baixas.filter(b => !b.estornada).length}" onchange="trocarEmpresaFormFin(this)">
                                         ${opcoesEmpresasFin(op.empresas, app)}
                                     </select></label>
+                                ${rec ? '' : `<label class="fin-campo" title="${baixaRecente ? `Data do último ${termoFin('pagamento', tipo)} registrado` : `Ainda sem ${termoFin('pagamento', tipo)}: acompanha o vencimento`}"><span>Data ${pagar ? 'de pagamento' : 'de recebimento'}</span>
+                                    <input class="fis-input" type="date" data-data-pagamento-fin ${baixaRecente ? `data-fixa="1" value="${escFin(dia(baixaRecente.data))}"` : `value="${escFin(vencimento)}"`} readonly tabindex="-1"></label>`}
                                 <label class="fin-campo"><span>Conta corrente</span>
                                     <select class="fis-input" name="conta_id" data-conta-original="${escFin(base?.conta_id || '')}" ${cancelada ? 'disabled' : ''}>${opcoesContasFin(op.contas, app, base?.conta_id)}</select></label>
                             </div>
@@ -1492,6 +1496,8 @@ function sincronizarTopoFin() {
     if (!form) return
     const vencimento = form.querySelector('[name="vencimento"]').value
     const valor = form.querySelector('[name="valor"]').value
+    const dataPagamento = form.querySelector('[data-data-pagamento-fin]:not([data-fixa])')
+    if (dataPagamento) dataPagamento.value = vencimento
     const bloco = form.querySelector('[data-bloco-repetir]')
     if (bloco) {
         const primeiro = bloco.querySelector('[name="rep_primeiro"]')
@@ -2296,6 +2302,15 @@ async function formularioBaixaRapidaFin(id) {
         return popup({ mensagem: mensagemErroEst(err) })
     }
     const pagar = t.tipo === 'PAGAR'
+    // Vencimento diferente de hoje (27/11/2026, a pedido): pergunta antes se o pagamento foi no vencimento ou hoje.
+    // Vencimento no futuro não entra: o pagamento não pode ter data futura, então vale hoje.
+    const vencimento = String(t.vencimento || '').slice(0, 10)
+    let dataBaixa = hojeFin()
+    if (vencimento && vencimento < dataBaixa) {
+        const escolha = await escolherDataBaixaFin(vencimento, pagar)
+        if (!escolha) return
+        dataBaixa = escolha
+    }
     const contas = op.contas.filter(k => contaAceitaFin(k, t.app))
     const padrao = t.conta_id || contaPadraoAppFin(contas, t.app)?.id
     popup({
@@ -2312,12 +2327,38 @@ async function formularioBaixaRapidaFin(id) {
                         <label class="fis-campo fis-largo"><span>Conta corrente *</span><select class="fis-input" name="conta_id">
                             ${contas.length ? contas.map(k => `<option value="${k.id}" ${k.id === padrao ? 'selected' : ''}>${escFin(k.nome)}${k.padrao ? ' (padrão)' : ''}</option>`).join('') : '<option value="">Nenhuma conta desta empresa</option>'}
                         </select></label>
-                        <label class="fis-campo"><span>Data real ${pagar ? 'do pagamento' : 'do recebimento'} *</span><input class="fis-input" type="date" name="data" max="${hojeFin()}" value="${hojeFin()}"></label>
+                        <label class="fis-campo"><span>Data real ${pagar ? 'do pagamento' : 'do recebimento'} *</span><input class="fis-input" type="date" name="data" max="${hojeFin()}" value="${dataBaixa}"></label>
                     </div>
                     <small class="fis-dica">Quita o que falta da fatura. Parcial, desconto, juros ou multa: aba ${pagar ? 'Pagamentos' : 'Recebimentos'} da fatura → Registrar ${pagar ? 'pagamento' : 'recebimento'}.</small>
                 </div>`
         }],
         botoes: [{ texto: pagar ? 'Marcar como pago' : 'Marcar como recebido', img: 'concluido', funcao: 'salvarBaixaRapidaFin(this)' }]
+    })
+}
+
+// Pergunta do Pagar agora: data do vencimento ou hoje. Resolve com a data (aaaa-mm-dd) ou null se fechar.
+function escolherDataBaixaFin(vencimento, pagar) {
+    return new Promise(resolve => {
+        const chave = crypto.randomUUID()
+        const hoje = hojeFin()
+        const id = popup({
+            titulo: `Data do ${pagar ? 'pagamento' : 'recebimento'}`,
+            modal: true,
+            mensagem: `O vencimento (${dataFin(vencimento)}) não é hoje (${dataFin(hoje)}). ${pagar ? 'Foi pago' : 'Foi recebido'} em qual data?`,
+            botoes: [
+                { id: `venc-${chave}`, texto: `No vencimento · ${dataFin(vencimento)}` },
+                { id: `hoje-${chave}`, texto: `Hoje · ${dataFin(hoje)}` }
+            ]
+        })
+        const observador = new MutationObserver(() => { if (!document.getElementById(id)) fim(null) })
+        function fim(data) {
+            observador.disconnect()
+            removerPopup(id)
+            resolve(data)
+        }
+        document.getElementById(`venc-${chave}`).addEventListener('click', () => fim(vencimento), { once: true })
+        document.getElementById(`hoje-${chave}`).addEventListener('click', () => fim(hoje), { once: true })
+        observador.observe(document.body, { childList: true })
     })
 }
 
