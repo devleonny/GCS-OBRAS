@@ -419,8 +419,10 @@ async function historicoPagamentosParceiro(id) {
     try {
         overlayAguarde()
         const c = await obterControlePagamentosParceiro(id)
-        const indicadores = [['Combinado', c.total], ['Pago', c.pago], ['Em aprovação / pagamento', c.reservado], ['Disponível', c.disponivel], ['Falta pagar', c.faltaPagar]]
-            .map(([nome, valor]) => `<div><span>${nome}</span><strong>${dinheiro(valor)}</strong></div>`).join('')
+        const pctPago = c.total > 0 ? (c.pago / c.total) * 100 : 0
+        const balaoPago = `<em class="parceiro-balao-pct" title="Percentual já pago do combinado">${pctPago.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</em>`
+        const indicadores = [['Combinado', c.total], ['Pago', c.pago, balaoPago], ['Em aprovação / pagamento', c.reservado], ['Disponível', c.disponivel], ['Falta pagar', c.faltaPagar]]
+            .map(([nome, valor, extra = '']) => `<div>${extra}<span>${nome}</span><strong>${dinheiro(valor)}</strong></div>`).join('')
         const linhas = c.linhas.map(linha => `<tr>
             <td>${escaparAtributo(linha.data || '')}</td>
             <td>${dinheiro(linha.valor)}</td>
