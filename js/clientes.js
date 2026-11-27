@@ -299,6 +299,12 @@ async function vincularEmpresas() {
 
 }
 
+// Tela no layout financeiro (27/11/2026): ações na barra do topo, tabela de uma linha por cadastro com o funil
+// em cada coluna e a paginação no rodapé; filtros de Tags/Estados e o mapa por estado na bandeja da direita.
+// Recolher a bandeja esconde o mapa (e ele para de contar: mapaVisivel em js/mapa.js).
+const estadoTelaClientes = { painel: true }
+const POR_PAGINA_CLIENTES = 50
+
 async function telaClientes() {
 
     try {
@@ -318,23 +324,62 @@ async function telaClientes() {
             opcoes: Object.keys(posicoesEstados || {})
         })
 
-        const btnExtras = `
-            <div class="clientes-filtros" style="${horizontal}; gap: 1rem; padding: 3px;">
-                <button type="button" class="clientes-adicionar clientes-vincular" onclick="classificarUnidades()">Vincular em massa</button>
-                <button type="button" class="clientes-adicionar" onclick="formularioCliente()">Adicionar Cadastro</button>
-                <button type="button" class="clientes-adicionar" onclick="formularioLinkCadastro()">Link de cadastro</button>
-                ${dropdownTags}
-                ${dropdownEstados}
-            </div>
-        `
+        // No celular a bandeja é uma gaveta por cima da tabela: começa fechada.
+        if (window.matchMedia?.('(max-width: 800px)').matches) estadoTelaClientes.painel = false
+        const aberto = estadoTelaClientes.painel
 
-        const tabela = await modTab({
+        const mapa = criarMapa({
+            apenasMapa: true,
+            path: 'estado',
+            pag,
+            base: 'clientes',
+            unidade: ['cadastro', 'cadastros'],
+            ativo: aberto,
+            barras: 10
+        })
+
+        tela.innerHTML = `
+        <div class="fis-pagina fin-tela fin-uma-linha cli-tela">
+            <section class="fin-janela">
+                <header class="fin-janela-topo">
+                    <h2>Clientes, Usuários & Fornecedores</h2>
+                    <div class="fin-barra">
+                        <button type="button" onclick="formularioCliente()" title="Novo cadastro de cliente, usuário ou fornecedor">${iconeFin('incluir')} Adicionar cadastro</button>
+                        <button type="button" onclick="formularioLinkCadastro()" title="Gerar um link para a pessoa preencher o próprio cadastro">${iconeFin('link')} Link de cadastro</button>
+                        <button type="button" onclick="classificarUnidades()" title="Vincular várias unidades a uma empresa de uma vez">${iconeFin('empresa')} Vincular em massa</button>
+                    </div>
+                </header>
+                <div class="fin-corpo${aberto ? '' : ' recolhido'}" data-corpo-cli>
+                    <div class="fin-tabela-area cli-area" data-tabela-cli></div>
+                    <div class="fin-lateral">
+                        <button type="button" class="fin-recolher" onclick="alternarPainelClientes()" aria-expanded="${aberto}"
+                            title="${aberto ? 'Recolher' : 'Mostrar'} filtros e mapa">${iconeFin('seta')}</button>
+                        <aside class="fin-painel cli-painel">
+                            <div class="cli-recolhido-acoes">
+                                <button type="button" class="fin-acao" title="Filtros de Tags e Estados" onclick="alternarPainelClientes()">${iconeFin('filtro')}<span>Filtros</span></button>
+                                <button type="button" class="fin-acao" title="Mapa por estado" onclick="alternarPainelClientes()">${iconeFin('mapa')}<span>Mapa</span></button>
+                            </div>
+                            <div class="cli-filtros">
+                                ${dropdownTags}
+                                ${dropdownEstados}
+                            </div>
+                            ${mapa}
+                        </aside>
+                    </div>
+                </div>
+            </section>
+        </div>`
+
+        const area = tela.querySelector('[data-tabela-cli]')
+        area.innerHTML = await modTab({
             pag,
             base: 'vw_2_clientes',
             colunas: {
-                'Ações': {},
                 'Foto': {},
-                'Nome': { chave: 'cadastrais', op: 'includes' },
+                'Nome': { chave: 'cadastrais', op: 'includes', principal: true },
+                'Razão social': { chave: 'razao_social' },
+                'CPF/CNPJ': { chave: 'cnpj' },
+                'E-mail': { chave: 'email' },
                 'Tags': { chave: 'tags', op: 'includes' },
                 'Empresa': { chave: 'empresa' },
                 'Usuário': { chave: 'usuario' },
@@ -343,40 +388,15 @@ async function telaClientes() {
                 'Cidade / UF': { chave: 'snapshots.enderecoCadastro' },
                 'Comentário': { chave: 'comentario' }
             },
-            funcaoAdicional: ['contarPorTagCliente'],
+            funcaoAdicional: ['aposCarregarClientes'],
             body: 'bodyClientes',
-            btnExtras,
-            topoEmLinha: true,
+            caber: true,
+            limite: POR_PAGINA_CLIENTES,
             detalhes: true,
             criarLinha: 'criarLinhaClienteGCS'
         })
-
-        const mapa = criarMapa({
-            apenasMapa: true,
-            path: 'estado',
-            pag,
-            base: 'clientes',
-            unidade: ['cadastro', 'cadastros'],
-            ativo: true,
-            barras: 10
-        })
-
-        tela.innerHTML = `
-        <div class="clientes-layout">
-            <div class="pagina-conteudo">
-                <div class="cabecalho-pagina clientes-cabecalho">
-                    <h2>Clientes, Usuários & Fornecedores</h2>
-                    <!-- Mapa já nasce aberto; o interruptor esconde/mostra (mostrarMapa, js/mapa.js). -->
-                    <label class="interruptor clientes-chave-mapa" title="Mostrar ou esconder o mapa por estado">
-                        <input type="checkbox" checked onchange="mostrarMapa()">
-                        <span class="trilho"></span>
-                        <span>Mapa</span>
-                    </label>
-                </div>
-                ${tabela}
-            </div>
-            ${mapa}
-        </div>`
+        // Paginação no rodapé da janela (a do modTab fica escondida neste layout).
+        area.querySelector('.modtab')?.insertAdjacentHTML('beforeend', '<div class="fin-rodape" data-rodape-cli></div>')
 
         await paginacao(pag)
 
@@ -384,9 +404,85 @@ async function telaClientes() {
 
     } catch (err) {
         console.error(err)
+        removerOverlay()
         popup({ mensagem: 'Falha ao abrir a tabela de clientes: Fale com o cliente.' })
     }
 
+}
+
+async function aposCarregarClientes() {
+    const ctrl = controles.clientes
+    const tbody = document.getElementById('bodyClientes')
+    const tabela = tbody?.closest('table')
+    if (!tabela) return
+    // Linha de enchimento: a tabela ocupa a altura da tela mesmo com poucas linhas.
+    if (!tabela.querySelector(':scope > tbody.fin-enchimento')) {
+        const n = tabela.querySelector(':scope > thead > tr')?.children.length || 1
+        const enchimento = document.createElement('tbody')
+        enchimento.className = 'fin-enchimento'
+        enchimento.innerHTML = `<tr><td colspan="${n}"></td></tr>`
+        tabela.appendChild(enchimento)
+    }
+    // "+" de expandir todos: do topo do modTab (escondido neste layout) para o título da coluna dos detalhes.
+    const expandir = tabela.closest('.modtab')?.querySelector('.topo-tabela [data-expandir-todos]')
+    const thDetalhes = tabela.querySelector(':scope > thead > tr:first-child > th.tabela-coluna-detalhes')
+    if (expandir && thDetalhes) thDetalhes.appendChild(expandir)
+    if (typeof cabecalhoAvancadoTabela === 'function')
+        await cabecalhoAvancadoTabela('clientes', { prefKey: 'clientes' })
+    if (typeof atualizarBotaoTodosDetalhes === 'function') atualizarBotaoTodosDetalhes(tbody)
+    desenharRodapeClientes(ctrl)
+    await atualizarMapa()
+}
+
+function desenharRodapeClientes(ctrl = controles.clientes) {
+    const alvo = document.querySelector('[data-rodape-cli]')
+    if (!alvo || !ctrl) return
+    const total = Number(document.getElementById('resultados_clientes')?.textContent) || 0
+    const paginas = Math.max(1, Number(ctrl.total) || 1)
+    const pagina = Math.min(ctrl.pagina || 1, paginas)
+    const porPagina = Number(ctrl.limite) || POR_PAGINA_CLIENTES
+    const inicio = total ? (pagina - 1) * porPagina + 1 : 0
+    const fim = Math.min(total, pagina * porPagina)
+    const botao = (texto, destino, ativo, titulo = '') =>
+        `<button type="button" ${ativo ? `onclick="irPaginaClientes(${destino})"` : 'disabled'} ${titulo ? `title="${titulo}"` : ''}>${texto}</button>`
+    alvo.innerHTML = `
+        <span class="fin-rodape-info"><span>${inicio} - ${fim} de ${total.toLocaleString('pt-BR')} cadastro${total === 1 ? '' : 's'}</span>${typeof filtrosAtivosRodapeCab === 'function' ? filtrosAtivosRodapeCab(ctrl.pag) : ''}</span>
+        <div class="fin-paginas">
+            ${botao('|‹', 1, pagina > 1, 'Primeira página')}
+            ${botao('‹ anterior', pagina - 1, pagina > 1)}
+            <label>Página <input type="number" min="1" max="${paginas}" value="${pagina}" onchange="irPaginaClientes(this.value)"></label>
+            <span>de ${paginas.toLocaleString('pt-BR')}</span>
+            ${botao('próximo ›', pagina + 1, pagina < paginas)}
+            ${botao('›|', paginas, pagina < paginas, 'Última página')}
+        </div>`
+}
+
+async function irPaginaClientes(n) {
+    const ctrl = controles.clientes
+    if (!ctrl) return
+    const pagina = Math.min(Math.max(1, parseInt(n) || 1), Math.max(1, Number(ctrl.total) || 1))
+    if (pagina === ctrl.pagina) return desenharRodapeClientes(ctrl)
+    ctrl.pagina = pagina
+    await paginacao('clientes')
+}
+
+// Bandeja aberta = mapa aberto (conta pelos filtros); recolhida = só os ícones, sem contar.
+function alternarPainelClientes() {
+    const corpo = document.querySelector('[data-corpo-cli]')
+    if (!corpo) return
+    estadoTelaClientes.painel = corpo.classList.contains('recolhido')
+    corpo.classList.toggle('recolhido', !estadoTelaClientes.painel)
+    corpo.querySelector('.fundo-mapa')?.classList.toggle('ativo', estadoTelaClientes.painel)
+    const botao = corpo.querySelector('.fin-recolher')
+    botao?.setAttribute('aria-expanded', String(estadoTelaClientes.painel))
+    if (botao) botao.title = `${estadoTelaClientes.painel ? 'Recolher' : 'Mostrar'} filtros e mapa`
+    if (estadoTelaClientes.painel) atualizarMapa()
+}
+
+// Linha inteira abre o cadastro (fora os botões, o "+" dos detalhes e os links).
+function abrirLinhaCliente(event, id) {
+    if (event?.target?.closest('button, a, input, select, label, .tabela-coluna-detalhes')) return
+    formularioCliente(Number(id))
 }
 
 // Mapa por estado (js/mapa.js): só conta com o mapa aberto e quando os filtros mudam.
@@ -660,56 +756,37 @@ function criarLinhaClienteGCS(cliente) {
         grupo('Inscrições', dado('Estadual', inscricao_estadual) + dado('Municipal', inscricao_municipal))
     ].join('')
 
-    // Coluna estreita só com cidade/UF; o resto abre no "+" (detalhes da tabela, js/tabelas.js).
+    // Uma linha por cadastro (layout financeiro, fin-uma-linha): o que não cabe termina em "..." e o texto
+    // inteiro fica no title; endereços e inscrições abrem no "+" (detalhes da tabela, js/tabelas.js).
+    const esc = v => escaparAtributo(v ?? '')
+    const texto = (valor, extra = '') => `<td class="fin-obs" title="${esc(valor)}"><span class="fin-uma-celula"><span class="fin-obs-txt">${esc(valor)}</span>${extra}</span></td>`
     const resumoLocal = [cliente?.cidade, cliente?.estado].filter(Boolean).join(' / ')
-    const eCadastro = `<span class="cliente-local">${escaparAtributo(resumoLocal || '—')}</span>`
+    const documento = cnpj && typeof docFormatadoFis === 'function' ? docFormatadoFis(cnpj) : (cnpj || '')
+    const nomesTags = (tags || []).map(item => item?.tag).filter(Boolean)
 
-    const tags1 = (tags || [])
-        .map(item => tagCliente(item.tag))
-        .join('')
-
-    // Empresa, usuário, permissão e matrícula em colunas próprias (antes juntos na coluna IDs), com a mesma etiqueta.
-    const celulaId = valor => `<td>${valor ? `<span class="fin cliente-id" title="${escaparAtributo(valor)}">${escaparAtributo(valor)}</span>` : ''}</td>`
+    // Empresa, usuário, permissão e matrícula em colunas próprias, com a mesma etiqueta.
+    const celulaId = valor => `<td>${valor ? `<span class="fin cliente-id" title="${esc(valor)}">${esc(valor)}</span>` : ''}</td>`
 
     const tds = `
-        <td>
-            <img src="imagens/pesquisar.svg" onclick="formularioCliente(${id})">
-        </td>
-
-        <td><button type="button" title="Abrir cadastro" aria-label="Abrir cadastro"
-            data-cliente="${escaparAtributo(id)}" onclick="formularioCliente(Number(this.dataset.cliente))"
-            style="padding: 0; border: none; background: transparent; cursor: pointer;">
+        <td class="cli-col-foto"><button type="button" class="cli-foto-botao" title="Abrir cadastro" aria-label="Abrir cadastro"
+            data-cliente="${esc(id)}" onclick="formularioCliente(Number(this.dataset.cliente))">
             ${avatarCliente({ foto, nome, empresa })}
         </button></td>
-
-        <td>
-            <div style="${horizontal}; justify-content: start; gap: 5px;">
-
-                <div style="${vertical}; gap: 2px;">
-
-                    ${(cadastrais || []).filter(c => c && (c === nome || c !== razao_social)).map(c => `<span>${c}</span>`).join('')}
-                    ${razao_social && razao_social !== nome ? `<small class="cliente-razao" title="Razão social">${escaparAtributo(razao_social)}</small>` : ''}
-
-                    ${desligado ? `<div>${etiquetaDesligado(desligado)}</div>` : ''}
-                </div>
-
-            </div>
-        </td>
-        
-        <td><div class="cliente-tags-coluna">${tags1}</div></td>
+        ${texto(nome || (cadastrais || [])[0] || '', desligado ? etiquetaDesligado(desligado) : '')}
+        ${texto(razao_social && razao_social !== nome ? razao_social : '')}
+        <td class="fin-doc">${esc(documento)}</td>
+        ${texto(email)}
+        <td class="fin-obs" title="${esc(nomesTags.join(', '))}"><div class="cli-tags-linha">${nomesTags.map(tagCliente).join('')}</div></td>
         ${celulaId(empresa)}
         ${celulaId(usuario)}
         ${celulaId(permissao)}
         ${celulaId(matricula)}
-
-        <td>${eCadastro}</td>
-        <td>
-            <div style="white-space: pre-wrap;">${comentario || ''}</div>
-        </td>
+        ${texto(resumoLocal)}
+        ${texto(comentario)}
         `
 
     return {
-        linha: `<tr>${tds}</tr>`,
+        linha: `<tr class="fin-linha" data-cliente-linha="${esc(id)}" onclick="abrirLinhaCliente(event, this.dataset.clienteLinha)">${tds}</tr>`,
         detalhes: conteudoDetalhes
             ? `<div class="cliente-detalhes-corpo">${conteudoDetalhes}</div>`
             : ''

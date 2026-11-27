@@ -731,3 +731,54 @@
     font-size: 14px;
     font-weight: 600;
 }
+
+/* ---------- Tela de clientes no layout financeiro (js/clientes.js telaClientes, 27/11/2026) */
+.cli-area { min-height: 0; }
+
+/* Foto pequena: a linha fica com uma altura só. */
+.cli-tela .tabela td.cli-col-foto { width: 34px; padding-inline: 4px; text-align: center; }
+.cli-tela .cli-foto-botao { padding: 0; border: none; background: transparent; cursor: pointer; display: inline-flex; }
+.cli-tela .tabela .cliente-foto {
+    width: 24px; height: 24px; padding: 1px; border-width: 2px;
+}
+.cli-tela .tabela .cliente-iniciais { font-size: 10px; }
+
+/* Tags em fila, sem quebrar: o que não cabe some atrás das reticências (lista inteira no title). */
+.cli-tela .tabela td .cli-tags-linha {
+    display: flex; flex-wrap: nowrap; gap: 3px; max-width: 260px; overflow: hidden;
+    mask-image: linear-gradient(to right, #000 85%, transparent);
+}
+.cli-tela .tabela td .cli-tags-linha .cliente-tag { flex: none; }
+.cli-tela .tabela td .etiqueta-desligado { flex: none; }
+
+/* Detalhes do "+" (endereços e inscrições) continuam quebrando linha. */
+.cli-tela .tabela > tbody > tr.tabela-linha-detalhes > td { white-space: normal; }
+
+/* Bandeja da direita: filtros e mapa por estado. */
+.cli-tela .fin-corpo:not(.recolhido) .cli-painel {
+    width: clamp(300px, 26vw, 440px);
+    gap: 10px;
+    /* O menu dos filtros abre por cima da bandeja (a largura animada só precisa cortar recolhida). */
+    overflow: visible;
+}
+.cli-recolhido-acoes { display: none; flex-direction: column; align-items: center; gap: 2px; }
+.cli-tela .fin-corpo.recolhido .cli-recolhido-acoes { display: flex; }
+.cli-tela .fin-corpo.recolhido .cli-filtros,
+.cli-tela .fin-corpo.recolhido .fundo-mapa { display: none; }
+
+.cli-filtros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cli-filtros .campo-pesquisa { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cli-filtros .campo-pesquisa > label { color: #5b6b62 !important; font-size: 11px; }
+.cli-filtros .filtro-dropdown { min-width: 0; width: 100%; }
+.cli-filtros .filtro-dropdown-botao { border-color: #cfd8d3; }
+
+.cli-painel .fundo-mapa {
+    width: 100%; padding: 0; background: transparent; box-shadow: none; border-radius: 0;
+}
+.cli-painel .fundo-mapa .mapa-br svg { max-height: calc(100dvh - 380px); min-height: 160px; }
+
+@media (max-width: 800px) {
+    .cli-tela .fin-corpo:not(.recolhido) .cli-painel { width: 100%; overflow-y: auto; }
+    .cli-tela .fin-corpo.recolhido .cli-recolhido-acoes { display: none; }
+    .cli-filtros { grid-template-columns: 1fr; }
+}
