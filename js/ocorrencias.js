@@ -1285,7 +1285,7 @@ function criarLinhaOcorrencia(ocorrencia) {
     }
 
     const existeAntigo = id_antigo
-        ? modeloCampos('ID Antigo', `<span class="etiqueta-chamado">${id_antigo}</span>`)
+        ? modeloCampos('ID Antigo', rotuloOrcamentoAba(id_antigo))
         : ''
 
     const criarOrcamento = apenasAutorizados
