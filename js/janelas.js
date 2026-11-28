@@ -341,7 +341,8 @@ if (janelasIndependentesLigadas()) {
         // [data-flutuante]: listas/menus de um campo da janela que ficam no body (posição fixa),
         // fora do .popup; clicar neles é usar a janela, não clicar na página.
         // .balao-pilha: o balão de aviso do topo (fechar pelo × ou clicar nele não mexe nas janelas).
-        if (evento.target.closest?.('#barra-janelas, .aguarde, [data-flutuante], .balao-pilha')) return
+        // .tour-raiz: o passo a passo (js/tour.js) fica por cima de tudo; Próximo/Voltar não minimiza a janela explicada.
+        if (evento.target.closest?.('#barra-janelas, .aguarde, [data-flutuante], .balao-pilha, .tour-raiz')) return
         const janela = evento.target.closest?.('body > .popup')
         if (!janela) {
             // Clique na página (fora das janelas): minimiza todas para a barra do rodapé.
