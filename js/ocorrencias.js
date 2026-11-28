@@ -1256,7 +1256,7 @@ function criarLinhaOcorrencia(ocorrencia) {
             btnChamado({ onclick: `formularioOcorrencia('${id}')`, titulo: 'Editar chamado', svg: '<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>' })
         )
 
-    botoes.push(btnChamado({ onclick: `baixarPdfOS('${id}')`, titulo: 'Baixar a OS em PDF', texto: 'OS', svg: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 12v6M9.5 15.5 12 18l2.5-2.5"/>' }))
+    botoes.push(btnChamado({ onclick: `baixarPdfOS('${id}')`, titulo: 'Baixar a OS em PDF', texto: 'OS' }))
 
     if (id_usuario_funcionario)
         botoes.push(btnChamado({ onclick: `atalhoDocumentos(${unidade})`, titulo: 'Documentos do funcionário', texto: 'Documentos', svg: '<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 9.7v8.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/>' }))
