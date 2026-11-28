@@ -1455,67 +1455,45 @@ async function painelClientes(idOrcamento = null) {
         }
     ]
 
-    // cxOpcoes -> Cliente
-    controlesCxOpcoes.cliente = {
-        retornar: ['nome'],
+    // Campos no padrão da Correção (js/campos_gcs.js): cliente e venda direta pesquisáveis de lista
+    // fechada (clientes do app AC), analista entre os usuários do GCS.
+    fontesEscolha.clientesOrcamento ??= {
+        ...fontesEscolha.unidades,
+        filtros: { app: { op: '=', value: 'AC' } }
+    }
+    fontesEscolha.analistasOrcamento ??= {
         base: 'clientes',
-        filtros: {
-            'app': { op: '=', value: 'AC' }
-        },
-        funcaoAdicional: ['buscarDadosCliente'],
-        colunas: {
-            'Nome Fantasia': { chave: 'nome' },
-            'Cidade': { chave: 'cidade' },
-            'Estado': { chave: 'estado' },
-            'CNPJ/CPF': { chave: 'cnpj' }
-        }
+        filtros: { usuario: { op: 'NOT_EMPTY' }, nome: { op: 'NOT_EMPTY' } },
+        campos: ['nome', 'usuario', 'email'],
+        valor: 'nome',
+        rotulo: d => d.nome || d.usuario,
+        detalhe: d => [d.usuario, d.email, telefoneUsuarioOrc(d)].filter(Boolean).join(' · '),
+        local: true,
+        ordenar: { path: 'nome', direcao: 'ASC' }
     }
 
-    // cxOpcoes -> Venda Direta
-    controlesCxOpcoes.venda_direta = {
-        retornar: ['nome'],
-        base: 'clientes',
-        filtros: {
-            'app': { op: '=', value: 'AC' }
-        },
-        colunas: {
-            'Nome Fantasia': { chave: 'nome' },
-            'Cidade': { chave: 'cidade' },
-            'Estado': { chave: 'estado' },
-            'CNPJ/CPF': { chave: 'cnpj' }
-        }
-    }
-
-    const {
-        nome,
-        ddd,
-        celular,
-        email
-    } = acesso || {}
+    // Analista: o que o orçamento não tem vem do cadastro atual de quem está lançando
+    // (o "acesso" é a foto do login e pode estar desatualizado).
+    const usuarioAtual = { ...(acesso || {}), ...(acesso?.id ? await recuperarDado('clientes', acesso.id) || {} : {}) }
+    const analistaInicial = analista || usuarioAtual.nome || usuarioAtual.usuario || ''
+    const emailInicial = email_analista || usuarioAtual.email || ''
+    const telefoneInicial = telefone_analista || telefoneUsuarioOrc(usuarioAtual)
 
     const linhas = [
         {
             texto: 'Contrato',
-            elemento: `<input value="${contrato || 'ORC ...'}" readOnly>`
+            elemento: `<input id="dadosClienteOrc" value="${escaparAtributo(contrato && contrato !== 'sequencial' ? contrato : 'ORC ...')}" readOnly style="max-width: 520px;">`
         },
         {
             texto: 'Cliente',
             elemento: `
-            <div style="${horizontal}; gap: 3px">
-                <span ${omie_cliente
-                    ? `id="${omie_cliente}"`
-                    : ''} 
-                    class="opcoes" 
-                    name="cliente" 
-                    onclick="cxOpcoes('cliente')">
-                        ${cliente?.nome || 'Selecione'}
-                </span>
-                <img onclick="formularioCliente()" src="imagens/baixar.png">
-            </div>
-            ` },
-        {
-            texto: 'CNPJ/CPF',
-            elemento: `<span id="cnpj">${cliente?.cnpj || ''}</span>`
+            <div style="${vertical}; gap: 4px; width: 100%; max-width: 520px;">
+                ${campoEscolhaHtml({ fonte: 'clientesOrcamento', name: 'cliente', valor: omie_cliente || '', rotulo: cliente?.nome || (omie_cliente ? String(omie_cliente) : ''), placeholder: 'Nome, CNPJ, endereço, cidade…', aoMudar: 'buscarDadosCliente' })}
+                <div style="${horizontal}; gap: 0.6rem; justify-content: space-between;">
+                    <small data-orc-cnpj style="color: #6b7a71;">${cliente?.cnpj ? `CNPJ/CPF ${escaparAtributo(formatarCnpjEscolha(cliente.cnpj))}` : ''}</small>
+                    <button type="button" class="ce-mais" onclick="formularioCliente()">+ Novo cliente</button>
+                </div>
+            </div>`
         },
         {
             // Vários endereços por cliente (js/enderecos.js): troca ou cadastra um novo aqui mesmo.
@@ -1523,49 +1501,30 @@ async function painelClientes(idOrcamento = null) {
             elemento: seletorEnderecoHtml({ clienteId: omie_cliente, foto: enderecoOrcamento, contexto: 'orcamento', ref: contrato && contrato !== 'sequencial' ? contrato : '' })
         },
         {
-            texto: `
-                <div style="${horizontal}; gap: 1rem;">
-                    <input ${venda_direta ? 'checked' : ''} onclick="toggleVendaDireta()" type="checkbox" style="width: 2rem; height: 2rem;">
-                    <span>Venda Direta</span>
+            texto: 'Venda Direta',
+            elemento: `
+            <div style="${vertical}; gap: 6px; width: 100%;" onchange="toggleVendaDireta(this)">
+                ${toggleOpcoesHtml({ name: 'vendaDiretaAtiva', opcoes: [{ valor: 'N', texto: 'Não' }, { valor: 'S', texto: 'Sim' }], valor: venda_direta ? 'S' : 'N', desmarcavel: false, compacto: true })}
+                <div data-venda-direta style="display: ${venda_direta ? 'block' : 'none'}; width: 100%;">
+                    ${campoEscolhaHtml({ fonte: 'clientesOrcamento', name: 'venda_direta', valor: venda_direta || '', rotulo: clienteVendaDireta?.nome || (venda_direta ? String(venda_direta) : ''), placeholder: 'Cliente da venda direta…' })}
                 </div>
-            `,
-            elemento: `<span 
-                data-ativo="${venda_direta ? 'S' : 'N'}"
-                ${venda_direta ? `id="${venda_direta}"` : ''}
-                style="display: ${venda_direta ? 'block' : 'none'}"
-                class="opcoes"
-                onclick="cxOpcoes('venda_direta')" 
-                name="venda_direta">${clienteVendaDireta?.nome || 'Selecionar'}</span>`
+            </div>`
         },
         {
             texto: 'Tipo de Frete',
-            elemento: `
-            <select id="tipo_de_frete">
-                ${['', 'CIF', 'FOB'].map(op => `<option ${tipo_de_frete == op ? 'selected' : ''}>${op}</option>`).join('')}
-            </select>
-            `
+            elemento: toggleOpcoesHtml({ name: 'tipo_de_frete', opcoes: ['CIF', 'FOB'], valor: tipo_de_frete || '', compacto: true })
         },
         {
             texto: 'Escopo',
-            elemento: `<textarea id="consideracoes" style="text-transform: uppercase;">${consideracoes || 'ESCOPO: '}</textarea>`
+            editor: escopoParaEditor(consideracoes)
         },
         {
-            texto: `
-            <div style="${horizontal}; gap: 1rem;">
-                <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'executores')">
-                <span>Executores / Delegar</span>
-            </div>
-            `,
-            elemento: '<div class="executores"></div>'
+            texto: 'Executores / Delegar',
+            elemento: campoUsuariosHtml('executores', executor)
         },
         {
-            texto: `
-            <div style="${horizontal}; gap: 1rem;">
-                <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'tecnicos')">
-                <span>Técnicos</span>
-            </div>
-            `,
-            elemento: '<div class="tecnicos"></div>'
+            texto: 'Técnicos',
+            elemento: campoUsuariosHtml('tecnicos', tecnico)
         },
         {
             texto: `
@@ -1583,27 +1542,24 @@ async function painelClientes(idOrcamento = null) {
         },
         {
             texto: 'Garantia',
-            elemento: `<textarea id="garantia">${garantia || 'Conforme tratativa Comercial'}</textarea>`
+            elemento: `<textarea id="garantia" style="max-width: 520px;">${garantia || 'Conforme tratativa Comercial'}</textarea>`
         },
         {
             texto: 'Analista',
-            elemento: `<input id="analista" value="${analista || nome || ''}">`
+            // Escolher outro usuário traz o e-mail e o celular dele (analistaEscolhidoOrc).
+            elemento: campoEscolhaHtml({ fonte: 'analistasOrcamento', name: 'analista', valor: analistaInicial, rotulo: analistaInicial, placeholder: 'Pesquisar usuário…', aoMudar: 'analistaEscolhidoOrc' })
         },
         {
             texto: 'E-mail',
-            elemento: `<textarea id="email_analista">${email_analista || email || ''}</textarea>`
+            elemento: `<input id="email_analista" type="email" value="${escaparAtributo(emailInicial)}" placeholder="E-mail do analista" style="flex: 1 1 260px; max-width: 520px;">`
         },
         {
             texto: 'Celular',
-            elemento: `<input id="telefone_analista" value="${telefone_analista || `${ddd || ''} ${celular || ''}`}">`
+            elemento: `<input id="telefone_analista" value="${escaparAtributo(telefoneInicial)}" placeholder="(DDD) número" style="flex: 1 1 260px; max-width: 520px;">`
         },
         {
             texto: 'Empresa',
-            elemento: `
-                <select id="emissor">
-                    ${EMPRESAS_FATURAMENTO.map(([v, t]) => `<option value="${v}" ${emissorAtual == v ? 'selected' : ''}>${t}</option>`).join('')}
-                </select>
-            `
+            elemento: toggleOpcoesHtml({ name: 'emissor', opcoes: EMPRESAS_FATURAMENTO.map(([valor, texto]) => ({ valor, texto })), valor: emissorAtual, desmarcavel: false, compacto: true })
         },
         {
             texto: 'Condição de pagamento',
@@ -1617,7 +1573,7 @@ async function painelClientes(idOrcamento = null) {
 
     // Um "Dados do Cliente" por vez: os campos têm id fixo (salvarDadosCliente, tags e cxOpcoes leem
     // pelo id/nome) e dois abertos misturariam os dados entre orçamentos.
-    const formExistente = document.querySelector('#emissor')
+    const formExistente = document.querySelector('#dadosClienteOrc')
     if (formExistente) {
         removerOverlay()
         trazerJanelaParaFrente(formExistente)
@@ -1632,29 +1588,56 @@ async function painelClientes(idOrcamento = null) {
     const identificacao = contrato && contrato !== 'sequencial' ? ` · ${contrato}` : ''
     popup({ linhas, botoes, titulo: `Dados do Cliente${identificacao}`, autoDestruicao: ['cliente', 'tecnico'] })
     iniciarCondicoesPag(document.getElementById('condicao_orcamento'))
-    const painelDados = document.getElementById('emissor')?.closest('.painel-padrao')
+    const painelDados = painelDadosClienteOrc()
     if (painelDados) painelDados.dataset.orcamento = idOrcParaTag
 
-    await maisUsuario(executor, 'executores')
-    await maisUsuario(tecnico, 'tecnicos')
     carregarTags()
 
 }
 
-function toggleVendaDireta() {
+// Painel do formulário Dados do Cliente do orçamento (um por vez).
+const painelDadosClienteOrc = () => document.getElementById('dadosClienteOrc')?.closest('.painel-padrao') || null
 
-    const checkVD = document.querySelector('[name="venda_direta"]')
+// "(17) 98100-2178" a partir do ddd/celular do cadastro do usuário.
+function telefoneUsuarioOrc(usuario) {
+    const ddd = String(usuario?.ddd ?? '').replace(/\D/g, '')
+    const celular = String(usuario?.celular ?? '').trim()
+    return [ddd ? `(${ddd})` : '', celular].filter(Boolean).join(' ')
+}
 
-    const statusAtivo = checkVD?.dataset?.ativo == 'S'
+// Escopo antigo é texto puro (textarea, com quebras de linha); o novo é o HTML do editor.
+function escopoParaEditor(valor) {
+    const texto = String(valor ?? '')
+    if (!texto.trim() || texto.trim().toUpperCase() === 'ESCOPO:') return ''
+    if (/<[a-z][\s\S]*>/i.test(texto)) return texto
+    return texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\r?\n/g, '<br>')
+}
 
-    checkVD.style.display = statusAtivo
-        ? 'none'
-        : 'block'
+// Escopo (HTML do editor ou texto antigo) como texto com quebras de linha: Excel e afins.
+function escopoComoTexto(valor) {
+    const texto = String(valor ?? '')
+    if (!/<[a-z][\s\S]*>/i.test(texto)) return texto
+    const div = document.createElement('div')
+    div.innerHTML = texto
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/(div|p|li|h[1-6])>/gi, '\n')
+    return div.textContent.replace(/ /g, ' ').replace(/\n{3,}/g, '\n\n').trim()
+}
 
-    checkVD.dataset.ativo = statusAtivo
-        ? 'N'
-        : 'S'
+function analistaEscolhidoOrc(campo) {
+    const dado = dadoEscolhido(campo)
+    if (!dado) return
+    const painel = campo.closest('.painel-padrao')
+    const email = painel?.querySelector('#email_analista')
+    const telefone = painel?.querySelector('#telefone_analista')
+    if (email) email.value = dado.email || ''
+    if (telefone) telefone.value = telefoneUsuarioOrc(dado)
+}
 
+function toggleVendaDireta(caixa) {
+    const ativa = lerToggle(caixa, 'vendaDiretaAtiva') === 'S'
+    const area = caixa.querySelector('[data-venda-direta]')
+    if (area) area.style.display = ativa ? 'block' : 'none'
 }
 
 // Texto do limite de faturamento do cadastro da empresa do cliente (vazio: "sem limite").
@@ -1664,34 +1647,40 @@ function infoFaturamentoEmpresa(empresa) {
     return `${limite ? escaparAtributo(limite) : 'Sem limite'} <small style="color: #6b7a71;">(${escaparAtributo(empresa.nome)})</small>`
 }
 
-async function buscarDadosCliente() {
-    const clienteName = document.querySelector('[name="cliente"]')
-    if (!clienteName) return
+// Cliente escolhido no campo pesquisável (aoMudar do campo "cliente").
+async function buscarDadosCliente(campo) {
+    const painel = campo?.closest?.('.painel-padrao') || painelDadosClienteOrc()
+    if (!painel) return
 
-    const omie_cliente = Number(clienteName.id)
-    const cliente = await recuperarDado('clientes', omie_cliente) || {}
+    const omie_cliente = Number(lerEscolha(painel.querySelector('.ce-campo[name="cliente"]'))) || null
+    const cliente = omie_cliente ? await recuperarDado('clientes', omie_cliente) || {} : {}
 
-    const elCnpj = document.getElementById('cnpj')
-    if (elCnpj) elCnpj.textContent = cliente?.cnpj || ''
+    const elCnpj = painel.querySelector('[data-orc-cnpj]')
+    if (elCnpj) elCnpj.textContent = cliente?.cnpj ? `CNPJ/CPF ${formatarCnpjEscolha(cliente.cnpj)}` : ''
     // Cliente novo: o endereço volta para o principal dele (js/enderecos.js).
-    clienteSeletorEndereco(document.getElementById('emissor')?.closest('.painel-padrao'), omie_cliente || '')
+    clienteSeletorEndereco(painel, omie_cliente || '')
+
+    // Campo limpo: nada de empresa nem de tags para trocar.
+    if (!omie_cliente) return
 
     // Cliente escolhido: empresa de faturamento, condição de pagamento e limite vêm do cadastro da empresa dele.
     const empresaCliente = cliente?.empresa ? await recuperarDado('empresas', cliente.empresa) || {} : {}
     const emissorEmpresa = codigoEmpresaFat(empresaCliente.empresa_faturamento)
-    const selectEmissor = document.getElementById('emissor')
-    if (selectEmissor && emissorEmpresa) selectEmissor.value = emissorEmpresa
+    const radioEmissor = emissorEmpresa
+        ? painel.querySelector(`input[type="radio"][name="emissor"][value="${emissorEmpresa}"]`)
+        : null
+    if (radioEmissor) radioEmissor.checked = true
     const condicaoEmpresa = normalizarCondicaoPag(empresaCliente.condicao_pagamento)
-    const caixaCondicao = document.getElementById('condicao_orcamento')
+    const caixaCondicao = painel.querySelector('#condicao_orcamento')
     if (caixaCondicao && condicaoEmpresa) {
         caixaCondicao.innerHTML = htmlCondicaoPag(condicaoEmpresa)
         iniciarCondicoesPag(caixaCondicao)
     }
-    const infoLimite = document.getElementById('limite_faturamento_info')
+    const infoLimite = painel.querySelector('#limite_faturamento_info')
     if (infoLimite) infoLimite.innerHTML = infoFaturamentoEmpresa(empresaCliente)
 
     // O orçamento é o do formulário aberto (data-orcamento), não o último que alguém tentou abrir.
-    const idOrcamento = document.getElementById('emissor')?.closest('.painel-padrao')?.dataset.orcamento
+    const idOrcamento = painel.dataset.orcamento
         || controles.etiquetas?.idOrcamento
     const isNovo = idOrcamento === 'novo'
     const orcamento = isNovo
@@ -1760,7 +1749,11 @@ async function salvarDadosCliente(idOrcamento) {
 
     // A janela deste formulário: no fim fecha ela (e não "a última"/"a em foco", que depois do
     // abrirAtalhos pode ser o atalho do orçamento).
-    const janelaFormulario = document.getElementById('emissor')?.closest('.popup')?.id || null
+    const painel = painelDadosClienteOrc()
+    const janelaFormulario = painel?.closest('.popup')?.id || null
+
+    if (!painel)
+        return popup({ mensagem: 'Formulário Dados do Cliente não encontrado. Feche e abra novamente.' })
 
     overlayAguarde()
 
@@ -1770,33 +1763,28 @@ async function salvarDadosCliente(idOrcamento) {
             ? await recuperarDado('dados_orcamentos', idOrcamento)
             : baseOrcamento() || {}
 
-        const el = (id) => {
-            const elemento = document.getElementById(id)
-            return elemento || null
-        }
+        const el = (id) => painel.querySelector(`#${id}`)
+        const campo = (name) => painel.querySelector(`.ce-campo[name="${name}"]`)
 
         orcamentoBase.dados_orcam ??= {}
 
-        const omie_cliente = Number(document.querySelector('[name="cliente"]').id)
+        const omie_cliente = Number(lerEscolha(campo('cliente'))) || null
 
         // Venda Direta;
-        const spanVendaDireta = document.querySelector('[name="venda_direta"]')
-        const venda_direta = spanVendaDireta.dataset.ativo == 'S'
-            ? Number(obVal('venda_direta'))
+        const venda_direta = lerToggle(painel, 'vendaDiretaAtiva') === 'S'
+            ? Number(lerEscolha(campo('venda_direta'))) || null
             : null
 
-        // Executores;
-        const executor = [...document.querySelectorAll('.executores span')]
-            .filter(span => span.id)
-            .map(span => span.textContent)
+        // Executores / Técnicos (chips);
+        const executor = usuariosDoCampo('executores', painel)
+        const tecnico = usuariosDoCampo('tecnicos', painel)
 
-        // Técnicos;
-        const tecnico = [...document.querySelectorAll('.tecnicos span')]
-            .filter(span => span.id)
-            .map(span => span.textContent)
+        // Escopo: HTML do editor (vazio quando só tem espaços).
+        const editorEscopo = painel.querySelector('.editor-conteudo')
+        const consideracoes = editorEscopo && editorEscopo.innerText.trim() ? editorEscopo.innerHTML.trim() : ''
 
         // Condição de pagamento (mesma peça do pedido): "condicoes" guarda o texto (PDF e telas antigas).
-        const { condicao: condicao_pagamento, erros: errosCondicao } = lerCondicaoPag(document.querySelector('#condicao_orcamento [data-condicao-pag]'))
+        const { condicao: condicao_pagamento, erros: errosCondicao } = lerCondicaoPag(painel.querySelector('#condicao_orcamento [data-condicao-pag]'))
         if (errosCondicao.length)
             return popup({ mensagem: `Condição de pagamento: ${errosCondicao[0]}` })
 
@@ -1809,18 +1797,18 @@ async function salvarDadosCliente(idOrcamento) {
             venda_direta,
             condicoes: resumoCondicaoPag(condicao_pagamento),
             condicao_pagamento,
-            consideracoes: String(el('consideracoes').value).toUpperCase(),
+            consideracoes,
             data: dataServidor().toLocaleString('pt-BR'),
             garantia: el('garantia').value,
-            tipo_de_frete: el('tipo_de_frete').value,
-            emissor: el('emissor').value,
-            email_analista: el('email_analista').value,
-            analista: el('analista').value,
-            telefone_analista: el('telefone_analista').value,
+            tipo_de_frete: lerToggle(painel, 'tipo_de_frete'),
+            emissor: lerToggle(painel, 'emissor') || 'AC',
+            email_analista: el('email_analista').value.trim(),
+            analista: lerEscolhaRotulo(campo('analista')) || '',
+            telefone_analista: el('telefone_analista').value.trim(),
             executor,
             tecnico,
             // Endereço escolhido (js/enderecos.js): foto do endereço; null = principal do cadastro.
-            endereco: lerSeletorEndereco(el('emissor')?.closest('.painel-padrao')) || null
+            endereco: lerSeletorEndereco(painel) || null
         }
 
         // Se não existir a chave contrato; sequencial fará que o servidor crie;

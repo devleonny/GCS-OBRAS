@@ -133,7 +133,7 @@ async function irExcelOrcamento(orcam_) {
             ws_orcamento.getRow(1).height = 3 * 28.35
 
             // --- ABA TOTAL ---
-            const escopo = orcamento.dados_orcam.consideracoes || ''
+            const escopo = escopoComoTexto(orcamento.dados_orcam.consideracoes || '')
             ws_total.addRows([
                 ['', 'Grupo Costa Silva'],
                 [],
