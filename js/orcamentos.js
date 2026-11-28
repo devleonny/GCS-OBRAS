@@ -165,7 +165,8 @@ async function telaOrcamentos() {
             'Status': { chave: 'nomes_status' },
             'Tags': { chave: 'tags.*.nome' },
             'LPU': { chave: 'lpu_ativa' },
-            'Alteração': {},
+            // timestamp em milissegundos: o filtro de data do pesquisa-db converte número → data.
+            'Alteração': { chave: 'timestamp', tipoPesquisa: 'data' },
             'Usuário': { chave: 'usuario' },
             'Responsáveis': { chave: 'responsaveis' },
             'Valor original': { chave: 'total_bruto', tipoPesquisa: 'valor' },
