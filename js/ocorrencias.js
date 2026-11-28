@@ -1235,9 +1235,6 @@ function criarLinhaOcorrencia(ocorrencia) {
 
     const divCorrecoes = carregarCorrecoes(ocorrencia)
 
-    const corAssinatura = ocorrencia.assinatura
-        ? '#008000'
-        : '#d30000'
     const criador = ocorrencia?.usuario || 'Em branco'
     const descricao = ocorrencia?.descricao || 'Em branco'
     const podeGerenciar = autE.includes(acesso.permissao) || usuario == acesso.usuario
@@ -1263,13 +1260,6 @@ function criarLinhaOcorrencia(ocorrencia) {
             <div class="botao-imagem-ocorrencias">
                 <input ${buscar_tecnico == 'S' ? 'checked' : ''} onclick="marcarBuscarTecnico(this, '${id}')" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
                 <span>BUSCA DE TÉCNICO</span>
-            </div>
-        `)
-
-    botoes.push(`
-            <div style="border: solid 1px ${corAssinatura}; border-radius: 3px; padding: 2px; background-color: ${corAssinatura}52;" 
-            onclick="coletarAssinatura('${id}')">
-                <img src="imagens/assinatura.png" style="width: 1.5rem;">
             </div>
         `)
 
@@ -3600,12 +3590,6 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
             return popup({ mensagem: 'A <b>Data Final</b> não pode ser antes da <b>Data Inicial</b>.' })
 
         const ocorrencia = await recuperarDado('dados_ocorrencias', idOcorrencia) || {}
-        // Técnico encerrando (qualquer SOLUCIONADA; FATURADO não é ação do técnico) precisa da assinatura.
-        const encerramentoTecnico = tipoCorrecao == 'WRuo2' || nomeTipoCorrecao.startsWith('SOLUCIONADA')
-        if (encerramentoTecnico && !ocorrencia.assinatura && acesso.permissao == 'técnico') {
-            coletarAssinatura(idOcorrencia)
-            return
-        }
 
         const equipamentos = {}
         const fotos = {}
