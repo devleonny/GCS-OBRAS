@@ -1922,11 +1922,11 @@
     font-size: 0.8rem;
 }
 
-.arvore-no.principal .aba-orcamento-prefixo {
+.aba-orcamento.principal .aba-orcamento-prefixo {
     background: #e47c0c;
 }
 
-.arvore-no.principal .aba-orcamento-numero {
+.aba-orcamento.principal .aba-orcamento-numero {
     color: #b45f06;
 }
 

@@ -299,6 +299,8 @@ function carregarCorrecoes(ocorrencia) {
     const { permissao } = acesso || {}
     const { id: idOcorrencia, correcoes, snapshots } = ocorrencia || {}
     const { abas } = snapshots || {}
+    // Chamado com vinculados: a pílula do orçamento principal fica laranja na aba.
+    const contratoPrincipal = (snapshots?.orcamentos || []).find(o => o.master)?.contrato || null
     const divsCorrecoesPorAba = {}
 
     // Organizado com a última correção primeiro;
@@ -545,7 +547,7 @@ function carregarCorrecoes(ocorrencia) {
                 id="aba_${idOcorrencia}_${aba}" 
                 onclick="exibirAba('${idOcorrencia}', '${aba}')"
                 data-orcamento="${abas?.[aba]?.orcamento || ''}"
-                class="aba-correcao${aba == abaInicial ? ' ativa' : ''}">${abas?.[aba]?.orcamento ? rotuloOrcamentoAba(abas[aba].orcamento) : ''}${formatacaoTipoCorrecao(st)}</div>`
+                class="aba-correcao${aba == abaInicial ? ' ativa' : ''}">${abas?.[aba]?.orcamento ? rotuloOrcamentoAba(abas[aba].orcamento, abas[aba].orcamento === contratoPrincipal) : ''}${formatacaoTipoCorrecao(st)}</div>`
         })
     )]
 
@@ -1325,7 +1327,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         return `
             <div class="arvore-no${principal ? ' principal' : ''}" data-contrato="${contrato}"
                 ${variosOrcs ? `onclick="filtrarAbasOrcamento('${id}', '${contrato}', this)" title="Mostrar só as abas de ${contrato}"` : ''}>
-                ${rotuloOrcamentoAba(contrato)}
+                ${rotuloOrcamentoAba(contrato, principal && variosOrcs)}
                 ${principal && variosOrcs ? '<span class="arvore-tag">principal</span>' : ''}
                 ${statusHTML}
                 ${btns}
@@ -3060,10 +3062,11 @@ function faixaGarantia(garantia, correcao) {
 }
 
 // Etiqueta do orçamento na aba do chamado (e no formulário): "ORC" discreto + número em destaque.
-function rotuloOrcamentoAba(contrato) {
+// principal = orçamento principal de chamado com vinculados (pílula laranja).
+function rotuloOrcamentoAba(contrato, principal = false) {
     const texto = String(contrato || '')
     const [, prefixo, numero] = texto.match(/^([A-Za-z]+)[_\s-]*(.+)$/) || [null, '', texto]
-    return `<span class="aba-orcamento">${prefixo ? `<span class="aba-orcamento-prefixo">${prefixo}</span>` : ''}<span class="aba-orcamento-numero">${numero}</span></span>`
+    return `<span class="aba-orcamento${principal ? ' principal' : ''}">${prefixo ? `<span class="aba-orcamento-prefixo">${prefixo}</span>` : ''}<span class="aba-orcamento-numero">${numero}</span></span>`
 }
 
 // preset (opcional): { tipoCorrecao, nome } abre a correção nova com o status já escolhido (ex.: atalho
@@ -3168,7 +3171,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, pr
         ...(orcamentoDaAba
             ? [{
                 texto: 'Fluxo do orçamento',
-                elemento: rotuloOrcamentoAba(orcamentoDaAba)
+                elemento: rotuloOrcamentoAba(orcamentoDaAba, orcamentosChamado.some(o => o.master && o.contrato === orcamentoDaAba))
             }]
             : []
         ),
