@@ -93,6 +93,9 @@
     background: none;
     border: none;
     border-bottom: 1px solid #eef2ef;
+    /* O button global (popup.css) é arredondado: na lista o item é reto. */
+    border-radius: 0;
+    box-shadow: none;
     text-align: left;
     font-size: 13px;
     color: #1f2a24;
