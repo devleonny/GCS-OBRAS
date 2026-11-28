@@ -179,10 +179,8 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
 
 }
 
-function textoClienteDiferente({ nome, cidade, estado } = {}) {
-    // A cidade costuma vir como "OSASCO (SP)".
-    const local = [String(cidade || '').replace(/ *[(][A-Z]{2}[)] *$/, ''), estado].filter(Boolean).join('/')
-    return escaparAtributo(nome + (local ? ` (${local})` : ''))
+function textoClienteDiferente({ nome } = {}) {
+    return escaparAtributo(nome || '')
 }
 
 // Cliente trocado no chamado/orçamento principal: os vinculados têm cliente próprio e só mudam se a pessoa
@@ -506,7 +504,7 @@ function carregarCorrecoes(ocorrencia) {
                 id="aba_${idOcorrencia}_${aba}" 
                 onclick="exibirAba('${idOcorrencia}', '${aba}')"
                 data-orcamento="${abas?.[aba]?.orcamento || ''}"
-                class="aba-correcao${aba == abaInicial ? ' ativa' : ''}">${abas?.[aba]?.orcamento ? rotuloOrcamentoAba(abas[aba].orcamento, abas[aba].orcamento === contratoPrincipal) : ''}${clientesDiferentes[abas?.[aba]?.orcamento] ? `<span class="aba-cliente-diferente" title="Cliente diferente do principal: ${clientesDiferentes[abas[aba].orcamento]}">${clientesDiferentes[abas[aba].orcamento]}</span>` : ''}${formatacaoTipoCorrecao(st)}</div>`
+                class="aba-correcao${aba == abaInicial ? ' ativa' : ''}"><span class="aba-linha-orcamento">${abas?.[aba]?.orcamento ? rotuloOrcamentoAba(abas[aba].orcamento, abas[aba].orcamento === contratoPrincipal) : ''}${clientesDiferentes[abas?.[aba]?.orcamento] ? `<span class="aba-cliente-diferente" title="Cliente diferente do principal: ${clientesDiferentes[abas[aba].orcamento]}">${clientesDiferentes[abas[aba].orcamento]}</span>` : ''}</span>${formatacaoTipoCorrecao(st)}</div>`
         })
     )]
 
@@ -1285,7 +1283,7 @@ function criarLinhaOcorrencia(ocorrencia) {
                 ${variosOrcs ? `onclick="filtrarAbasOrcamento('${id}', '${contrato}', this)" title="Mostrar só as abas de ${contrato}"` : ''}>
                 ${rotuloOrcamentoAba(contrato, principal && variosOrcs)}
                 ${principal && variosOrcs ? '<span class="arvore-tag">principal</span>' : ''}
-                ${cliente_diferente?.nome && acesso?.permissao !== 'cliente' ? `<span class="aba-cliente-diferente" title="Cliente diferente do principal">${textoClienteDiferente(cliente_diferente)}</span>` : ''}
+                ${cliente_diferente?.nome && acesso?.permissao !== 'cliente' ? `<span class="aba-cliente-diferente" title="Cliente diferente do principal: ${textoClienteDiferente(cliente_diferente)}">${textoClienteDiferente(cliente_diferente)}</span>` : ''}
                 ${statusHTML}
                 ${btns}
             </div>`

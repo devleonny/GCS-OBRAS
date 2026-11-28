@@ -2161,8 +2161,8 @@
 
 /* Vinculado com cliente diferente do principal. */
 .aba-cliente-diferente {
-    display: block;
-    max-width: 190px;
+    display: inline-block;
+    max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2197,3 +2197,20 @@
 .troca-vinculados p { margin: 0; }
 .troca-vinculados label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .troca-vinculados small { color: #b00020; }
+
+/* Aba: número do orçamento e cliente (quando é outro) na mesma linha. */
+.aba-linha-orcamento {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.aba-linha-orcamento:empty {
+    display: none;
+}
+
+.aba-linha-orcamento .aba-orcamento {
+    align-self: center;
+    margin-bottom: 0;
+}
