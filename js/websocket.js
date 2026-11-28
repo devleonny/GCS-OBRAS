@@ -213,9 +213,11 @@ async function validarAcesso(tentouRenovar = false) {
             && document.querySelector('.botoesMenu'))
             criarMenus('inicial')
 
+        // O servidor confere o token: o nome sozinho não abre o tempo real (28/11/2026).
         msg({
             tipo: 'validar',
-            usuario: dados.usuario
+            usuario: dados.usuario,
+            token
         })
     } catch (err) {
         // Servidor instável (5xx, resposta inválida): também não desloga.
