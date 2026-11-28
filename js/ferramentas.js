@@ -914,7 +914,9 @@ async function importarAnexos({ input, foto }) {
 
     if (foto) {
         const blob = base64ToBlob(foto);
-        formData.append('arquivos', blob);
+        // Com nome e extensão: sem eles o arquivo ficava salvo sem extensão e não era reconhecido como imagem.
+        const extensao = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' })[blob.type] || 'jpg'
+        formData.append('arquivos', blob, `foto_${Date.now()}.${extensao}`);
     } else {
         for (const file of input.files) {
             formData.append('arquivos', file);

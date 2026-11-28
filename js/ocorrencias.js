@@ -100,22 +100,10 @@ const tabEquipamentos = (equipamentos, idOcorrencia, idCorrecao) => {
         : ''
 }
 
-function pararCam() {
-    const cameraDiv = document.querySelector('.cameraDiv');
-    if (cameraDiv) cameraDiv.style.display = 'none'
-
-    try {
-        if (stream) stream.getTracks().forEach(t => t.stop());
-        stream = null;
-        const video = document.getElementById('video');
-        if (!video) return
-        video.srcObject = null;
-    } catch (err) {
-        popup({ mensagem: `Falha no plugin: ${err}` })
-    }
-}
-
 async function excluirFoto(idFoto, idOcorrencia, idCorrecao) {
+
+    const ok = await confirmarPopup({ titulo: 'Excluir foto', mensagem: 'Excluir esta foto? Ela sai do registro na hora.', textoConfirmar: 'Excluir' })
+    if (!ok) return
 
     overlayAguarde()
 
@@ -135,109 +123,18 @@ async function excluirFoto(idFoto, idOcorrencia, idCorrecao) {
 
 }
 
+// Grade de fotos + câmera nova (js/campos_gcs.js). As fotos novas ficam com data-salvo="não" e sobem ao salvar.
 async function blocoAuxiliarFotos(fotos, idOcorrencia, idCorrecao) {
-
-    const imagens = Object.entries(fotos || {})
-        .map(([link,]) => {
-
-            const fExcluir = !idOcorrencia
-                ? ''
-                : `excluirFoto('${link}', '${idOcorrencia}'${idCorrecao ? `, '${idCorrecao}'` : ''})`
-
-            return `
-                    <div style="position: relative;" id="bloco-foto-${link}">
-                        <img name="foto" data-salvo="sim" id="${link}" src="${api}/uploads/${link}" class="foto" onclick="ampliarImagem(this, '${link}')">
-                        <img onclick="${fExcluir}" src="imagens/cancel.png" style="width: 1.5rem; position: absolute; top: 3px; right: 3px;">
-                    </div>
-                    `
-        })
-        .join('')
-
-    const painel = `
-            <div class="fotos">${imagens}</div>
-            <div class="capturar" onclick="auxiliarRegistroFoto()">
-                <img src="imagens/camera.png">
-                <span>Abrir Câmera</span>
-            </div>
-        `
-    return painel
-
+    return blocoFotosHtml({
+        fotos,
+        funcaoExcluir: idOcorrencia
+            ? link => `excluirFoto('${link}', '${idOcorrencia}'${idCorrecao ? `, '${idCorrecao}'` : ''})`
+            : null
+    })
 }
 
-async function auxiliarRegistroFoto() {
-
-    const elemento = `
-        <div style="${vertical}; gap: 3px; background-color: #d2d2d2;">
-            <div class="capturar" style="position: fixed; bottom: 10px; left: 10px; z-index: 10003;" onclick="tirarFoto()">
-                <img src="imagens/camera.png">
-                <span>Capturar Imagem</span>
-            </div>
-
-            <div class="cameraDiv">
-                <video autoplay playsinline></video>
-                <canvas style="display: none;"></canvas>
-            </div>
-        </div>
-        `
-    popup({ elemento })
-    await abrirCamera()
-
-}
-
-async function abrirCamera() {
-    const cameraDiv = document.querySelector('.cameraDiv')
-    const video = cameraDiv.querySelector('video')
-
-    setInterval(pararCam, 1 * 60 * 1000) // 1 minuto;
-
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' } }
-        })
-        video.srcObject = stream
-        cameraDiv.style.display = 'flex'
-
-    } catch (err) {
-        popup({ mensagem: err.message || 'Erro ao acessar a câmera' })
-    }
-}
-
-function visibilidadeFotos() {
-    const fotos = document.querySelector('.fotos')
-    const qtd = fotos.querySelectorAll('img')
-    fotos.style.display = qtd.length == 0 ? 'none' : 'grid'
-}
-
-async function tirarFoto() {
-
-    const fotos = document.querySelector('.fotos')
-    const cameraDiv = document.querySelector('.cameraDiv')
-    const canvas = cameraDiv.querySelector('canvas')
-    const video = cameraDiv.querySelector('video')
-
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    canvas.getContext('2d').drawImage(video, 0, 0)
-
-    const idFoto = crypto.randomUUID()
-    const src = canvas.toDataURL('image/png')
-    const foto = `<img name="foto" data-salvo="não" id="${idFoto}" src="${src}" class="foto" onclick="ampliarImagem(this, '${idFoto}')">`
-
-    fotos.insertAdjacentHTML('beforeend', foto)
-
-    removerPopup()
-
-    visibilidadeFotos()
-
-}
-
-function removerImagem(id) {
-    removerPopup()
-    const img = document.getElementById(id)
-    if (img) img.remove()
-
-    visibilidadeFotos()
-}
+// A grade vazia some pelo CSS (.ce-fotos-grade:empty); ficou para quem ainda chama.
+function visibilidadeFotos() { }
 
 function ampliarImagem(img) {
 
@@ -1021,22 +918,12 @@ async function reagendarCorrecao(idOcorrencia, idCorrecao) {
 
     const linhas = [
         {
-            texto: 'Data inícial de Execução',
-            elemento: `<input onchange="verificarConflitos()" name="dtCorrecao" type="date" value="${dtCorrecao || ''}">`
+            texto: 'Período de execução',
+            elemento: periodoExecucaoHtml(dtCorrecao, dtCorrecaoFinal)
         },
         {
-            texto: 'Data Final de Execução',
-            elemento: `<input onchange="verificarConflitos()" name="dtCorrecaoFinal" type="date" value="${dtCorrecaoFinal || ''}">`
-        },
-        {
-            texto: `
-            <div style="${horizontal}; gap: 1rem;">
-                <img src="imagens/reagendar.png" onclick="telaAgenda({ flutuante: true, filtros: {estado: '${estado}'} })">
-                <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'tecnicos')">
-                <span>Técnicos</span>
-            </div>
-            `,
-            elemento: '<div class="tecnicos"></div>'
+            texto: tituloTecnicosHtml(estado),
+            elemento: campoUsuariosHtml('tecnicos', tecnico, { aoMudar: 'verificarConflitos' })
         },
     ]
 
@@ -1046,7 +933,6 @@ async function reagendarCorrecao(idOcorrencia, idCorrecao) {
 
     popup({ linhas, botoes, titulo: 'Reagendar' })
 
-    await maisUsuario(tecnico, 'tecnicos')
     await verificarConflitos()
 
 }
@@ -1085,9 +971,7 @@ async function salvarDataCorrecao(idOcorrencia, idCorrecao) {
     let alterado = false
 
     // Técnicos;
-    const tecnicos = [...document.querySelectorAll('.tecnicos span')]
-        .filter(span => span.id)
-        .map(span => span.id)
+    const tecnicos = usuariosDoCampo('tecnicos')
 
     if (!listasIguais(tecnicos, correcao.tecnico)) {
         correcao.tecnico = tecnicos
@@ -2804,69 +2688,25 @@ async function formularioOcorrencia(idOcorrencia) {
             .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}')`))
             .join('')
 
-        // Campo Unidade;
-        controlesCxOpcoes.unidade = {
-            base: 'clientes',
-            retornar: ['nome'],
-            // Trocou a unidade: o endereço volta para o principal dela (js/enderecos.js).
-            funcaoAdicional: ['unidadeEscolhidaChamado'],
-            colunas: {
-                'Nome': { chave: 'nome' },
-                'CNPJ': { chave: 'cnpj' },
-                'Cidade': { chave: 'cidade' },
-                'Endereço': { chave: 'endereco' },
-            }
-        }
-
-        // Campos Simples;
-        Object.entries({
-            'tipo': 'tipos',
-            'sistema': 'sistemas',
-            'prioridade': 'prioridades'
-        }).forEach(([n, base]) => {
-
-            controlesCxOpcoes[n] = {
-                base,
-                retornar: ['nome'],
-                colunas: {
-                    'Nome': { chave: 'nome' }
-                }
-            }
-
-        })
-
-        controlesCxOpcoes.gestor_responsavel = {
-            base: 'clientes',
-            retornar: ['usuario'],
-            filtros: {
-                usuario: { op: 'NOT_EMPTY' }
-            },
-            colunas: {
-                'Usuário': { chave: 'usuario' },
-                'Nome': { chave: 'nome' },
-                'Cargo': { chave: 'cargo' },
-                'Permissão': { chave: 'permissao' }
-            }
-        }
-
         const [
             pesqTipo,
             pesqSist,
             pesqPri
         ] = await Promise.all([
-            recuperarDado('tipos', tipo),
-            recuperarDado('sistemas', sistema),
-            recuperarDado('prioridades', prioridade)
+            tipo ? recuperarDado('tipos', tipo) : null,
+            sistema ? recuperarDado('sistemas', sistema) : null,
+            prioridade ? recuperarDado('prioridades', prioridade) : null
         ])
+
+        // Campos pesquisáveis de lista fechada (js/campos_gcs.js): o texto só busca, só vale item da lista.
+        const escolha = (fonte, name, valor, rotulo, placeholder, extra = {}) =>
+            campoEscolhaHtml({ fonte, name, valor: valor ?? '', rotulo: rotulo || (valor ? String(valor) : ''), placeholder, ...extra })
 
         const linhas = [
             {
                 texto: 'Unidade de Manutenção',
-                elemento: `<span ${unidade ? `id="${unidade}"` : ''} 
-                    class="opcoes" name="unidade" onclick="cxOpcoes('unidade')">
-                        ${cliente?.nome || 'Selecione'}
-                    </span>
-            `
+                // Trocou a unidade: o endereço volta para o principal dela (js/enderecos.js).
+                elemento: escolha('unidades', 'unidade', unidade, cliente?.nome, 'Nome, CNPJ, endereço, cidade…', { aoMudar: 'unidadeEscolhidaChamado' })
             },
             {
                 // Vários endereços por cliente (js/enderecos.js): troca ou cadastra um novo aqui mesmo.
@@ -2875,38 +2715,19 @@ async function formularioOcorrencia(idOcorrencia) {
             },
             {
                 texto: 'Gestor Responsável',
-                elemento: `
-                    <div style="${horizontal}; gap: 0.5rem;">
-                        <span ${gestorResponsavel ? `id="${escaparAtributo(gestorResponsavel)}"` : ''}
-                            class="opcoes" name="gestor_responsavel" onclick="cxOpcoes('gestor_responsavel')">${escaparAtributo(gestorResponsavel || 'Selecione')}</span>
-                        <img src="imagens/cancel.png" style="width: 1.5rem;" title="Limpar"
-                            onclick="const s = this.previousElementSibling; s.removeAttribute('id'); s.textContent = 'Selecione'">
-                    </div>
-                `
+                elemento: escolha('usuarios', 'gestor_responsavel', gestorResponsavel, gestorResponsavel, 'Pesquisar usuário…')
             },
             {
                 texto: 'Sistema',
-                elemento: `<span ${sistema ? `id="${sistema}"` : ''} 
-                    class="opcoes" name="sistema" onclick="cxOpcoes('sistema')">
-                        ${pesqSist?.nome || 'Selecione'}
-                    </span>
-            `
+                elemento: escolha('sistemas', 'sistema', sistema, pesqSist?.nome, 'Pesquisar sistema…')
             },
             {
                 texto: 'Prioridade',
-                elemento: `<span ${prioridade ? `id="${prioridade}"` : ''} 
-                    class="opcoes" name="prioridade" onclick="cxOpcoes('prioridade')">
-                        ${pesqPri?.nome || 'Selecione'}
-                    </span>
-            `
+                elemento: escolha('prioridades', 'prioridade', prioridade, pesqPri?.nome, 'Pesquisar prioridade…')
             },
             {
                 texto: 'Tipo',
-                elemento: `<span ${tipo ? `id="${tipo}"` : ''} 
-                    class="opcoes" name="tipo" onclick="cxOpcoes('tipo')">
-                        ${pesqTipo?.nome || 'Selecione'}
-                    </span>
-                `
+                elemento: escolha('tipos', 'tipo', tipo, pesqTipo?.nome, 'Pesquisar tipo…')
             },
             {
                 texto: 'Data da Solicitação',
@@ -2917,30 +2738,14 @@ async function formularioOcorrencia(idOcorrencia) {
                 editor: descricao || ''
             },
             {
-                elemento: `
-                    <div style="${vertical}; width: 100%; gap: 5px;">
-                        <div style="${horizontal}; gap: 1rem;">
-                            <span>Registro de peças ou equipamentos</span>
-                            <img src="imagens/baixar.png" onclick="maisLabel()">
-                        </div>
-                        <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
-                            ${equipamentos}
-                        </div>
-                    </div>
-                `
+                elemento: secaoEquipamentosHtml('Registro de peças ou equipamentos', equipamentos, '')
             },
             {
                 texto: 'Anexos',
-                elemento: `
-                    <div style="${vertical}; gap: 3px;">
-                        <input name="anexos" type="file" multiple>
-                        <div id="anexos" class="local-anexos">
-                            ${a}
-                        </div>
-                    </div>
-            `
+                elemento: zonaAnexosHtml({ existentes: a })
             },
             {
+                texto: 'Fotos',
                 elemento: await blocoAuxiliarFotos(fotos, idOcorrencia)
             }
         ]
@@ -3091,48 +2896,38 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, pr
         )
     ).join('')
 
-    controlesCxOpcoes.tecnico = {
-        base: 'clientes',
-        filtros: {
-            usuario: { op: 'NOT_EMPTY' }
-        },
-        retornar: ['usuario'],
-        colunas: {
-            'Nome': { chave: 'usuario' },
-            'Permissão': { chave: 'permissao' }
-        }
-    }
-
-    // A FATURAR não aparece na lista: só o sistema lança (o servidor recusa à mão).
-    controlesCxOpcoes.tipoCorrecao = {
+    // Status da correção: lista fechada pesquisável. A FATURAR não aparece: só o sistema lança (o servidor
+    // recusa à mão). Garantia encerrada: só os status administrativos (fora_garantia = S).
+    const foraGarantia = garantia?.situacao === 'encerrada'
+    const fonteStatus = foraGarantia ? 'statusCorrecaoForaGarantia' : 'statusCorrecao'
+    fontesEscolha[fonteStatus] = {
         base: 'correcoes',
         filtros: {
             nome: { op: '!=', value: 'A FATURAR' },
-            ...(garantia?.situacao === 'encerrada' ? { fora_garantia: { op: '=', value: 'S' } } : {})
+            ...(foraGarantia ? { fora_garantia: { op: '=', value: 'S' } } : {})
         },
-        retornar: ['nome'],
-        colunas: {
-            'Nome': { chave: 'nome' }
-        }
+        campos: ['nome'],
+        valor: 'id',
+        rotulo: d => d.nome,
+        local: true,
+        ordenar: { path: 'nome', direcao: 'ASC' }
     }
 
-    const { nome: nomeSalvo } = await recuperarDado('correcoes', correcao?.tipoCorrecao) || {}
+    const { nome: nomeSalvo } = correcao?.tipoCorrecao ? await recuperarDado('correcoes', correcao.tipoCorrecao) || {} : {}
     const tipoInicial = preset?.tipoCorrecao || correcao?.tipoCorrecao
     const nome = preset?.nome || nomeSalvo
     if (preset && !correcao.dtCorrecao) correcao.dtCorrecao = dataServidor().toISOString().slice(0, 10)
     const { turno, executor, tecnico, autorizacao } = correcao
     // Destino por permissão (substitui o antigo "Setor"): gravado como lista, como lê a vw_correcoes_por_permissao.
     const permissaoAtual = [].concat(correcao?.permissao || [])[0] || ''
-    const opcoesTurno = ['MANHÃ', 'TARDE', 'NOITE', 'MADRUGADA']
-        .map(t => {
-            return `
-            <div style="${horizontal}; gap: 0.5rem;">
-                <input ${t == turno ? 'checked' : ''} style="width: 2rem; height: 2rem;" data-turno="${t}" type="radio" name="turno">
-                <span>${t}</span>
-            </div>
-            `
-        })
-        .join('')
+    const opcoesTurno = [
+        { valor: 'MANHÃ', texto: 'Manhã', icone: 'manha' },
+        { valor: 'TARDE', texto: 'Tarde', icone: 'tarde' },
+        { valor: 'NOITE', texto: 'Noite', icone: 'noite' },
+        { valor: 'MADRUGADA', texto: 'Madrugada', icone: 'madrugada' }
+    ]
+    // Sem executor, quem está lançando entra como executor.
+    const executores = [executor].flat().filter(Boolean)
 
     // Novo fluxo num chamado com orçamentos vinculados: escolher de qual orçamento é a aba
     // (a correção leva o idOrcamento; status e rótulo da aba seguem esse orçamento).
@@ -3145,6 +2940,11 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, pr
             || orcamentosChamado.find(o => o.id == novoFluxo || o.id == correcao?.idOrcamento)?.contrato
             || null)
         : null
+
+    const anexosSalvos = Object
+        .entries(correcao?.anexos || {})
+        .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')`))
+        .join('')
 
     const linhas = [
         ...(novoFluxo
@@ -3161,10 +2961,12 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, pr
         ...(escolherOrcamento
             ? [{
                 texto: 'Fluxo do orçamento',
-                elemento: `
-                    <select id="fluxoOrcamento" style="font-weight: bold;">
-                        ${orcamentosChamado.map(o => `<option value="${o.id}">${o.contrato}${o.master ? ' (principal)' : ''}</option>`).join('')}
-                    </select>`
+                elemento: toggleOpcoesHtml({
+                    name: 'fluxoOrcamento',
+                    opcoes: orcamentosChamado.map(o => ({ valor: o.id, texto: `${o.contrato}${o.master ? ' (principal)' : ''}` })),
+                    valor: orcamentosChamado[0]?.id,
+                    desmarcavel: false
+                })
             }]
             : []
         ),
@@ -3179,90 +2981,53 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, pr
             elemento: faixaGarantia(garantia, correcao)
         },
         {
+            texto: 'Status da Correção',
+            elemento: campoEscolhaHtml({ fonte: fonteStatus, name: 'tipoCorrecao', valor: tipoInicial || '', rotulo: nome || '', placeholder: 'Pesquisar status…' })
+        },
+        {
             texto: 'Código de autorização',
-            elemento: `<textarea name="autorizacao">${autorizacao || ''}</textarea>`
+            elemento: `<input name="autorizacao" type="text" placeholder="Se o cliente passou um código" value="${escaparAtributo(autorizacao || '')}" style="flex: 1 1 260px; max-width: 520px;">`
         },
         {
-            texto: 'Data Início Execução',
-            elemento: `<input name="dtCorrecao" onchange="verificarConflitos()" type="date" value="${correcao?.dtCorrecao || ''}">`
-        },
-        {
-            texto: 'Data Final Execução',
-            elemento: `<input name="dtCorrecaoFinal" onchange="verificarConflitos()" type="date" value="${correcao?.dtCorrecaoFinal || ''}">`
+            texto: 'Período de execução',
+            elemento: periodoExecucaoHtml(correcao?.dtCorrecao, correcao?.dtCorrecaoFinal)
         },
         {
             texto: 'Turno da Execução',
-            elemento: `
-                <div style="${vertical}; gap: 5px;">
-                    ${opcoesTurno}
-                </div>
-            `
-        },
-        {
-            texto: 'Status da Correção',
-            elemento: `<span 
-                class="opcoes" ${tipoInicial ? `id="${tipoInicial}"` : ''}
-                name="tipoCorrecao" onclick="cxOpcoes('tipoCorrecao')">
-                    ${nome || 'Selecione'}
-                </span>`
+            elemento: toggleOpcoesHtml({ name: 'turno', opcoes: opcoesTurno, valor: turno, dado: 'turno' })
         },
         {
             texto: 'Permissão',
-            elemento: `<select name="permissao">${PERMISSOES_CORRECAO.map(p => `<option ${permissaoAtual == p ? 'selected' : ''}>${p}</option>`).join('')}</select>`
+            elemento: toggleOpcoesHtml({
+                name: 'permissao',
+                opcoes: PERMISSOES_CORRECAO.map(p => ({ valor: p, texto: p ? p.toUpperCase() : 'NENHUMA' })),
+                valor: permissaoAtual,
+                desmarcavel: false,
+                compacto: true
+            })
         },
         {
-            texto: `
-            <div style="${horizontal}; gap: 1rem;">
-                <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'executores')">
-                <span>Executores</span>
-            </div>
-            `,
-            elemento: '<div class="executores"></div>'
+            texto: 'Executores',
+            elemento: campoUsuariosHtml('executores', executores.length ? executores : [acesso.usuario])
         },
         {
-            texto: `
-            <div style="${horizontal}; gap: 1rem;">
-                <img src="imagens/reagendar.png" onclick="telaAgenda({ flutuante: true, filtros: {estado: '${estado}'} })">
-                <img src="imagens/baixar.png" onclick="maisUsuario([undefined], 'tecnicos')">
-                <span>Técnicos</span>
-            </div>
-            `,
-            elemento: '<div class="tecnicos"></div>'
+            texto: tituloTecnicosHtml(estado),
+            elemento: campoUsuariosHtml('tecnicos', tecnico, { aoMudar: 'verificarConflitos' })
         },
         {
             texto: 'Descrição',
             editor: correcao?.descricao || ''
         },
         {
-            elemento: `
-            <div style="${vertical}; width: 100%; gap: 5px;">
-                <div style="${horizontal}; gap: 1rem;">
-                    <img src="imagens/baixar.png" onclick="maisLabel({formulario: 'correcao'})">
-                    <span>Peças Usadas na Correção</span>
-                </div>
-                <div style="${vertical}; width: 100%; gap: 2px;" id="equipamentos">
-                    ${equipamentos}
-                </div>
-            </div>
-            `
+            elemento: secaoEquipamentosHtml('Peças usadas na correção', equipamentos, 'correcao')
         },
         {
-            elemento: `${await blocoAuxiliarFotos(correcao?.fotos, idOcorrencia, idCorrecao)}`
+            texto: 'Fotos',
+            elemento: await blocoAuxiliarFotos(correcao?.fotos, idOcorrencia, idCorrecao)
         },
         {
             texto: 'Anexos',
-            elemento: `
-            <div style="${vertical}; gap: 5px;">
-                <input name="anexos" type="file" multiple>
-                <div id="anexos" class="local-anexos">
-                    ${Object
-                    .entries(correcao?.anexos || {})
-                    .map(([idAnexo, anexo]) => criarAnexoVisual(anexo.nome, anexo.link, `removerAnexo(this, '${idAnexo}', '${idOcorrencia}', '${idCorrecao}')`))
-                    .join('')
-                }
-                </div>
-            </div>
-            `
+            elemento: zonaAnexosHtml({ existentes: anexosSalvos })
         }
     ]
 
@@ -3276,19 +3041,63 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, pr
         }
     ]
 
-    popup({ linhas, botoes, titulo: 'Gerenciar Correção', autoDestruicao: ['executor', 'tecnico', 'tipoCorrecao'] })
+    popup({ linhas, botoes, titulo: 'Gerenciar Correção' })
 
-    // Sem executor, quem está lançando entra como executor.
-    const executores = [executor].flat().filter(Boolean)
-    await maisUsuario(executores.length ? executores : [acesso.usuario], 'executores')
-    await maisUsuario(tecnico, 'tecnicos')
     perguntarTecnicosMemorizados(ocorrencia)
     await verificarConflitos()
 
-    visibilidadeFotos()
-
     removerOverlay()
 
+}
+
+// Início e fim lado a lado; os dois conferem a agenda dos técnicos ao mudar.
+function periodoExecucaoHtml(inicio, fim) {
+    return `
+        <div class="ce-periodo">
+            <input name="dtCorrecao" type="date" title="Início" aria-label="Data de início" onchange="verificarConflitos()" value="${inicio || ''}">
+            <span>até</span>
+            <input name="dtCorrecaoFinal" type="date" title="Fim" aria-label="Data final" onchange="verificarConflitos()" value="${fim || ''}">
+        </div>`
+}
+
+function tituloTecnicosHtml(estado) {
+    return `
+        <div style="${horizontal}; gap: 0.6rem;">
+            <span>Técnicos</span>
+            <button type="button" class="ce-mais" title="Ver a agenda dos técnicos" onclick="telaAgenda({ flutuante: true, filtros: {estado: '${estado}'} })">
+                <img src="imagens/reagendar.png" style="width: 16px;" alt=""> Agenda
+            </button>
+        </div>`
+}
+
+// Técnicos / executores: chips no próprio campo (js/campos_gcs.js). A área com a classe (".tecnicos") é a
+// que verificarConflitos, a memória de técnicos e quem salva procuram (usuariosDoCampo).
+function campoUsuariosHtml(classe, usuarios, { aoMudar = '' } = {}) {
+    const valores = [].concat(usuarios || []).filter(Boolean).map(u => ({ valor: u, rotulo: u }))
+    return `
+        <div class="${classe}" style="flex: 1 1 260px; min-width: 0; max-width: 520px; display: flex;">
+            ${campoEscolhaHtml({ fonte: 'usuarios', name: classe, multiplo: true, valores, placeholder: 'Pesquisar e incluir usuário…', aoMudar })}
+        </div>`
+}
+
+// Logins de uma área .tecnicos / .executores: campo novo (chips) ou o antigo (spans .opcoes com id).
+function usuariosDoCampo(classe, raiz = document) {
+    const area = raiz.querySelector(`.${classe}`)
+    if (!area) return []
+    const campo = area.querySelector('.ce-campo')
+    if (campo) return lerEscolha(campo)
+    return [...area.querySelectorAll('span')].filter(span => span.id).map(span => span.textContent)
+}
+
+function secaoEquipamentosHtml(titulo, equipamentos, formulario) {
+    return `
+        <div class="ce-secao">
+            <div class="ce-secao-topo">
+                <b>${titulo}</b>
+                <button type="button" class="ce-mais" onclick="maisLabel({ formulario: '${formulario}' })">+ Adicionar peça</button>
+            </div>
+            <div class="ce-lista-equip" id="equipamentos">${equipamentos}</div>
+        </div>`
 }
 
 async function maisUsuario(usuarios, campo) {
@@ -3300,6 +3109,16 @@ async function maisUsuario(usuarios, campo) {
 
     if (!area)
         return
+
+    // Campo novo (chips): inclui ali mesmo; repetido não entra. [undefined] = só abrir a busca.
+    const escolha = area.querySelector('.ce-campo')
+    if (escolha) {
+        for (const usuario of (usuarios || []).filter(Boolean))
+            ceDefinir(escolha, usuario, usuario)
+        if ((usuarios || []).some(u => !u))
+            escolha.querySelector('.ce-input')?.focus()
+        return
+    }
 
     const spans = []
 
@@ -3341,103 +3160,75 @@ async function maisUsuario(usuarios, campo) {
 
 }
 
-async function filtrarEquipamentos(select) {
-    const lpu = String(select.value).toLowerCase()
-    // Tabela do seletor aberto (cada cxOpcoes tem a sua, js/ferramentas.js).
-    const pag = pagCxOpcoes(controlesCxOpcoes.ativo)
-    const controle = controles[pag]
-    if (!controle) return
-    controle.filtros ??= {}
-
-    const filtros = Object.fromEntries(
-        Object.entries(controle.filtros)
-            .filter(([chave]) => !chave.includes('lpu'))
-    )
-
-    controle.filtros = {
-        ...filtros,
-        [`snapshots.${lpu}.0`]: { op: '!=', value: 0 }
-    }
-
-    await paginacao(pag)
+// Trocou a LPU da linha: a busca da descrição passa a filtrar por ela (fontesEscolha.composicoes).
+function lpuEquipamentoMudou(select) {
+    select.closest('.ce-equip')?.querySelector('.ce-campo .ce-input')?.focus()
 }
 
+// Linha de peça/equipamento. Com código, devolve o HTML (formulário abrindo); sem, acrescenta na lista.
 async function maisLabel({ codigo, descricao, quantidade, origem, serie, formulario } = {}) {
 
     const div = document.getElementById('equipamentos')
     const temporario = crypto.randomUUID()
+    const nova = !codigo
 
-    const btnExtras = acesso.permissao !== 'cliente'
-        ? `<select class="opcoes" onchange="filtrarEquipamentos(this)"><option></option>${LPUS.map(lpu => `<option>${lpu}</option>`).join('')}</select>`
-        : null
+    const filtroLpu = acesso.permissao !== 'cliente' && Array.isArray(LPUS) && LPUS.length
+        ? `<label class="ce-rotulo">LPU
+                <select data-lpu onchange="lpuEquipamentoMudou(this)">
+                    <option value="">Todas</option>
+                    ${LPUS.map(lpu => `<option>${lpu}</option>`).join('')}
+                </select>
+            </label>`
+        : ''
 
-    controlesCxOpcoes[temporario] = {
-        base: 'dados_composicoes',
-        retornar: ['descricao'],
-        btnExtras,
-        filtros: {
-            'tipo': { op: '!=', value: 'SERVIÇO' }
-        },
-        colunas: {
-            'Código': { chave: 'codigo' },
-            'Descrição': { chave: 'descricao' },
-            'Unidade': { chave: 'unidade' },
-            'Modelo': { chave: 'modelo' },
-            'Fabricante': { chave: 'fabricante' }
-        }
-    }
-
-    const series = (Array.isArray(serie) ? serie : [serie])
-        .map(s => `<input name="serie" value="${s || ''}">`)
+    const qtd = quantidade || (nova ? 1 : '')
+    const listaSeries = Array.isArray(serie) ? serie : [serie]
+    const series = (listaSeries.length ? listaSeries : [''])
+        .map(s => `<input name="serie" placeholder="Nº de série" value="${escaparAtributo(s || '')}">`)
         .join('')
 
     const divOrigem = formulario == 'correcao'
         ? `
-            <div style="${vertical};">
-                <label>Origem</label>
-                ${['Kit', 'Ferramentas', 'Parceiro', 'Matriz', 'Compra Região'].map(o => `
-                    <div style="${horizontal}; gap: 1rem;">
-                        <input name="origem_${temporario}" data-origem="${o}" type="radio" ${origem == o ? 'checked' : ''}>
-                        <label style="text-align: left;">${o}</label>
-                    </div>
-                    `).join('')}
-            </div>
-        `
+            <div class="ce-rotulo">Origem
+                ${toggleOpcoesHtml({
+                    name: `origem_${temporario}`,
+                    opcoes: ['Kit', 'Ferramentas', 'Parceiro', 'Matriz', 'Compra Região'],
+                    valor: origem,
+                    dado: 'origem',
+                    compacto: true
+                })}
+            </div>`
         : ''
 
     const label = `
-        <div class="borda-equipamento">
-            <img src="imagens/cancel.png" onclick="this.parentElement.remove()">
-            <div name="equipamentos" style="${horizontal}; align-items: start; gap: 1rem;">
-                <div style="${vertical};">
-                    <label>Quantidade</label>
-                    <input id="quantidade" data-codigo="${codigo}" data-anterior="${quantidade || 0}" oninput="multiplicarCampoSerie(this)" style="width: 7rem;" class="opcoes" type="number" value="${quantidade || ''}">
+        <div class="borda-equipamento ce-equip">
+            <button type="button" class="ce-equip-tirar" title="Tirar peça" aria-label="Tirar peça" onclick="this.parentElement.remove()">&times;</button>
+            <div name="equipamentos" class="ce-equip-linha" style="flex-direction: column; align-items: stretch;">
+                <div class="ce-equip-linha">
+                    <div class="ce-rotulo ce-cresce">Descrição
+                        ${campoEscolhaHtml({ fonte: 'composicoes', name: `equip_${temporario}`, valor: codigo || '', rotulo: descricao || '', placeholder: 'Descrição, código, modelo, fabricante…' })}
+                    </div>
+                    ${filtroLpu}
                 </div>
-                <div style="${vertical};">
-                    <label>Nº série</label>
-                    <div class="container-series">
-                        ${series}
+                <div class="ce-equip-linha">
+                    <label class="ce-rotulo">Quantidade
+                        <input id="quantidade" type="number" min="0" step="1" style="width: 6.5rem;" value="${qtd}" oninput="multiplicarCampoSerie(this)">
+                    </label>
+                    <div class="ce-rotulo" style="flex: 1 1 200px;">Nº de série
+                        <div class="container-series">${series}</div>
                     </div>
                 </div>
-
                 ${divOrigem}
-
-                <div style="${vertical};">
-                    <label>Descrição</label>
-                    <span 
-                        class="opcoes" 
-                        name="${temporario}" ${codigo ? `id="${codigo}"` : ''} 
-                        onclick="cxOpcoes('${temporario}')">${descricao || 'Selecione'}</span>
-                </div>
-
             </div>
         </div>`
 
     if (codigo)
         return label
 
-    if (div)
+    if (div) {
         div.insertAdjacentHTML('beforeend', label)
+        div.lastElementChild.querySelector('.ce-input')?.focus()
+    }
 }
 
 function multiplicarCampoSerie(input) {
@@ -3482,11 +3273,11 @@ async function verificarConflitos() {
     const inicioNovo = dtCorrecao
     const fimNovo = dtCorrecaoFinal || dtCorrecao
 
-    const tecs = [...document.querySelectorAll('.tecnicos span')]
-        .filter(span => span.id)
+    // Chips do campo novo (data-valor) ou spans do seletor antigo (id).
+    const tecs = [...document.querySelectorAll('.tecnicos .ce-chip[data-valor], .tecnicos span.opcoes[id]')]
         .map(async (span) => {
 
-            const tecnico = span.id
+            const tecnico = span.dataset.valor || span.id
 
             // O status não vai no filtro: ultimaCorrecao chega como texto do JSON com um
             // status por fluxo, e o != no servidor comparava o texto inteiro (nunca filtrava).
@@ -3521,7 +3312,10 @@ async function verificarConflitos() {
                             tecnico: '${tecnico}',
                             dtCorrecao: '${dtCorrecaoMaisAntiga}'}
                     })`
-                span.parentElement.insertAdjacentHTML('beforeend', alerta(funcao, tecnico))
+                if (span.classList.contains('ce-chip'))
+                    span.querySelector('.ce-chip-tirar').insertAdjacentHTML('beforebegin', alerta(funcao, tecnico))
+                else
+                    span.parentElement.insertAdjacentHTML('beforeend', alerta(funcao, tecnico))
             }
 
         })
@@ -3586,8 +3380,8 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
             return
 
 
-        const tipoCorrecao = obter('tipoCorrecao').id
-        const nomeTipoCorrecao = obter('tipoCorrecao').textContent.trim()
+        const painel = obter('tipoCorrecao').closest('.painel-padrao')
+        const tipoCorrecao = lerEscolha(obter('tipoCorrecao'))
         const dtCorrecao = obter('dtCorrecao').value
         const dtCorrecaoFinal = obter('dtCorrecaoFinal').value
 
@@ -3607,39 +3401,23 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
         const input = obter('anexos')
         const anexos = await anexosOcorrencias(input)
 
-        // Fotos;
-        const divFotos = document.querySelector('.fotos')
-        const imgs = divFotos.querySelectorAll('img') || []
-
-        for (const img of imgs) {
-            if (img.dataset && img.dataset.salvo == 'sim') continue
-            const foto = await importarAnexos({ foto: img.src })
-            fotos[foto[0].link] = foto[0]
-        }
-
         // Técnicos;
-        const tecnico = [...document.querySelectorAll('.tecnicos span')]
-            .filter(span => span.id)
-            .map(span => span.textContent)
-
-        if (tecnico.length == 0 && Object.keys(equipamentos).length > 0)
-            return popup({ mensagem: 'Quando existirem equipamentos, selecione pelo menos 1 Técnico' })
+        const tecnico = usuariosDoCampo('tecnicos', painel)
 
         // Equipamentos
-        const divs = [...document.querySelectorAll('[name="equipamentos"]')]
+        const divs = [...painel.querySelectorAll('[name="equipamentos"]')]
 
         const emMassa = divs
-            .filter(div => div.querySelector('span')?.id)
-            .map(async (div) => {
+            .map(div => ({ div, codigo: lerEscolha(div.querySelector('.ce-campo')) }))
+            .filter(({ codigo }) => codigo)
+            .map(async ({ div, codigo }) => {
 
-                const equip = div.querySelector('span')
-                const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', equip.id)
+                const { unidade, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', codigo)
                 const inputQuantidade = div.querySelector('#quantidade')
                 const quantidade = Number(inputQuantidade.value)
                 const serie = [...div.querySelectorAll('[name="serie"]')]
                     .map(input => input.value)
                 const origem = div.querySelector('input[name^="origem_"]:checked')?.dataset.origem || ''
-                const codigo = equip.id
 
                 equipamentos[codigo] = {
                     codigo,
@@ -3656,18 +3434,25 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
 
         await Promise.all(emMassa)
 
+        if (tecnico.length == 0 && Object.keys(equipamentos).length > 0)
+            return popup({ mensagem: 'Quando existirem equipamentos, selecione pelo menos 1 Técnico' })
+
+        // Fotos novas (as salvas já estão na correção);
+        for (const img of painel.querySelectorAll('.fotos img[data-salvo="não"]')) {
+            const foto = await importarAnexos({ foto: img.src })
+            if (foto?.[0]?.link) fotos[foto[0].link] = foto[0]
+        }
+
         // Permissão que recebe a correção;
-        const permissaoDestino = obter('permissao').value
+        const permissaoDestino = lerToggle(painel, 'permissao')
 
         // Executores;
-        const executor = [...document.querySelectorAll('.executores span')]
-            .filter(span => span.id)
-            .map(span => span.textContent)
+        const executor = usuariosDoCampo('executores', painel)
 
         if (executor.length == 0 && !permissaoDestino)
             return popup({ mensagem: 'Selecione pelo menos 1 executor ou uma permissão' })
 
-        const turno = document.querySelectorAll('[name="turno"]:checked')?.[0]?.dataset?.turno
+        const turno = painel.querySelector('[name="turno"]:checked')?.dataset?.turno || ''
         const correcao = ocorrencia?.correcoes?.[idCorrecao] || {}
         // "garantia" da correção nova é calculada pelo servidor; nas antigas fica como está.
         const atualizado = {
@@ -3691,19 +3476,19 @@ async function salvarCorrecao(idOcorrencia, idCorrecao = crypto.randomUUID()) {
             permissao: permissaoDestino ? [permissaoDestino] : [],
             usuario: correcao.usuario || acesso.usuario,
             tipoCorrecao,
-            descricao: document.querySelector('.editor-conteudo')?.innerHTML || ''
+            descricao: painel.querySelector('.editor-conteudo')?.innerHTML || ''
         }
         delete atualizado.setor   // legado: o destino agora é só por permissão
 
         // Novo fluxo, se existir;
-        const novoFluxo = document.getElementById('novoFluxo')
+        const novoFluxo = painel.querySelector('#novoFluxo')
         if (novoFluxo)
             atualizado.aba = novoFluxo.dataset.aba == 'S'
                 ? crypto.randomUUID()
                 : novoFluxo.dataset.aba
 
         // Fluxo de um orçamento do chamado (chamado com vinculados): a aba passa a ser dele.
-        const fluxoOrcamento = document.getElementById('fluxoOrcamento')?.value
+        const fluxoOrcamento = lerToggle(painel, 'fluxoOrcamento')
         if (novoFluxo && fluxoOrcamento)
             atualizado.idOrcamento = fluxoOrcamento
 
@@ -3751,7 +3536,7 @@ function memorizarTecnicos(tecnicos, ocorrencia, idOcorrencia) {
 function perguntarTecnicosMemorizados(ocorrencia) {
     const tecnicos = Array.isArray(ocorrencia?.tecnicos_memorizados) ? ocorrencia.tecnicos_memorizados : []
     const area = document.querySelector('.tecnicos')
-    if (!tecnicos.length || !area || area.querySelector('span[id]')) return
+    if (!tecnicos.length || !area || usuariosDoCampo('tecnicos').length) return
 
     area.insertAdjacentHTML('beforebegin', `
         <div class="tecnicos-memoria" role="group" aria-label="Técnicos memorizados"
@@ -3775,16 +3560,21 @@ async function dispararTecnicosMemorizados(botao) {
     await verificarConflitos()
 }
 
+// O formulário mais recente que tem o campo (com o histórico do chamado aberto embaixo, o primeiro
+// .painel-padrao da página nem sempre é o da correção).
 function obter(name) {
-    const painel = document.querySelector('.painel-padrao')
-    const elemento = painel.querySelector(`[name=${name}]`)
-    return elemento
+    const paineis = [...document.querySelectorAll('.painel-padrao')].reverse()
+    for (const painel of paineis) {
+        const elemento = painel.querySelector(`[name="${name}"]`)
+        if (elemento) return elemento
+    }
+    return null
 }
 
-// cxOpcoes da Unidade (formularioOcorrencia): o seletor de endereço passa para a unidade nova.
-function unidadeEscolhidaChamado() {
-    const span = [...document.querySelectorAll('[name="unidade"]')].find(s => s.closest('.painel-padrao')?.querySelector('[data-end-seletor]'))
-    if (span) clienteSeletorEndereco(span.closest('.painel-padrao'), span.id || '')
+// Campo pesquisável da Unidade (formularioOcorrencia): o seletor de endereço passa para a unidade nova.
+function unidadeEscolhidaChamado(campo) {
+    const painel = campo?.closest?.('.painel-padrao')
+    if (painel?.querySelector('[data-end-seletor]')) clienteSeletorEndereco(painel, lerEscolha(campo) || '')
 }
 
 async function salvarOcorrencia(idOcorrencia) {
@@ -3818,7 +3608,7 @@ async function salvarOcorrencia(idOcorrencia) {
 
     try {
     overlayAguarde()
-    const unidade = campo('unidade')?.id
+    const unidade = lerEscolha(campo('unidade'))
     if (!unidade)
         throw new Error('O campo Unidade é obrigatório')
 
@@ -3835,7 +3625,7 @@ async function salvarOcorrencia(idOcorrencia) {
     informar('Preparando equipamentos e fotos…')
     const divs = [...painel.querySelectorAll('[name="equipamentos"]')]
     const promessasEquips = divs.map(async div => {
-        const id = div.querySelector('span')?.id
+        const id = lerEscolha(div.querySelector('.ce-campo'))
         if (!id) return null
 
         const { unidade: un, modelo, descricao, fabricante } = await recuperarDado('dados_composicoes', id)
@@ -3869,11 +3659,11 @@ async function salvarOcorrencia(idOcorrencia) {
         unidade: Number(unidade),
         // Endereço escolhido (js/enderecos.js): foto; null = principal da unidade.
         endereco: lerSeletorEndereco(painel) || null,
-        sistema: campo('sistema')?.id || null,
-        prioridade: campo('prioridade')?.id || null,
-        tipo: campo('tipo')?.id || null,
-        // O span mostra o login (clientes.usuario); o id dele é só marcador de "selecionado".
-        gestor_responsavel: campo('gestor_responsavel')?.id ? campo('gestor_responsavel').textContent.trim() || null : null,
+        sistema: lerEscolha(campo('sistema')),
+        prioridade: lerEscolha(campo('prioridade')),
+        tipo: lerEscolha(campo('tipo')),
+        // Valor do campo = login (clientes.usuario).
+        gestor_responsavel: lerEscolha(campo('gestor_responsavel')),
         descricao: painel.querySelector('.editor-conteudo')?.innerHTML || null,
         data_registro: dataServidor().toLocaleString('pt-BR'),
         usuario: ocorrencia.usuario || acesso.usuario,

@@ -1452,52 +1452,16 @@ function htmlEsquemaHistorico(itens) {
         <div class="esq-hist-lista">${cadeias}</div>`
 }
 
+// Câmera em tela cheia (js/campos_gcs.js): cada foto sobe e entra no cartão na hora; dá para tirar várias.
 async function painelFotos(id, tabela) {
-
-    const elemento = `
-        <div style="${vertical}; gap: 3px; background-color: #d2d2d2;">
-            <div class="capturar" style="position: fixed; bottom: 10px; left: 10px; z-index: 10003;" onclick="tirarFotoStatus('${id}', '${tabela}')">
-                <img src="imagens/camera.png">
-                <span>Capturar Imagem</span>
-            </div>
-
-            <div class="cameraDiv">
-                <video autoplay playsinline></video>
-                <canvas style="display: none;"></canvas>
-            </div>
-        </div>
-        `
-    popup({ elemento })
-
-    await abrirCamera()
-
-}
-
-async function tirarFotoStatus(id, tabela) {
-
-    overlayAguarde()
-
-    const cameraDiv = document.querySelector('.cameraDiv')
-    const canvas = cameraDiv.querySelector('canvas')
-    const video = cameraDiv.querySelector('video')
-
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    canvas.getContext('2d').drawImage(video, 0, 0)
-
-    const src = canvas.toDataURL('image/png')
-
-    pararCam()
-
-    const resposta = await importarAnexos({ foto: src })
-    if (resposta.mensagem)
-        return popup({ mensagem: resposta.mensagem })
-
-    const idFoto = crypto.randomUUID()
-    await enviar(`${tabela}/${id}/fotos/${idFoto}`, resposta[0])
-
-    removerPopup()
-
+    abrirCameraGCS({
+        titulo: 'Foto do cartão',
+        aoCapturar: async src => {
+            const resposta = await importarAnexos({ foto: src })
+            if (!resposta?.[0]?.link) throw new Error(resposta?.mensagem || 'Falha no envio da foto')
+            await enviar(`${tabela}/${id}/fotos/${crypto.randomUUID()}`, resposta[0])
+        }
+    })
 }
 
 async function excluirAnexo(id, tabela, idAnexo, coluna) {
