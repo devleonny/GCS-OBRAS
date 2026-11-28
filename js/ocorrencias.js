@@ -1244,23 +1244,30 @@ function criarLinhaOcorrencia(ocorrencia) {
         .join('')
 
     // Botões;
+    // Ícones de traço (mesmo estilo da árvore dos orçamentos).
+    const icone = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`
+    const btnChamado = ({ onclick, titulo, svg, texto = '', classe = '' }) =>
+        `<button type="button" class="chamado-btn${texto ? '' : ' so-icone'}${classe ? ` ${classe}` : ''}" onclick="${onclick}" title="${titulo}">${svg ? icone(svg) : ''}${texto ? `<span>${texto}</span>` : ''}</button>`
+
     const botoes = []
     if (podeGerenciar)
-        botoes.push(btnImagem('fechar', `confirmarExclusao('${id}')`), btnImagem('lapis', `formularioOcorrencia('${id}')`))
+        botoes.push(
+            btnChamado({ onclick: `confirmarExclusao('${id}')`, titulo: 'Excluir chamado', classe: 'perigo', svg: '<path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4h6v3"/>' }),
+            btnChamado({ onclick: `formularioOcorrencia('${id}')`, titulo: 'Editar chamado', svg: '<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>' })
+        )
 
-    botoes.push(`<div class="botao-imagem-ocorrencias" onclick="baixarPdfOS('${id}')" title="Baixar a OS em PDF"><span>OS</span></div>`)
+    botoes.push(btnChamado({ onclick: `baixarPdfOS('${id}')`, titulo: 'Baixar a OS em PDF', texto: 'OS', svg: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 12v6M9.5 15.5 12 18l2.5-2.5"/>' }))
 
     if (id_usuario_funcionario)
-        botoes.push(`
-            <div class="botao-imagem-ocorrencias" onclick="atalhoDocumentos(${unidade})"><span>DOCUMENTOS</span></div>
-        `)
+        botoes.push(btnChamado({ onclick: `atalhoDocumentos(${unidade})`, titulo: 'Documentos do funcionário', texto: 'Documentos', svg: '<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 9.7v8.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/>' }))
 
     if (!id_usuario_funcionario && apenasAutorizados)
         botoes.push(`
-            <div class="botao-imagem-ocorrencias">
-                <input ${buscar_tecnico == 'S' ? 'checked' : ''} onclick="marcarBuscarTecnico(this, '${id}')" style="width: 1.5rem; height: 1.5rem;" type="checkbox">
-                <span>BUSCA DE TÉCNICO</span>
-            </div>
+            <label class="chamado-chave" title="Marca o chamado como precisando de técnico">
+                <input ${buscar_tecnico == 'S' ? 'checked' : ''} onclick="marcarBuscarTecnico(this, '${id}')" type="checkbox">
+                <span class="chamado-chave-trilho"></span>
+                <span>Busca de técnico</span>
+            </label>
         `)
 
     const modeloCampos = (valor1, valor2) => {
@@ -1280,7 +1287,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         : ''
 
     const criarOrcamento = apenasAutorizados
-        ? `<button onclick="criarOrcamentoVinculado('${id}')">Criar orçamento</button>`
+        ? `<button type="button" class="chamado-btn primario" onclick="criarOrcamentoVinculado('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Criar orçamento</span></button>`
         : ''
 
     // Chamado próprio de um orçamento, sem interações (só o ORÇAMENTO CRIADO) e sem orçamentos vinculados:
@@ -1289,7 +1296,7 @@ function criarLinhaOcorrencia(ocorrencia) {
     const vinculaveis = contratos_vinculados || []
     const vincularChamado = apenasAutorizados && /^ORC_\d+$/.test(id) && !interacoesChamado &&
         vinculaveis.length === 1 && vinculaveis[0]?.id_orcamento
-        ? `<button onclick="vincularChamadoOutro('${id}')" title="O orçamento ${id} passa a usar o outro chamado; este sai como vinculado">Vincular a outro chamado</button>`
+        ? `<button type="button" class="chamado-btn" onclick="vincularChamadoOutro('${id}')" title="O orçamento ${id} passa a usar o outro chamado; este sai como vinculado">Vincular a outro chamado</button>`
         : ''
 
     // Esquema dos orçamentos do chamado: o principal (contrato = chamado) em cima e os vinculados
@@ -1341,9 +1348,10 @@ function criarLinhaOcorrencia(ocorrencia) {
         : ''
 
     const blocoPrincipal = `
-        <div class="linha-orcamentos">
+        <div class="linha-orcamentos chamado-acoes">
 
             ${botoes.join('')}
+            ${(criarOrcamento || vincularChamado) ? '<span class="chamado-acoes-sep"></span>' : ''}
             ${criarOrcamento}
             ${vincularChamado}
 

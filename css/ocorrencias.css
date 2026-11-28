@@ -2020,3 +2020,132 @@
 .arvore-icone + .arvore-icone {
     margin-left: -6px;
 }
+
+/* Linha de ações do chamado: botões claros com ícone de traço; Criar orçamento em destaque. */
+.chamado-acoes {
+    gap: 6px;
+    align-items: center;
+}
+
+.chamado-acoes .chamado-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    margin: 0;
+    padding: 0 12px;
+    border: 1px solid #d3dae2;
+    border-radius: 8px;
+    background: #fff;
+    color: #3a4b5c;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.chamado-acoes .chamado-btn svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+}
+
+.chamado-acoes .chamado-btn.so-icone {
+    width: 32px;
+    padding: 0;
+    justify-content: center;
+}
+
+.chamado-acoes .chamado-btn:hover {
+    background: #eef2f6;
+    border-color: #b9c4cf;
+    color: #1f3347;
+}
+
+.chamado-acoes .chamado-btn.perigo:hover {
+    background: #fdecec;
+    border-color: #e9a3a3;
+    color: #b12425;
+}
+
+.chamado-acoes .chamado-btn.primario {
+    background: #356443;
+    border-color: #356443;
+    color: #fff;
+}
+
+.chamado-acoes .chamado-btn.primario:hover {
+    background: #2d5739;
+    border-color: #2d5739;
+    color: #fff;
+}
+
+.chamado-acoes-sep {
+    width: 1px;
+    height: 22px;
+    margin: 0 4px;
+    background: #d3dae2;
+}
+
+/* Busca de técnico: chave liga/desliga */
+.chamado-chave {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 12px 0 8px;
+    border: 1px solid #d3dae2;
+    border-radius: 8px;
+    background: #fff;
+    color: #3a4b5c;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.chamado-chave input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.chamado-chave-trilho {
+    position: relative;
+    width: 30px;
+    height: 17px;
+    border-radius: 17px;
+    background: #c5ced8;
+    transition: background-color 0.15s;
+}
+
+.chamado-chave-trilho::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    transition: transform 0.15s;
+}
+
+.chamado-chave input:checked + .chamado-chave-trilho {
+    background: #e47c0c;
+}
+
+.chamado-chave input:checked + .chamado-chave-trilho::after {
+    transform: translateX(13px);
+}
+
+.chamado-chave:has(input:checked) {
+    border-color: #f0b57a;
+    background: #fff7ee;
+}
