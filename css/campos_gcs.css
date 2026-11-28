@@ -626,3 +626,25 @@
 .ce-bloco .ce-campo { flex: none; width: 100%; max-width: none; }
 .ce-bloco-rodape { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
 .ce-bloco > .ce-toggle { align-self: flex-start; }
+
+/* ---------- Dados do Cliente do orçamento (central_gcs.js, painelClientes) */
+/* Escopo: o editor ocupa a largura toda da linha. */
+.painel-padrao:has(#dadosClienteOrc) .linha-editor .editor-container { max-width: none; }
+.painel-padrao:has(#dadosClienteOrc) .linha-editor .editor-conteudo { min-height: 160px; }
+
+/* Orçamento ainda sem ORC (o número sai ao salvar o orçamento). */
+.orc-sem-numero {
+    display: flex; align-items: center; gap: 8px;
+    flex: 1 1 260px; max-width: 520px;
+    padding: 8px 12px; border-radius: 8px;
+    background: #fff8e6; border: 1px solid #f0d58c; color: #7a5a00;
+    text-align: left;
+}
+.orc-sem-numero img { width: 20px; flex: none; }
+
+/* Condição de pagamento: a peça do pedido é mais larga que um campo comum. */
+.ce-bloco.orc-condicao { max-width: 720px; flex-basis: 420px; }
+
+/* Pílulas obrigatórias sem escolha ao salvar (ex.: Empresa de faturamento). */
+.ce-invalido > .ce-toggle { box-shadow: 0 0 0 2px #d9534f; animation: ce-tremer .35s; }
+

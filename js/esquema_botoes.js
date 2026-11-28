@@ -27,7 +27,7 @@ function renderMenuItem(item, id, nivel) {
     if (item.sub?.length && !temFilhos && !item.funcao) return ''
 
     return `
-        <div class="menu-item${item.especial ? ' menu-especial' : ''}">
+        <div class="menu-item${item.especial ? ' menu-especial' : ''}${item.soCriandoOrcamento ? ' menu-so-criando-orcamento' : ''}">
             <div 
                 class="menu-principal nivel-${nivel}" 
                 onclick="acaoMenu('${id}', '${item.funcao || ''}', ${temFilhos})">
@@ -170,9 +170,9 @@ const esquemaBotoes = {
                     img: 'projeto',
                     sub: [
                         { nome: 'Em edição', funcao: 'painelEdicao', img: 'projeto' },
-                        { nome: 'Dados Cliente', funcao: 'painelClientes', img: 'gerente' },
-                        { nome: 'Salvar Orçamento', funcao: 'enviarDadosPrincipal', img: 'salvo' },
-                        { nome: 'Apagar Orçamento', funcao: 'apagarOrcamento', img: 'cancel' }
+                        { nome: 'Dados Cliente', funcao: 'painelClientes', img: 'gerente', soCriandoOrcamento: true },
+                        { nome: 'Salvar Orçamento', funcao: 'enviarDadosPrincipal', img: 'salvo', soCriandoOrcamento: true },
+                        { nome: 'Apagar Orçamento', funcao: 'apagarOrcamento', img: 'cancel', soCriandoOrcamento: true }
                     ]
                 },
                 { nome: 'Requisições', funcao: 'telaRequisicoesOrc', acesso: 'orcamentos.requisicoes', svg: 'requisicoes_orc' },

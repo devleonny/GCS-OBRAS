@@ -1441,9 +1441,13 @@ async function painelClientes(idOrcamento = null) {
     // js/condicao_pagamento.js). Orçamento antigo: "AC SOLUÇÕES" abre como AC e o texto da lista antiga
     // ("3x", "30 dias") vira a condição. O limite de faturamento aparece abaixo.
     const empresaCliente = cliente?.empresa ? await recuperarDado('empresas', cliente.empresa) || {} : {}
-    const emissorAtual = codigoEmpresaFat(emissor) || codigoEmpresaFat(empresaCliente.empresa_faturamento) || 'AC'
-    const condicaoOrcamento = normalizarCondicaoPag(condicao_pagamento) || normalizarCondicaoPag(condicoes)
-        || normalizarCondicaoPag(empresaCliente.condicao_pagamento)
+    // Empresa de faturamento: abre sem nenhuma marcada (obrigatória ao salvar); escolher o cliente
+    // marca a do cadastro da empresa dele.
+    const emissorAtual = codigoEmpresaFat(emissor)
+    // Condição de pagamento: escondida até o usuário ligar; já vem ligada se o orçamento tem uma.
+    const condicaoPropria = normalizarCondicaoPag(condicao_pagamento) || normalizarCondicaoPag(condicoes)
+    const condicaoOrcamento = condicaoPropria || normalizarCondicaoPag(empresaCliente.condicao_pagamento)
+    const temNumero = contrato && contrato !== 'sequencial'
 
     const botoes = [
         {
@@ -1482,7 +1486,12 @@ async function painelClientes(idOrcamento = null) {
     const linhas = [
         {
             texto: 'Contrato',
-            elemento: `<input id="dadosClienteOrc" value="${escaparAtributo(contrato && contrato !== 'sequencial' ? contrato : 'ORC ...')}" readOnly style="flex: 1 1 260px; max-width: 520px;">`
+            elemento: temNumero
+                ? `<input id="dadosClienteOrc" value="${escaparAtributo(contrato)}" readOnly style="flex: 1 1 260px; max-width: 520px;">`
+                : `<div id="dadosClienteOrc" class="orc-sem-numero">
+                    <img src="imagens/alerta.png" alt="">
+                    <span><b>Ainda sem número.</b> O ORC é gerado quando o orçamento for salvo.</span>
+                </div>`
         },
         {
             texto: 'Cliente',
@@ -1558,12 +1567,16 @@ async function painelClientes(idOrcamento = null) {
             elemento: `<input id="telefone_analista" value="${escaparAtributo(telefoneInicial)}" placeholder="(DDD) número" style="flex: 1 1 260px; max-width: 520px;">`
         },
         {
-            texto: 'Empresa',
-            elemento: toggleOpcoesHtml({ name: 'emissor', opcoes: EMPRESAS_FATURAMENTO.map(([valor, texto]) => ({ valor, texto })), valor: emissorAtual, desmarcavel: false, compacto: true })
+            texto: 'Empresa de faturamento <b style="color: #d9534f;">*</b>',
+            elemento: `<div data-orc-emissor onchange="this.classList.remove('ce-invalido')">${toggleOpcoesHtml({ name: 'emissor', opcoes: EMPRESAS_FATURAMENTO.map(([valor, texto]) => ({ valor, texto })), valor: emissorAtual, desmarcavel: false, compacto: true })}</div>`
         },
         {
             texto: 'Condição de pagamento',
-            elemento: `<div id="condicao_orcamento" style="width: 100%;">${htmlCondicaoPag(condicaoOrcamento)}</div>`
+            elemento: `
+            <div class="ce-bloco orc-condicao" onchange="toggleCondicaoOrc(event, this)">
+                ${toggleOpcoesHtml({ name: 'condicaoAtiva', opcoes: [{ valor: 'N', texto: 'Não informar' }, { valor: 'S', texto: 'Informar' }], valor: condicaoPropria ? 'S' : 'N', desmarcavel: false, compacto: true })}
+                <div id="condicao_orcamento" style="display: ${condicaoPropria ? 'block' : 'none'}; width: 100%;">${htmlCondicaoPag(condicaoOrcamento)}</div>
+            </div>`
         },
         {
             texto: 'Limite de faturamento',
@@ -1634,6 +1647,13 @@ function analistaEscolhidoOrc(campo) {
     if (telefone) telefone.value = telefoneUsuarioOrc(dado)
 }
 
+// Liga/desliga a condição de pagamento (as mudanças dos selects dela também sobem até aqui).
+function toggleCondicaoOrc(evento, caixa) {
+    if (evento?.target?.name !== 'condicaoAtiva') return
+    const area = caixa.querySelector('#condicao_orcamento')
+    if (area) area.style.display = lerToggle(caixa, 'condicaoAtiva') === 'S' ? 'block' : 'none'
+}
+
 function toggleVendaDireta(caixa) {
     const ativa = lerToggle(caixa, 'vendaDiretaAtiva') === 'S'
     const area = caixa.querySelector('[data-venda-direta]')
@@ -1669,7 +1689,10 @@ async function buscarDadosCliente(campo) {
     const radioEmissor = emissorEmpresa
         ? painel.querySelector(`input[type="radio"][name="emissor"][value="${emissorEmpresa}"]`)
         : null
-    if (radioEmissor) radioEmissor.checked = true
+    if (radioEmissor) {
+        radioEmissor.checked = true
+        painel.querySelector('[data-orc-emissor]')?.classList.remove('ce-invalido')
+    }
     const condicaoEmpresa = normalizarCondicaoPag(empresaCliente.condicao_pagamento)
     const caixaCondicao = painel.querySelector('#condicao_orcamento')
     if (caixaCondicao && condicaoEmpresa) {
@@ -1755,6 +1778,20 @@ async function salvarDadosCliente(idOrcamento) {
     if (!painel)
         return popup({ mensagem: 'Formulário Dados do Cliente não encontrado. Feche e abra novamente.' })
 
+    // Empresa de faturamento é obrigatória (abre sem nenhuma marcada).
+    const emissor = lerToggle(painel, 'emissor')
+    if (!emissor) {
+        const caixaEmissor = painel.querySelector('[data-orc-emissor]')
+        caixaEmissor?.classList.remove('ce-invalido')
+        void caixaEmissor?.offsetWidth
+        caixaEmissor?.classList.add('ce-invalido')
+        caixaEmissor?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return popup({ mensagem: 'Escolha a <b>Empresa de faturamento</b> antes de salvar.' })
+    }
+
+    // Condição de pagamento só entra se o usuário ligou.
+    const informarCondicao = lerToggle(painel, 'condicaoAtiva') === 'S'
+
     overlayAguarde()
 
     try {
@@ -1784,7 +1821,9 @@ async function salvarDadosCliente(idOrcamento) {
         const consideracoes = editorEscopo && editorEscopo.innerText.trim() ? editorEscopo.innerHTML.trim() : ''
 
         // Condição de pagamento (mesma peça do pedido): "condicoes" guarda o texto (PDF e telas antigas).
-        const { condicao: condicao_pagamento, erros: errosCondicao } = lerCondicaoPag(painel.querySelector('#condicao_orcamento [data-condicao-pag]'))
+        const { condicao: condicao_pagamento, erros: errosCondicao } = informarCondicao
+            ? lerCondicaoPag(painel.querySelector('#condicao_orcamento [data-condicao-pag]'))
+            : { condicao: null, erros: [] }
         if (errosCondicao.length)
             return popup({ mensagem: `Condição de pagamento: ${errosCondicao[0]}` })
 
@@ -1801,7 +1840,7 @@ async function salvarDadosCliente(idOrcamento) {
             data: dataServidor().toLocaleString('pt-BR'),
             garantia: el('garantia').value,
             tipo_de_frete: lerToggle(painel, 'tipo_de_frete'),
-            emissor: lerToggle(painel, 'emissor') || 'AC',
+            emissor,
             email_analista: el('email_analista').value.trim(),
             analista: lerEscolhaRotulo(campo('analista')) || '',
             telefone_analista: el('telefone_analista').value.trim(),

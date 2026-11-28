@@ -2471,3 +2471,7 @@ textarea,
     -webkit-user-select: text;
     user-select: text;
 }
+
+/* Itens do menu que só valem com a tela de criar orçamento aberta (esquema_botoes.js, soCriandoOrcamento):
+   Dados Cliente / Salvar / Apagar Orçamento somem fora dela. */
+body:not(:has(.contorno-tela-criar-orcamento)) .menu-so-criando-orcamento { display: none; }
