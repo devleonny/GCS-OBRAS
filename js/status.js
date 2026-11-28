@@ -549,7 +549,9 @@ async function iniciarChamadoProspeccao(id) {
     const { dados_orcam } = await recuperarDado('dados_orcamentos', id) || {}
     const { omie_cliente, contrato } = dados_orcam || {}
 
-    const existente = await consultarChamadoOrcamento(contrato)
+    const existente = await chamadoDoOrcamento(contrato)
+    if (existente?.vinculadoA && existente.excluido == null)
+        return popup({ mensagem: `Este orçamento é vinculado ao chamado ${escaparAtributo(existente.vinculadoA)}: o fluxo dele anda na aba ${escaparAtributo(contrato)} desse chamado.` })
     if (existente?.excluido != null) {
         popup({ mensagem: `O chamado ${escaparAtributo(contrato)} deste orçamento foi excluído. Restaure o chamado antes de continuar.` })
         return
@@ -773,23 +775,37 @@ async function consultarChamadoOrcamento(contrato) {
     return chamado
 }
 
+// Chamado que o orçamento usa: o do master quando é vinculado (o chamado próprio do vinculado sai
+// excluído "Vinculado ao chamado ..."; o fluxo dele anda numa aba do chamado master). Volta com vinculadoA.
+async function chamadoDoOrcamento(contrato) {
+    const { master } = await recuperarDado('contratos_vinculados', contrato).catch(() => null) || {}
+    if (master && master !== contrato) {
+        const chamadoMaster = await consultarChamadoOrcamento(master)
+        if (chamadoMaster) return { ...chamadoMaster, vinculadoA: master }
+    }
+    return consultarChamadoOrcamento(contrato)
+}
+
 async function checklistChamado(id, chamadoConsultado = undefined) {
 
     const contrato = controles.ocorrencias.ativo
 
     // Para abrir transformar um orcamento em chamado, ele precisa ter um pedido (Enviado e Aprovado);
     const existente = chamadoConsultado === undefined
-        ? await consultarChamadoOrcamento(contrato)
+        ? await chamadoDoOrcamento(contrato)
         : chamadoConsultado
+    const idChamado = existente?.vinculadoA || contrato
 
     const pChamado = existente?.excluido != null
-        ? `<div role="status"><strong>Chamado excluído</strong><p>O chamado ${escaparAtributo(contrato)} deste orçamento foi excluído. É necessário restaurá-lo antes de voltar a utilizá-lo.</p></div>`
+        ? `<div role="status"><strong>Chamado excluído</strong><p>O chamado ${escaparAtributo(idChamado)} deste orçamento foi excluído. É necessário restaurá-lo antes de voltar a utilizá-lo.</p></div>`
         : existente
         ?
         `
                 <div class="chamado-aberto">
                     <img src="imagens/concluido.png">
-                    <span>Chamado já aberto > ${contrato}</span>
+                    <span>${existente.vinculadoA
+                        ? `Vinculado ao chamado > ${escaparAtributo(idChamado)} <small>(aba ${escaparAtributo(contrato)})</small>`
+                        : `Chamado já aberto > ${contrato}`}</span>
                 </div>
             `
         : `
@@ -811,7 +827,9 @@ async function auxAberturaChamado(id) {
     const { dados_orcam } = await recuperarDado('dados_orcamentos', id) || {}
     const { contrato, omie_cliente } = dados_orcam || {}
 
-    const existente = await consultarChamadoOrcamento(contrato)
+    const existente = await chamadoDoOrcamento(contrato)
+    if (existente?.vinculadoA && existente.excluido == null)
+        return popup({ mensagem: `Este orçamento é vinculado ao chamado ${escaparAtributo(existente.vinculadoA)}: o fluxo dele anda na aba ${escaparAtributo(contrato)} desse chamado.` })
     if (existente?.excluido != null) {
         popup({ mensagem: `O chamado ${escaparAtributo(contrato)} deste orçamento foi excluído. Restaure o chamado antes de continuar.` })
         return
@@ -1026,7 +1044,7 @@ async function abrirEsquema(id) {
         controles.ocorrencias ??= {}
         controles.ocorrencias.ativo = contrato
 
-        const chamado = await consultarChamadoOrcamento(contrato)
+        const chamado = await chamadoDoOrcamento(contrato)
         const statusOcorrencia = chamado?.excluido != null
             ? ['CHAMADO EXCLUÍDO']
             : !chamado ? ['CHAMADO NÃO ABERTO']
