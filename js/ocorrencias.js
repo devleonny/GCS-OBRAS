@@ -544,7 +544,7 @@ function carregarCorrecoes(ocorrencia) {
             return `<div 
                 id="aba_${idOcorrencia}_${aba}" 
                 onclick="exibirAba('${idOcorrencia}', '${aba}')" 
-                class="aba-correcao${aba == abaInicial ? ' ativa' : ''}">${abas?.[aba]?.orcamento ? `<span class="aba-orcamento">${abas[aba].orcamento}</span>` : ''}${formatacaoTipoCorrecao(st)}</div>`
+                class="aba-correcao${aba == abaInicial ? ' ativa' : ''}">${abas?.[aba]?.orcamento ? rotuloOrcamentoAba(abas[aba].orcamento) : ''}${formatacaoTipoCorrecao(st)}</div>`
         })
     )]
 
@@ -3025,6 +3025,13 @@ function faixaGarantia(garantia, correcao) {
     return `<div class="garantia-faixa">Chamado ainda não concluído: a garantia começa na primeira nota ou na solução.${desta}</div>`
 }
 
+// Etiqueta do orçamento na aba do chamado (e no formulário): "ORC" discreto + número em destaque.
+function rotuloOrcamentoAba(contrato) {
+    const texto = String(contrato || '')
+    const [, prefixo, numero] = texto.match(/^([A-Za-z]+)[_\s-]*(.+)$/) || [null, '', texto]
+    return `<span class="aba-orcamento">${prefixo ? `<span class="aba-orcamento-prefixo">${prefixo}</span>` : ''}<span class="aba-orcamento-numero">${numero}</span></span>`
+}
+
 // preset (opcional): { tipoCorrecao, nome } abre a correção nova com o status já escolhido (ex.: atalho
 // REPROVADO PELO FINANCEIRO do orçamento, que vai na aba do orçamento: novoFluxo = id do orçamento).
 async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, preset = null) {
@@ -3127,7 +3134,7 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, pr
         ...(orcamentoDaAba
             ? [{
                 texto: 'Fluxo do orçamento',
-                elemento: `<span class="aba-orcamento" style="font-size: 0.9rem;">${orcamentoDaAba}</span>`
+                elemento: rotuloOrcamentoAba(orcamentoDaAba)
             }]
             : []
         ),

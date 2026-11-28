@@ -896,10 +896,36 @@
 
 /* Número do orçamento na aba (chamado com orçamentos vinculados: cada um com a sua aba). */
 .aba-orcamento {
-    display: block;
-    font-size: 0.7rem;
-    font-weight: bold;
-    color: #222;
+    display: inline-flex;
+    align-items: stretch;
+    align-self: flex-start;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #c9d3dd;
+    background: #fff;
+    font-size: 0.72rem;
+    line-height: 1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.aba-orcamento-prefixo {
+    padding: 3px 5px;
+    background: #2f4a63;
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    font-size: 0.62rem;
+    display: flex;
+    align-items: center;
+}
+
+.aba-orcamento-numero {
+    padding: 3px 7px;
+    color: #2f4a63;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
 }
 
 .scroll-aba {
