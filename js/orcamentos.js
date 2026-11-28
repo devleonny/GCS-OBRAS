@@ -41,9 +41,14 @@ const TOUR_ORCAMENTOS = [
         texto: '<p>O status do orçamento é o status do chamado. Clique em um para ver só os orçamentos dele; <b>TODOS</b> volta a lista inteira.</p><p>A setinha ao lado recolhe esta bandeja e dá mais espaço para a tabela.</p>'
     },
     {
-        alvo: '.orc-tela .tabela > thead',
+        alvo: '.orc-tela .tabela > thead > tr:first-child',
+        titulo: 'Arrumar as colunas',
+        texto: '<p>Do seu jeito, e fica salvo no seu perfil:</p><ul><li><b>Clique</b> no título para ordenar.</li><li><b>Segure e arraste</b> o título para mudar a coluna de lugar.</li><li>O <b>«</b> no título esconde a coluna; no lugar fica uma faixa listrada que, clicada, mostra de novo as escondidas.</li><li>Arraste a <b>divisória</b> entre os títulos para mudar a largura; duplo clique nela volta ao automático.</li></ul>'
+    },
+    {
+        alvo: '.orc-tela .tabela > thead > tr:nth-child(2)',
         titulo: 'Filtros nas colunas',
-        texto: '<p>Cada coluna tem o seu <b>funil</b> para pesquisar. Nas colunas de dinheiro dá para buscar o valor: <kbd>123,52</kbd>, <kbd>&gt;1000</kbd>, <kbd>&lt;0</kbd> ou <kbd>100 a 200</kbd>.</p><p>Clicando no título você ordena, arrasta para mudar a ordem ou esconde a coluna.</p>'
+        texto: '<p>Cada coluna tem o seu <b>funil</b>: ele abre as opções (Contém, Igual a, Em branco...) e o campo ao lado recebe o que você procura.</p><p>Nas colunas de dinheiro dá para buscar o valor: <kbd>123,52</kbd>, <kbd>&gt;1000</kbd>, <kbd>&lt;0</kbd> ou <kbd>100 a 200</kbd>.</p>'
     },
     {
         alvo: primeiraLinhaOrc('td.tabela-coluna-detalhes'),
