@@ -181,7 +181,7 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
 
 function textoClienteDiferente({ nome, cidade, estado } = {}) {
     // A cidade costuma vir como "OSASCO (SP)".
-    const local = [String(cidade || '').replace(/s*([A-Z]{2})s*$/, ''), estado].filter(Boolean).join('/')
+    const local = [String(cidade || '').replace(/ *[(][A-Z]{2}[)] *$/, ''), estado].filter(Boolean).join('/')
     return escaparAtributo(nome + (local ? ` (${local})` : ''))
 }
 
