@@ -2010,7 +2010,17 @@
 }
 
 .arvore-ramo:last-child::before {
-    bottom: 50%;
+    bottom: calc(50% + 9px);
+}
+
+/* Sobe até encostar no balão do principal (o balão fica por cima da ponta da linha). */
+.arvore-ramo:first-child::before {
+    top: -14px;
+}
+
+.arvore-no .aba-orcamento {
+    position: relative;
+    z-index: 1;
 }
 
 /* curva até o vinculado */
@@ -2018,9 +2028,12 @@
     content: '';
     position: absolute;
     left: 0;
+    box-sizing: border-box;
     top: calc(50% - 10px);
-    width: 18px;
-    height: 10px;
+    /* recuo do ramo (22) + borda (1) + espaço interno do nó (8) + 1 por baixo do balão */
+    width: 32px;
+    height: 11px;
+    pointer-events: none;
     border-left: 2px solid #c3ccd6;
     border-bottom: 2px solid #c3ccd6;
     border-bottom-left-radius: 8px;
