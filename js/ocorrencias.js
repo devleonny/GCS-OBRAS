@@ -3094,6 +3094,13 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, pr
     // (a correção leva o idOrcamento; status e rótulo da aba seguem esse orçamento).
     const orcamentosChamado = Array.isArray(ocorrencia?.snapshots?.orcamentos) ? ocorrencia.snapshots.orcamentos : []
     const escolherOrcamento = novoFluxo == 'S' && orcamentosChamado.length > 1
+    // Correção dentro de uma aba (ou edição) num chamado com vinculados: mostra de qual orçamento é o fluxo.
+    const abaDaCorrecao = novoFluxo && novoFluxo != 'S' ? novoFluxo : correcao?.aba
+    const orcamentoDaAba = !escolherOrcamento && orcamentosChamado.length > 1
+        ? (ocorrencia?.snapshots?.abas?.[abaDaCorrecao]?.orcamento
+            || orcamentosChamado.find(o => o.id == novoFluxo || o.id == correcao?.idOrcamento)?.contrato
+            || null)
+        : null
 
     const linhas = [
         ...(novoFluxo
@@ -3111,9 +3118,16 @@ async function formularioCorrecao(idOcorrencia, idCorrecao, novoFluxo = null, pr
             ? [{
                 texto: 'Fluxo do orçamento',
                 elemento: `
-                    <select id="fluxoOrcamento">
+                    <select id="fluxoOrcamento" style="font-weight: bold;">
                         ${orcamentosChamado.map(o => `<option value="${o.id}">${o.contrato}${o.master ? ' (principal)' : ''}</option>`).join('')}
                     </select>`
+            }]
+            : []
+        ),
+        ...(orcamentoDaAba
+            ? [{
+                texto: 'Fluxo do orçamento',
+                elemento: `<span class="aba-orcamento" style="font-size: 0.9rem;">${orcamentoDaAba}</span>`
             }]
             : []
         ),
