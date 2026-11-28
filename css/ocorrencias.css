@@ -1898,7 +1898,10 @@
 .arvore-orcamentos {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    align-self: stretch;
+    box-sizing: border-box;
+    width: calc(100% - 4px);
     margin: 6px 2px 8px;
     padding: 8px 10px;
     background: #f6f8fa;
@@ -1907,7 +1910,9 @@
 }
 
 .arvore-no {
-    display: inline-flex;
+    display: flex;
+    box-sizing: border-box;
+    min-width: 0;
     align-items: center;
     gap: 8px;
     padding: 4px 8px;
@@ -1958,9 +1963,10 @@
 }
 
 .arvore-status {
+    min-width: 0;
     font-size: 0.7rem;
     color: #5b6b7a;
-    max-width: 22rem;
+    text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2039,7 +2045,13 @@
     border-bottom-left-radius: 8px;
 }
 
-.arvore-icone + .arvore-icone {
+/* Ícones encostados à direita, na mesma coluna em todas as linhas. */
+.arvore-no > .arvore-icone {
+    flex: none;
+    margin-left: auto;
+}
+
+.arvore-no > .arvore-icone + .arvore-icone {
     margin-left: -6px;
 }
 
