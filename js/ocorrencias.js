@@ -543,7 +543,8 @@ function carregarCorrecoes(ocorrencia) {
 
             return `<div 
                 id="aba_${idOcorrencia}_${aba}" 
-                onclick="exibirAba('${idOcorrencia}', '${aba}')" 
+                onclick="exibirAba('${idOcorrencia}', '${aba}')"
+                data-orcamento="${abas?.[aba]?.orcamento || ''}"
                 class="aba-correcao${aba == abaInicial ? ' ativa' : ''}">${abas?.[aba]?.orcamento ? rotuloOrcamentoAba(abas[aba].orcamento) : ''}${formatacaoTipoCorrecao(st)}</div>`
         })
     )]
@@ -935,6 +936,27 @@ function exibirAba(idOcorrencia, aba) {
 
 }
 
+// Clique num orçamento do esquema: só as abas dele ficam no trilho (abre a primeira); clicar de novo mostra todas.
+function filtrarAbasOrcamento(idOcorrencia, contrato, no) {
+    const arvore = no.closest('.arvore-orcamentos')
+    const jaAtivo = no.classList.contains('selecionado')
+    arvore?.querySelectorAll('.arvore-no').forEach(n => n.classList.remove('selecionado'))
+    if (!jaAtivo) no.classList.add('selecionado')
+    arvore?.classList.toggle('filtrando', !jaAtivo)
+
+    const abas = [...document.querySelectorAll(`[id^="aba_${idOcorrencia}_"]`)]
+    for (const aba of abas)
+        aba.style.display = jaAtivo || aba.dataset.orcamento === contrato ? '' : 'none'
+
+    if (jaAtivo) return
+    const visiveis = abas.filter(a => a.style.display !== 'none')
+    const alvo = visiveis.find(a => a.classList.contains('ativa')) || visiveis[0]
+    if (alvo)
+        exibirAba(idOcorrencia, alvo.id.slice(`aba_${idOcorrencia}_`.length))
+    else
+        popup({ mensagem: `${contrato} ainda não tem aba neste chamado. Use "+ Novo fluxo" e escolha ${contrato}.` })
+}
+
 function abaCorrecao({ idOcorrencia, aba = crypto.randomUUID(), corrHTML, abaInicial }) {
     let btnCorrecao = ''
     const pagParceiro = corrHTML.some(corr => corr.includes('24e1ea27-1bd8-451a-b5bf-edda134cfdd6'))
@@ -1280,30 +1302,42 @@ function criarLinhaOcorrencia(ocorrencia) {
         ? `<button onclick="vincularChamadoOutro('${id}')" title="O orçamento ${id} passa a usar o outro chamado; este sai como vinculado">Vincular a outro chamado</button>`
         : ''
 
-    const spanNumOrcs = (contratos_vinculados || {})
-        .map(c => {
-
-            const {
-                contrato,
-                id_orcamento
-            } = c
-
-            const btns = apenasAutorizados && id_orcamento
-                ? `
-                    <img class="pesquisar-branco" src="imagens/pesquisar.svg" onclick="abrirAtalhos('${id_orcamento}')">
-                    <img src="imagens/pasta.svg" onclick="abrirEsquema('${id_orcamento}')">
-                `
-                : ''
-
-            return `
-                <div class="etiqueta-chamado">
-                    ${btns}
-                    <span>${contrato}</span>
-                </div>
-                `
-
-        })
-        .join('<img src="imagens/link2.png">')
+    // Esquema dos orçamentos do chamado: o principal (contrato = chamado) em cima e os vinculados
+    // pendurados nele. Clicar num orçamento deixa só as abas dele; clicar de novo mostra todas.
+    const listaOrcs = [...(contratos_vinculados || [])]
+        .sort((a, b) => (b.contrato === id) - (a.contrato === id) || String(a.contrato).localeCompare(String(b.contrato)))
+    const variosOrcs = listaOrcs.length > 1
+    const abasSnap = ocorrencia?.snapshots?.abas || {}
+    const noOrcamento = ({ contrato, id_orcamento }, principal) => {
+        const btns = apenasAutorizados && id_orcamento
+            ? `
+                <img class="arvore-icone" title="Atalhos do orçamento" src="imagens/pesquisar.svg" onclick="event.stopPropagation(); abrirAtalhos('${id_orcamento}')">
+                <img class="arvore-icone" title="Esquema do orçamento" src="imagens/pasta.svg" onclick="event.stopPropagation(); abrirEsquema('${id_orcamento}')">
+            `
+            : ''
+        const status = variosOrcs
+            ? Object.values(abasSnap).filter(a => a?.orcamento === contrato && a?.nome).map(a => a.nome)
+            : []
+        const statusHTML = status.length
+            ? `<span class="arvore-status">${status.slice(0, 2).join(' · ')}${status.length > 2 ? ` +${status.length - 2}` : ''}</span>`
+            : ''
+        return `
+            <div class="arvore-no${principal ? ' principal' : ''}" data-contrato="${contrato}"
+                ${variosOrcs ? `onclick="filtrarAbasOrcamento('${id}', '${contrato}', this)" title="Mostrar só as abas de ${contrato}"` : ''}>
+                ${rotuloOrcamentoAba(contrato)}
+                ${principal && variosOrcs ? '<span class="arvore-tag">principal</span>' : ''}
+                ${statusHTML}
+                ${btns}
+            </div>`
+    }
+    const [raiz, ...filhos] = listaOrcs
+    const spanNumOrcs = raiz
+        ? `
+            <div class="arvore-orcamentos">
+                ${noOrcamento(raiz, raiz.contrato === id)}
+                ${filhos.length ? `<div class="arvore-filhos">${filhos.map(f => `<div class="arvore-ramo">${noOrcamento(f, false)}</div>`).join('')}</div>` : ''}
+            </div>`
+        : ''
 
     const possiveisTags = (apenasAutorizados && listaTags)
         ? `<div style="${vertical}; gap: 1px;">
@@ -1359,11 +1393,13 @@ function criarLinhaOcorrencia(ocorrencia) {
 
             <div class="bloco-linha">
 
+                ${(criarOrcamento || vincularChamado) ? `
                 <div class="linha-orcamentos">
-                    ${spanNumOrcs}
                     ${criarOrcamento}
                     ${vincularChamado}
-                </div>
+                </div>` : ''}
+
+                ${spanNumOrcs}
 
                 <div class="bloco-principal">${blocoPrincipal}</div>
 
