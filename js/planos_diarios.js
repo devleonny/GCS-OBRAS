@@ -42,6 +42,7 @@ async function telaPlanosDiarios() {
                 ${campoEscolhaHtml({ fonte: 'planosDiarios', name: 'planoDiarioEscolha', placeholder: 'Pesquise por orçamento, cliente ou obra…', aoMudar: 'escolherPlanoDiario' })}
                 ${pode('checklist.projetos') ? '<button type="button" class="diario-novo" onclick="adicionarOrcamentoDiario()">+ Adicionar orçamento</button>' : ''}</div>
                 <div class="diario-acoes"><button id="botaoSalvarPlanoDiario" onclick="salvarPlanoDiario()" disabled>Salvar</button>
+                <button id="compartilharPlanoDiario" onclick="compartilharPlanoDiario()" hidden>Compartilhar</button>
                 <button id="itensPlanoDiario" onclick="editarItensDiario()" hidden>Itens</button>
                 <button id="baixarPlanoDiario" onclick="baixarWordPlanoDiario()" disabled>Baixar Word</button>
                 <button id="baixarPdfPlanoDiario" onclick="baixarWordPlanoDiario('pdf')" disabled>Baixar PDF</button>
@@ -97,6 +98,7 @@ async function abrirPlanoDiario(id) {
         estadoPlanoDiario.plano = null; estadoPlanoDiario.alterado = false
         document.getElementById('planoDiarioConteudo').replaceChildren()
         document.getElementById('diasPlanoDiario').replaceChildren()
+        faixaLinkDiario()
         desenharGaleriaPlanoDiario()
         mostrarEscolhaPlanoDiario()
         controlesDocumentoDiario(); return
@@ -144,6 +146,8 @@ function controlesDocumentoDiario() {
         excluir.hidden = e.origem || !e.plano || !e.dias.some(d => d.data_ref === e.data)
         excluir.disabled = ocupado
     }
+    const compartilhar = document.getElementById('compartilharPlanoDiario')
+    if (compartilhar) { compartilhar.hidden = !e.plano || !pode('checklist.compartilhar'); compartilhar.disabled = ocupado }
     const pdf = document.getElementById('baixarPdfPlanoDiario')
     if (pdf) pdf.disabled = baixar?.disabled ?? true
     document.querySelectorAll('.diario-escolha input, .diario-escolha button').forEach(el => { el.disabled = ocupado })
@@ -156,6 +160,19 @@ function controlesDocumentoDiario() {
     document.querySelectorAll('#diasPlanoDiario button, #diasPlanoDiario input').forEach(el => { el.disabled = ocupado })
 }
 
+function desenharDiasPlanoDiario() {
+    const e = estadoPlanoDiario
+    document.getElementById('diasPlanoDiario').innerHTML = (e.modelo?.dinamico ? '' : `<button type="button" class="diario-dia diario-origem ${e.origem ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${e.plano.inicio}', true)">Origem</button>`)
+        + e.dias.slice().sort((a, b) => a.data_ref.localeCompare(b.data_ref)).map(d =>
+        `<button type="button" class="diario-dia ${!e.origem && d.data_ref === e.data ? 'selecionado' : ''} ${pendenteLinkDiario(d) ? 'diario-a-conferir' : ''}" onclick="selecionarDataPlanoDiario('${d.data_ref}')"><span aria-label="${pendenteLinkDiario(d) ? 'Preenchido pelo link, a conferir' : 'Preenchido'}">${pendenteLinkDiario(d) ? '●' : '✓'}</span> ${dataPlanoDiario(d.data_ref)}</button>`).join('')
+    const salvo = e.dias.some(d => d.data_ref === e.data)
+    document.getElementById('diasPlanoDiario').insertAdjacentHTML('beforeend', `
+        ${!e.origem && !salvo ? `<button type="button" class="diario-dia diario-novo-dia selecionado">${dataPlanoDiario(e.data)} · ainda não salvo</button>` : ''}
+        <label class="diario-outro-dia">Preencher outro dia <input type="date" id="outroDiaPlanoDiario" value="${e.data}" min="2020-01-01" max="2099-12-31"
+            onchange="escolherOutroDiaPlanoDiario(this)"></label>`)
+    faixaLinkDiario()
+}
+
 async function renderizarPlanoDiario() {
     const e = estadoPlanoDiario
     const sequencia = ++e.sequencia
@@ -165,14 +182,7 @@ async function renderizarPlanoDiario() {
     controlesDocumentoDiario()
     const local = document.getElementById('planoDiarioConteudo')
     local.innerHTML = '<div class="diario-carregando"><img src="gifs/loading-gcs.png" alt="Carregando"></div>'
-    document.getElementById('diasPlanoDiario').innerHTML = (e.modelo?.dinamico ? '' : `<button type="button" class="diario-dia diario-origem ${e.origem ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${e.plano.inicio}', true)">Origem</button>`)
-        + e.dias.slice().sort((a, b) => a.data_ref.localeCompare(b.data_ref)).map(d =>
-        `<button type="button" class="diario-dia ${!e.origem && d.data_ref === e.data ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${d.data_ref}')"><span aria-label="Preenchido">✓</span> ${dataPlanoDiario(d.data_ref)}</button>`).join('')
-    const salvo = e.dias.some(d => d.data_ref === e.data)
-    document.getElementById('diasPlanoDiario').insertAdjacentHTML('beforeend', `
-        ${!e.origem && !salvo ? `<button type="button" class="diario-dia diario-novo-dia selecionado">${dataPlanoDiario(e.data)} · ainda não salvo</button>` : ''}
-        <label class="diario-outro-dia">Preencher outro dia <input type="date" id="outroDiaPlanoDiario" value="${e.data}" min="2020-01-01" max="2099-12-31"
-            onchange="escolherOutroDiaPlanoDiario(this)"></label>`)
+    desenharDiasPlanoDiario()
     try {
         const [arquivo] = await Promise.all([apiPlanoDiario('visualizar', { plano: e.plano.id, data: e.data, origem: e.origem }, true), carregarBibliotecasDiario()])
         if (sequencia !== e.sequencia || !local.isConnected) return
@@ -430,6 +440,7 @@ function desenharGaleriaPlanoDiario() {
                                     ${qtde ? `<small>${qtde} ${qtde === 1 ? 'marcação' : 'marcações'}</small>` : ''}
                                 </span>
                                 ${fora ? `<span class="diario-galeria-fora">${fora}</span>` : ''}
+                                ${f.link_id ? `<small class="diario-galeria-autor">${escaparAtributo(f.usuario)}</small>` : ''}
                                 ${comentario ? `<span class="diario-galeria-comentario">${escaparAtributo(comentario)}</span>` : ''}
                             </button>
                             ${f.layout ? `<button type="button" class="diario-galeria-desenho" onclick="abrirLayoutDiario('${escaparAtributo(f.id)}')">Editar desenho</button>` : ''}

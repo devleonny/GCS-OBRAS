@@ -18,7 +18,7 @@ const crypto = require('crypto')
 const { execFileSync } = require('child_process')
 
 const RAIZ = path.resolve(__dirname, '..')
-const PAGINAS = ['index.html', 'pdf.html']
+const PAGINAS = ['index.html', 'pdf.html', 'checklist.html']
 const MAPA_CSS = 'js/versoes_css.js'
 const REFERENCIA = /((?:src|href)=")((?:css|js)\/[^"?#]+)(\?v=[^"#]*)?(")/g
 // Versão do site: carimbada no index.html e publicada em versao.json para o aviso de nova versão.

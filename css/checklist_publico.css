@@ -1,0 +1,87 @@
+/* Página pública do checklist (checklist.html), pensada para o celular. */
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; padding-bottom: calc(70px + env(safe-area-inset-bottom)); background: #eef2ef; color: #202925; font: 15px/1.4 system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; }
+:focus-visible { outline: 2px solid #269368; outline-offset: 2px; }
+.ck-topo { position: sticky; top: 0; z-index: 5; padding: calc(10px + env(safe-area-inset-top)) 14px 0; background: #173f31; color: #fff; }
+.ck-topo > * { max-width: 760px; margin-inline: auto; }
+.ck-marca { display: flex; align-items: center; gap: 10px; }
+.ck-marca img { width: 34px; height: 34px; padding: 3px; border-radius: 8px; background: #fff; }
+.ck-marca div { min-width: 0; }
+.ck-marca h1 { margin: 0; font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; }
+.ck-marca small { color: #b9d3c6; font-size: 12px; }
+.ck-dia { display: flex; gap: 8px; padding: 10px 0; }
+.ck-dia button { width: 46px; height: 42px; border: 0; border-radius: 10px; background: #ffffff1f; color: #fff; font-size: 24px; line-height: 1; }
+.ck-dia label { position: relative; flex: 1; display: grid; place-items: center; height: 42px; border-radius: 10px; background: #ffffff1f; font-weight: 600; }
+.ck-dia input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.ck-dia input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ck-progresso { height: 5px; max-width: none; margin-inline: -14px; background: #ffffff26; }
+.ck-progresso i { display: block; height: 100%; background: #5fd39b; transition: width .3s; }
+.ck-situacao { padding: 7px 14px; background: #fff4d6; color: #6b4a00; font-size: 13px; text-align: center; }
+.ck-situacao.ck-fora { background: #fde3e1; color: #8a1f1a; }
+main { max-width: 760px; margin: 0 auto; padding: 12px; }
+main h2 { margin: 14px 2px 8px; font-size: 15px; color: #244a37; }
+.ck-vazio { padding: 26px 16px; text-align: center; color: #5b6b61; }
+.ck-cartao { margin-bottom: 10px; padding: 14px; border-radius: 12px; background: #fff; box-shadow: 0 1px 3px #10201914; }
+.ck-filtro { width: 100%; margin-bottom: 10px; padding: 11px 14px; border: 1px solid #cddbd2; border-radius: 10px; background: #fff; font-size: 16px; }
+.ck-item-topo { display: flex; align-items: flex-start; gap: 9px; }
+.ck-item-topo i { flex: none; min-width: 24px; height: 24px; padding: 0 5px; border-radius: 12px; color: #fff; font: 700 13px/24px Arial; text-align: center; }
+.ck-item-topo b { font-size: 15px; overflow-wrap: anywhere; }
+.ck-barra { height: 7px; margin: 10px 0 5px; border-radius: 4px; background: #e6eee9; overflow: hidden; }
+.ck-barra i { display: block; height: 100%; background: #269368; transition: width .2s; }
+.ck-numeros { color: #5b6b61; }
+.ck-qtde { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.ck-qtde span { flex: 1; font-size: 13px; color: #3c4a42; }
+.ck-qtde button { width: 48px; height: 46px; border: 1px solid #cddbd2; border-radius: 10px; background: #f4f8f5; color: #1f7a56; font-size: 24px; line-height: 1; }
+.ck-qtde input { width: 92px; height: 46px; border: 1px solid #cddbd2; border-radius: 10px; background: #fff; font-size: 18px; font-weight: 600; text-align: center; }
+.ck-botoes { display: flex; gap: 10px; }
+.ck-botoes > * { flex: 1; }
+.ck-principal, .ck-secundario, .ck-apagar { display: grid; place-items: center; min-height: 50px; padding: 0 16px; border: 1px solid #269368; border-radius: 12px; font-weight: 700; cursor: pointer; }
+.ck-principal { background: #269368; color: #fff; }
+.ck-secundario { background: #fff; color: #1f7a56; }
+.ck-apagar { border-color: #dbb6b4; background: #fff; color: #9c2b28; }
+.ck-aparelho { display: block; padding: 10px; color: #1f7a56; font-size: 13px; text-align: center; text-decoration: underline; cursor: pointer; }
+.ck-dica { margin: 0 2px 10px; color: #5b6b61; font-size: 13px; }
+.ck-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.ck-grade.ck-larga { grid-template-columns: 1fr; }
+.ck-foto { margin: 0; overflow: hidden; border-radius: 12px; background: #fff; box-shadow: 0 1px 3px #10201914; cursor: pointer; }
+.ck-foto > div { position: relative; min-height: 110px; background: #e3eae6; }
+.ck-foto img { display: block; width: 100%; }
+.ck-grade:not(.ck-larga) .ck-foto img { aspect-ratio: 4 / 3; object-fit: contain; }
+.ck-grade:not(.ck-larga) .ck-foto svg { display: none; }
+.ck-foto svg, .ck-camada svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ck-foto figcaption { padding: 8px 10px; font-size: 13px; color: #3c4a42; overflow-wrap: anywhere; }
+.ck-foto em { display: block; color: #8a5a00; font-size: 11.5px; }
+.ck-form { display: flex; flex-direction: column; gap: 14px; }
+.ck-form label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: #3c4a42; }
+.ck-form input, .ck-form textarea, .ck-tela textarea, .ck-tela select { width: 100%; padding: 11px 12px; border: 1px solid #cddbd2; border-radius: 10px; background: #fff; font-size: 16px; }
+.ck-dias { display: flex; flex-wrap: wrap; gap: 8px; }
+.ck-dias button { padding: 9px 12px; border: 1px solid #c4dccb; border-radius: 10px; background: #fff; color: #286541; }
+.ck-dias button.ativa { background: #e3f2e8; border-color: #269368; font-weight: 700; }
+.ck-abas { position: fixed; z-index: 6; inset: auto 0 0; display: flex; padding-bottom: env(safe-area-inset-bottom); background: #fff; border-top: 1px solid #d8e2dc; }
+.ck-abas button { flex: 1; height: 56px; border: 0; border-top: 3px solid transparent; background: none; color: #5b6b61; font-weight: 600; }
+.ck-abas button.ativa { border-top-color: #269368; color: #1f7a56; }
+.ck-tela { position: fixed; z-index: 20; inset: 0; display: flex; flex-direction: column; background: #16211c; }
+.ck-tela-topo { display: flex; align-items: center; gap: 8px; padding: calc(8px + env(safe-area-inset-top)) 10px 8px; color: #fff; font-size: 14px; }
+.ck-tela-topo span { flex: 1; color: #b9d3c6; font-size: 12px; }
+.ck-tela-topo button { min-width: 42px; height: 40px; padding: 0 12px; border: 0; border-radius: 9px; background: #ffffff22; color: #fff; }
+.ck-palco { flex: 1; min-height: 0; overflow: auto; -webkit-overflow-scrolling: touch; }
+.ck-quadro { position: relative; width: 100%; }
+.ck-quadro img { display: block; width: 100%; min-height: 120px; }
+.ck-camada { position: absolute; inset: 0; touch-action: pan-x pan-y; }
+.ck-tela-pe { display: flex; flex-direction: column; gap: 9px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: #fff; }
+.ck-tela-pe p { margin: 0; color: #3c4a42; font-size: 14px; }
+.ck-tela-pe p:empty { display: none; }
+.ck-marcar { display: flex; flex-wrap: wrap; gap: 8px; }
+.ck-marcar select { flex: 1 1 100%; }
+.ck-marcar button { flex: 1; height: 42px; border: 1px solid #cddbd2; border-radius: 10px; background: #fff; color: #244a37; }
+.ck-marcar button.ativa { border-color: #269368; background: #e3f2e8; font-weight: 700; }
+.ck-aviso { position: fixed; z-index: 40; left: 12px; right: 12px; top: calc(60px + env(safe-area-inset-top)); pointer-events: none; max-width: 520px; margin: 0 auto; padding: 13px 16px; border-radius: 12px; background: #1f7a56; color: #fff; box-shadow: 0 6px 20px #0004; }
+.ck-aviso.ck-erro { background: #9c2b28; }
+.ck-confirmar { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 20px; background: #0009; }
+.ck-confirmar > div { width: 100%; max-width: 380px; padding: 18px; border-radius: 14px; background: #fff; }
+.ck-confirmar p { margin: 0 0 16px; }
+.cam-gcs { z-index: 60 !important; }

@@ -158,3 +158,19 @@
 .diario-outro-dia { display: inline-flex; align-items: center; gap: 8px; margin-left: 6px; font-size: 13px; color: #4f5d55; }
 .diario-outro-dia input { padding: 6px 8px; border: 1px solid #c4dccb; border-radius: 5px; background: #fff; color: #244a37; font: inherit; }
 .diario-novo-dia { border-style: dashed; color: #8a5a00; cursor: default; }
+
+/* Link compartilhável: conferência do dia e gestão dos links. */
+.diario-faixa-link { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 0 24px 12px; padding: 9px 14px; border: 1px solid #f0d9a8; border-radius: 8px; background: #fff8e8; color: #6b4a00; font-size: 13px; }
+.diario-faixa-link.conferido { border-color: #cfe5d6; background: #f1f9f4; color: #286541; }
+.diario-faixa-link button { margin: 0; padding: 7px 13px; border: 1px solid #269368; border-radius: 6px; background: #269368; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.diario-dia.diario-a-conferir { border-color: #e0b65c; background: #fff8e8; }
+.diario-dia.diario-a-conferir span { color: #c98a00; }
+.diario-galeria-autor { color: #8a5a00; white-space: normal; overflow-wrap: anywhere; }
+.dp-links small { color: #66766d; white-space: normal; }
+.dp-links-lista { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow: auto; }
+.dp-link { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border: 1px solid #dbe3de; border-radius: 8px; background: #fff; }
+.dp-link > div:first-child { display: flex; flex-direction: column; gap: 2px; flex: 1 1 280px; }
+.dp-link-fora { opacity: .6; }
+.dp-barra a { padding: 6px 10px; border: 1px solid #cbd5cf; border-radius: 5px; background: #fff; color: #244a37; font-size: 12.5px; text-decoration: none; }
+.dp-barra .dp-perigo { color: #9c2b28; border-color: #dbb6b4; }
+.diario-dia.diario-a-conferir.selecionado { border-color: #8a5a00; box-shadow: 0 0 0 1px #8a5a00; }

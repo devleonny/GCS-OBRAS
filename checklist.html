@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <meta name="theme-color" content="#173f31">
+    <title>Checklist de obra</title>
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="css/campos_gcs.css?v=e3949c97">
+    <link rel="stylesheet" href="css/checklist_publico.css?v=f0c0cba2">
+</head>
+
+<body>
+    <header class="ck-topo">
+        <div class="ck-marca"><img src="imagens/logo-centralizada.png" alt=""><div><h1 id="ck-titulo">Checklist de obra</h1><small id="ck-sub"></small></div></div>
+        <div id="ck-dia" class="ck-dia" hidden>
+            <button type="button" id="ck-ant" aria-label="Dia anterior">‹</button>
+            <label><span id="ck-dia-texto"></span><input type="date" id="ck-data" min="2020-01-01" max="2099-12-31" aria-label="Dia"></label>
+            <button type="button" id="ck-prox" aria-label="Próximo dia">›</button>
+        </div>
+        <div class="ck-progresso" hidden><i></i></div>
+    </header>
+    <div id="ck-situacao" class="ck-situacao" role="status" aria-live="polite" hidden></div>
+    <main id="ck-corpo"><p class="ck-vazio">Abrindo o checklist…</p></main>
+    <nav id="ck-abas" class="ck-abas" hidden>
+        <button type="button" data-aba="itens">Itens</button>
+        <button type="button" data-aba="fotos">Fotos</button>
+        <button type="button" data-aba="layout">Layout</button>
+        <button type="button" data-aba="dia">Dia</button>
+    </nav>
+    <script src="js/campos_gcs.js?v=0128864b"></script>
+    <script src="js/checklist_publico.js?v=28284d20"></script>
+</body>
+
+</html>
