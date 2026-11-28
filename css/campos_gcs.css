@@ -619,3 +619,10 @@
 .ce-area-usuarios > .ce-campo { max-width: none; width: 100%; }
 /* Dentro de rótulo em coluna (peças): sem flex-basis, senão os 260 px viram altura. */
 .ce-rotulo > .ce-campo, .ce-area-usuarios > .ce-campo { flex: none; }
+
+/* Bloco em coluna com um campo pesquisável dentro (ex.: Cliente + CNPJ + "Novo cliente" no orçamento):
+   ocupa o lugar de um campo na linha; dentro dele o campo não pode usar o flex-basis (viraria altura). */
+.ce-bloco { display: flex; flex-direction: column; align-items: stretch; gap: 6px; flex: 1 1 260px; min-width: 0; max-width: 520px; }
+.ce-bloco .ce-campo { flex: none; width: 100%; max-width: none; }
+.ce-bloco-rodape { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.ce-bloco > .ce-toggle { align-self: flex-start; }

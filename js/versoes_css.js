@@ -5,7 +5,7 @@ const VERSOES_CSS = {
     "agenda": "f5a251d9",
     "cadastro_publico": "a4259015",
     "cadastros": "0762b591",
-    "campos_gcs": "babf1f39",
+    "campos_gcs": "21d6a19b",
     "cartao_faturas": "700bdccb",
     "clientes": "63afa323",
     "colaboradores": "8e29bed3",

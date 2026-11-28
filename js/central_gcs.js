@@ -1482,14 +1482,14 @@ async function painelClientes(idOrcamento = null) {
     const linhas = [
         {
             texto: 'Contrato',
-            elemento: `<input id="dadosClienteOrc" value="${escaparAtributo(contrato && contrato !== 'sequencial' ? contrato : 'ORC ...')}" readOnly style="max-width: 520px;">`
+            elemento: `<input id="dadosClienteOrc" value="${escaparAtributo(contrato && contrato !== 'sequencial' ? contrato : 'ORC ...')}" readOnly style="flex: 1 1 260px; max-width: 520px;">`
         },
         {
             texto: 'Cliente',
             elemento: `
-            <div style="${vertical}; gap: 4px; width: 100%; max-width: 520px;">
+            <div class="ce-bloco">
                 ${campoEscolhaHtml({ fonte: 'clientesOrcamento', name: 'cliente', valor: omie_cliente || '', rotulo: cliente?.nome || (omie_cliente ? String(omie_cliente) : ''), placeholder: 'Nome, CNPJ, endereço, cidade…', aoMudar: 'buscarDadosCliente' })}
-                <div style="${horizontal}; gap: 0.6rem; justify-content: space-between;">
+                <div class="ce-bloco-rodape">
                     <small data-orc-cnpj style="color: #6b7a71;">${cliente?.cnpj ? `CNPJ/CPF ${escaparAtributo(formatarCnpjEscolha(cliente.cnpj))}` : ''}</small>
                     <button type="button" class="ce-mais" onclick="formularioCliente()">+ Novo cliente</button>
                 </div>
@@ -1503,9 +1503,9 @@ async function painelClientes(idOrcamento = null) {
         {
             texto: 'Venda Direta',
             elemento: `
-            <div style="${vertical}; gap: 6px; width: 100%;" onchange="toggleVendaDireta(this)">
+            <div class="ce-bloco" onchange="toggleVendaDireta(this)">
                 ${toggleOpcoesHtml({ name: 'vendaDiretaAtiva', opcoes: [{ valor: 'N', texto: 'Não' }, { valor: 'S', texto: 'Sim' }], valor: venda_direta ? 'S' : 'N', desmarcavel: false, compacto: true })}
-                <div data-venda-direta style="display: ${venda_direta ? 'block' : 'none'}; width: 100%;">
+                <div data-venda-direta style="display: ${venda_direta ? 'block' : 'none'};">
                     ${campoEscolhaHtml({ fonte: 'clientesOrcamento', name: 'venda_direta', valor: venda_direta || '', rotulo: clienteVendaDireta?.nome || (venda_direta ? String(venda_direta) : ''), placeholder: 'Cliente da venda direta…' })}
                 </div>
             </div>`
@@ -1542,7 +1542,7 @@ async function painelClientes(idOrcamento = null) {
         },
         {
             texto: 'Garantia',
-            elemento: `<textarea id="garantia" style="max-width: 520px;">${garantia || 'Conforme tratativa Comercial'}</textarea>`
+            elemento: `<textarea id="garantia" style="flex: 1 1 260px; max-width: 520px;">${garantia || 'Conforme tratativa Comercial'}</textarea>`
         },
         {
             texto: 'Analista',
