@@ -46,7 +46,7 @@
 .cx-aviso-perigo::before { content: '▲'; font-size: 11px; margin-right: 6px; }
 
 /* respostas (cartões grandes) */
-.cx-respostas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.cx-respostas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 10px; }
 .cx-cartao {
     display: flex; flex-direction: column; gap: 4px; padding: 12px 14px;
     background: #fff; border: 1px solid var(--cx-borda); border-radius: 10px; min-width: 0;
@@ -56,7 +56,7 @@
 .cx-cartao-valor { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--cx-tinta); }
 .cx-cartao small { color: var(--cx-tinta-2); font-size: 12px; line-height: 1.35; }
 
-.cx-indicadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.cx-indicadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 8px; }
 .cx-mini {
     display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; min-width: 0;
     background: var(--cx-fundo); border: 1px solid var(--cx-borda); border-radius: 8px;
@@ -72,9 +72,10 @@
 .cx-bloco-topo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 8px; }
 .cx-bloco-topo h3 { margin: 0; font-size: 15px; }
 .cx-bloco-topo small { color: var(--cx-tinta-2); font-size: 12px; }
-.cx-grafico { position: relative; height: 260px; }
+.cx-grafico { position: relative; height: 260px; min-width: 0; max-width: 100%; }
+.cx-grafico canvas { max-width: 100%; }
 .cx-grafico-alto { height: 320px; }
-.cx-duas { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 14px; }
+.cx-duas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 14px; }
 .cx-bloco details summary { cursor: pointer; font-size: 14px; }
 .cx-explica ul { margin: 8px 0 0; padding-left: 18px; color: var(--cx-tinta-2); font-size: 13px; line-height: 1.5; }
 
@@ -356,7 +357,7 @@
 /* Mapa reaproveitado do antigo Dashboard (mapaDash + css/dashboard_chamados.css) sem o layout de página do .dash. */
 .dash.cx-mapa { padding: 0; min-height: 0; gap: 8px; background: transparent; }
 .dash.cx-mapa .dash-mapa { max-height: 380px; }
-.cx-duas-mapa { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+.cx-duas-mapa { grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); }
 
 /* Lote: rateio da linha (js/lote_salarios.js celulaRateioSal). Cor = de onde veio; o rótulo diz em texto. */
 .cx-rateio-chip {
