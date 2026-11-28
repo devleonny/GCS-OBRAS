@@ -1958,17 +1958,25 @@
 }
 
 .arvore-icone {
-    filter: brightness(0) invert(32%) sepia(14%) saturate(700%) hue-rotate(170deg);
-    width: 1.2rem;
-    height: 1.2rem;
-    opacity: 0.55;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 6px;
+    color: #6b7b8c;
     cursor: pointer;
-    transition: opacity 0.15s, transform 0.15s;
+    transition: color 0.15s, background-color 0.15s;
+}
+
+.arvore-icone svg {
+    width: 1.05rem;
+    height: 1.05rem;
 }
 
 .arvore-icone:hover {
-    opacity: 1;
-    transform: scale(1.1);
+    color: #2f4a63;
+    background: #e4e9ef;
 }
 
 .arvore-filhos {
@@ -2007,4 +2015,8 @@
     border-left: 2px solid #c3ccd6;
     border-bottom: 2px solid #c3ccd6;
     border-bottom-left-radius: 8px;
+}
+
+.arvore-icone + .arvore-icone {
+    margin-left: -6px;
 }

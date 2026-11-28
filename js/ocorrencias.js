@@ -1311,8 +1311,12 @@ function criarLinhaOcorrencia(ocorrencia) {
     const noOrcamento = ({ contrato, id_orcamento }, principal) => {
         const btns = apenasAutorizados && id_orcamento
             ? `
-                <img class="arvore-icone" title="Atalhos do orçamento" src="imagens/pesquisar.svg" onclick="event.stopPropagation(); abrirAtalhos('${id_orcamento}')">
-                <img class="arvore-icone" title="Esquema do orçamento" src="imagens/pasta.svg" onclick="event.stopPropagation(); abrirEsquema('${id_orcamento}')">
+                <span class="arvore-icone" title="Atalhos do orçamento" onclick="event.stopPropagation(); abrirAtalhos('${id_orcamento}')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                </span>
+                <span class="arvore-icone" title="Esquema do orçamento" onclick="event.stopPropagation(); abrirEsquema('${id_orcamento}')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 9.7v8.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M3 11h18"/></svg>
+                </span>
             `
             : ''
         const status = variosOrcs
