@@ -612,3 +612,10 @@
     .cam-concluir { order: 3; justify-self: stretch; width: 100%; }
     .cam-controles { gap: 34px; }
 }
+
+/* Área de técnicos/executores (ocorrencias.js campoUsuariosHtml): bloco, para o campo não herdar uma
+   direção em coluna e transformar a largura mínima (flex-basis) em altura. */
+.ce-area-usuarios { display: block; flex: 1 1 260px; min-width: 0; max-width: 520px; }
+.ce-area-usuarios > .ce-campo { max-width: none; width: 100%; }
+/* Dentro de rótulo em coluna (peças): sem flex-basis, senão os 260 px viram altura. */
+.ce-rotulo > .ce-campo, .ce-area-usuarios > .ce-campo { flex: none; }

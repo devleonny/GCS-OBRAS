@@ -3075,7 +3075,7 @@ function tituloTecnicosHtml(estado) {
 function campoUsuariosHtml(classe, usuarios, { aoMudar = '' } = {}) {
     const valores = [].concat(usuarios || []).filter(Boolean).map(u => ({ valor: u, rotulo: u }))
     return `
-        <div class="${classe}" style="flex: 1 1 260px; min-width: 0; max-width: 520px; display: flex;">
+        <div class="${classe} ce-area-usuarios">
             ${campoEscolhaHtml({ fonte: 'usuarios', name: classe, multiplo: true, valores, placeholder: 'Pesquisar e incluir usuário…', aoMudar })}
         </div>`
 }
