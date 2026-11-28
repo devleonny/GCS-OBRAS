@@ -767,9 +767,6 @@
 .orc-custo.critico .orc-custo-barra > i { background: #e07070; }
 .orc-custo.critico .orc-custo-pct { color: #b12425; font-weight: 600; }
 
-.orc-tela .tabela td.orc-col-acoes { width: 2rem; text-align: center; }
-.orc-atalhos { padding: 0; border: none; background: transparent; cursor: pointer; display: inline-flex; }
-.orc-atalhos img { width: 1.1rem; }
 
 /* Detalhes do "+" continuam quebrando linha. */
 .orc-tela .tabela > tbody > tr.tabela-linha-detalhes > td { white-space: normal; }

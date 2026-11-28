@@ -56,9 +56,9 @@ const TOUR_ORCAMENTOS = [
         texto: '<p>Marque os orçamentos para somar só eles no rodapé ou baixar só eles no Excel.</p><p>A caixinha do título marca a página; depois aparece a opção de marcar <b>todos do filtro</b>.</p>'
     },
     {
-        alvo: primeiraLinhaOrc('.orc-atalhos'),
+        alvo: () => document.querySelector('#linhas > tr.fin-linha'),
         titulo: 'Atalhos do orçamento',
-        texto: '<p>A <b>lupa</b> (ou um clique na linha) abre os atalhos: editar, duplicar, histórico, PDF, Excel do orçamento, painel de custos, vincular e o resto do que dá para fazer com ele.</p>'
+        texto: '<p>Um <b>clique na linha</b> abre os atalhos do orçamento: editar, duplicar, histórico, PDF, Excel do orçamento, painel de custos, vincular e o resto do que dá para fazer com ele.</p>'
     },
     {
         alvo: primeiraLinhaOrc('td.orc-col-empresa'),
@@ -147,12 +147,11 @@ async function telaOrcamentos() {
         pag,
         base: 'mvw_dados_orcamentos',
         // Status do orçamento = status do chamado (22/11/2026): os das abas do chamado; sem chamado, SEM STATUS.
-        // Ordem: caixinha, lupa (atalhos), dados do cliente (Empresa com a foto, Cliente, CNPJ, Cidade), dados do
+        // Ordem: caixinha (o clique na linha abre os atalhos), dados do cliente (Empresa com a foto, Cliente, CNPJ, Cidade), dados do
         // orçamento e, no fim, os valores juntos. Empresa, CNPJ, foto e requisições vêm da mvw (gcs
         // migrations/orcamentos-dados-cliente.sql).
         colunas: {
             '': {},
-            ' ': {},
             'Empresa': { chave: 'empresa' },
             'Cliente': { chave: 'cliente' },
             'CNPJ': { chave: 'cnpj' },
@@ -442,12 +441,6 @@ async function criarLinhaOrcamento(orcamento) {
         <td class="fin-col-marcar orc-col-marcar">
             <input type="checkbox" class="fin-marcar" data-marcar-orc value="${esc(id)}" ${selecaoOrcamentos.has(String(id)) ? 'checked' : ''}
                 onclick="event.stopPropagation(); marcarOrcamento(this)" aria-label="Marcar orçamento">
-        </td>
-        <td class="orc-col-acoes">
-            <button type="button" class="orc-atalhos" title="Atalhos do orçamento" aria-label="Atalhos do orçamento"
-                data-orcamento="${esc(id)}" onclick="abrirAtalhos(this.dataset.orcamento)">
-                <img src="imagens/pesquisar.svg" alt="">
-            </button>
         </td>
         <td class="fin-obs orc-col-empresa" title="${esc(empresa || 'Sem empresa no cadastro do cliente')}">
             <span class="fin-uma-celula"><span class="orc-avatar">${avatar}</span><span class="fin-obs-txt">${esc(empresa)}</span></span>
