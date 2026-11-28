@@ -1152,7 +1152,7 @@ async function enviarDadosOrcamento() {
         if (origem?.idOcorrencia)
             orcamentoFinal.origem_chamado = { id: origem.idOcorrencia }
 
-        const { success, chamado: chamadoLigado } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoFinal) || {}
+        const { success, chamado: chamadoLigado, mensagem: mensagemFalha } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoFinal) || {}
 
         if (success) {
 
@@ -1196,7 +1196,7 @@ async function enviarDadosOrcamento() {
 
         } else {
 
-            popup({ mensagem: 'Falha no salvamento, tente de novo em alguns minutos' })
+            popup({ mensagem: mensagemFalha || 'Falha no salvamento, tente de novo em alguns minutos' })
 
         }
     } catch (erro) {

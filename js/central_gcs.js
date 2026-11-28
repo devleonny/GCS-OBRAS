@@ -1857,7 +1857,9 @@ async function salvarDadosCliente(idOrcamento) {
 
             // Tags são salvar em tempo real;
 
-            await enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
+            const salvo = await enviar(`dados_orcamentos/${idOrcamento}/dados_orcam`, orcamentoBase.dados_orcam)
+            if (!salvo || salvo.mensagem)
+                return popup({ mensagem: salvo?.mensagem || 'Falha ao salvar os dados' })
             await abrirAtalhos(idOrcamento)
 
         } else {
