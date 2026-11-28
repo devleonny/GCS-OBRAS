@@ -112,6 +112,13 @@ async function abrirPlanoDiario(id) {
     } catch (e) { mostrarEscolhaPlanoDiario(); popup({ mensagem: e.message }) }
 }
 
+// Ano ainda sendo digitado (0002, 0020...) não abre nada.
+async function escolherOutroDiaPlanoDiario(campo) {
+    if (!campo.value || !campo.validity.valid) return
+    await selecionarDataPlanoDiario(campo.value)
+    if (campo.isConnected) campo.value = estadoPlanoDiario.data
+}
+
 async function selecionarDataPlanoDiario(data, origem = false) {
     const estado = estadoPlanoDiario
     const campo = estado.documento?.getElementById('dataPlanoDiario')
@@ -146,7 +153,7 @@ function controlesDocumentoDiario() {
         if (botao) { botao.hidden = !gerivel; botao.disabled = ocupado }
     }
     e.documento?.querySelectorAll('input').forEach(el => { el.disabled = ocupado; el.readOnly = e.origem && el.type !== 'date' })
-    document.querySelectorAll('#diasPlanoDiario button').forEach(el => { el.disabled = ocupado })
+    document.querySelectorAll('#diasPlanoDiario button, #diasPlanoDiario input').forEach(el => { el.disabled = ocupado })
 }
 
 async function renderizarPlanoDiario() {
@@ -161,6 +168,11 @@ async function renderizarPlanoDiario() {
     document.getElementById('diasPlanoDiario').innerHTML = (e.modelo?.dinamico ? '' : `<button type="button" class="diario-dia diario-origem ${e.origem ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${e.plano.inicio}', true)">Origem</button>`)
         + e.dias.slice().sort((a, b) => a.data_ref.localeCompare(b.data_ref)).map(d =>
         `<button type="button" class="diario-dia ${!e.origem && d.data_ref === e.data ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${d.data_ref}')"><span aria-label="Preenchido">✓</span> ${dataPlanoDiario(d.data_ref)}</button>`).join('')
+    const salvo = e.dias.some(d => d.data_ref === e.data)
+    document.getElementById('diasPlanoDiario').insertAdjacentHTML('beforeend', `
+        ${!e.origem && !salvo ? `<button type="button" class="diario-dia diario-novo-dia selecionado">${dataPlanoDiario(e.data)} · ainda não salvo</button>` : ''}
+        <label class="diario-outro-dia">Preencher outro dia <input type="date" id="outroDiaPlanoDiario" value="${e.data}" min="2020-01-01" max="2099-12-31"
+            onchange="escolherOutroDiaPlanoDiario(this)"></label>`)
     try {
         const [arquivo] = await Promise.all([apiPlanoDiario('visualizar', { plano: e.plano.id, data: e.data, origem: e.origem }, true), carregarBibliotecasDiario()])
         if (sequencia !== e.sequencia || !local.isConnected) return
@@ -236,7 +248,8 @@ function prepararCamposDocumentoDiario(doc) {
         return input
     }
     const data = campo(gerais[0].cells[3], 'dataPlanoDiario', 'date', e.data, { 'aria-label': gerais[0].cells[2].textContent })
-    data.addEventListener('change', () => selecionarDataPlanoDiario(data.value))
+    data.min = '2020-01-01'; data.max = '2099-12-31'
+    data.addEventListener('change', () => escolherOutroDiaPlanoDiario(data))
     campo(gerais[1].cells[3], 'gerentePlanoDiario', 'text', dados.gerente || '', { maxlength: 150, 'aria-label': gerais[1].cells[2].textContent })
     campo(gerais[2].cells[1], 'efetivoPlanoDiario', 'number', dados.efetivo ?? e.plano.efetivo, { min: 0, step: 1, 'aria-label': gerais[2].cells[0].textContent })
     campo(gerais[2].cells[3], 'horarioPlanoDiario', 'text', dados.horario || '', { maxlength: 100, 'aria-label': gerais[2].cells[2].textContent })

@@ -153,3 +153,8 @@
 .dl-props input { width: 100%; box-sizing: border-box; padding: 5px 7px; border: 1px solid #cbd5cf; border-radius: 5px; font: inherit; }
 .dl-props small { color: #66766d; white-space: normal; }
 @media(max-width:700px) { .dl-corpo { flex-direction: column; } .dl-props { width: 100%; max-height: 34vh; border-left: none; border-top: 1px solid #dbe3de; } .dl-topo { max-height: 30vh; overflow: auto; } }
+
+/* Preencher outro dia, no fim da barra de dias. */
+.diario-outro-dia { display: inline-flex; align-items: center; gap: 8px; margin-left: 6px; font-size: 13px; color: #4f5d55; }
+.diario-outro-dia input { padding: 6px 8px; border: 1px solid #c4dccb; border-radius: 5px; background: #fff; color: #244a37; font: inherit; }
+.diario-novo-dia { border-style: dashed; color: #8a5a00; cursor: default; }
