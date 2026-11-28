@@ -1315,8 +1315,10 @@ function criarLinhaOcorrencia(ocorrencia) {
         </div>
         <br>
 
-        ${modeloCampos('', 'AC SOLUÇÕES')}
-        <br>
+        <div class="marca-print" aria-hidden="true">
+            <img src="imagens/logo-gcs-quadrado.png" alt="">
+            <span>AC SOLUÇÕES</span>
+        </div>
 
         
 
@@ -3813,4 +3815,22 @@ async function removerAnexo(img, idAnexo, idOcorrencia, idCorrecao) {
     img.parentElement.remove()
     removerOverlay()
 
+}
+
+// Marca do chamado só no print (Windows): aparece ao apertar Win (Win+Shift+S), antes de a tela congelar.
+// A captura tira o foco da janela, então a marca fica até o foco voltar; sem isso, some 3 s após soltar.
+if (/^Win/i.test(navigator.platform)) {
+    let timerMarca
+    const esconderMarcaEm = ms => {
+        clearTimeout(timerMarca)
+        timerMarca = setTimeout(() => document.documentElement.classList.remove('mostrar-marca-print'), ms)
+    }
+    window.addEventListener('keydown', e => {
+        if (e.key !== 'Meta') return
+        document.documentElement.classList.add('mostrar-marca-print')
+        esconderMarcaEm(15000) // se o navegador não avisar que a tecla foi solta
+    }, true)
+    window.addEventListener('keyup', e => { if (e.key === 'Meta') esconderMarcaEm(3000) }, true)
+    window.addEventListener('blur', () => clearTimeout(timerMarca))
+    window.addEventListener('focus', () => esconderMarcaEm(1500))
 }

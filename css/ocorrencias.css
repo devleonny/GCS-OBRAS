@@ -2239,3 +2239,33 @@
     align-self: center;
     margin-bottom: 0;
 }
+
+/* Marca do chamado que só aparece no print do PC (tecla Win; ver o fim de ocorrencias.js).
+   visibility, e não display: o logo já fica carregado e nada muda de lugar. */
+.bloco-principal:has(> .marca-print) { position: relative; }
+.marca-print {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    pointer-events: none;
+    visibility: hidden;
+}
+.marca-print img {
+    opacity: 0.22;
+    width: min(70%, 320px);
+    max-height: 100%;
+    aspect-ratio: 400 / 180;
+    object-fit: cover;
+}
+.marca-print span {
+    opacity: 0.5;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #12183f;
+}
+.mostrar-marca-print .marca-print { visibility: visible; }
