@@ -440,7 +440,7 @@ function desenharGaleriaPlanoDiario() {
                                     ${qtde ? `<small>${qtde} ${qtde === 1 ? 'marcação' : 'marcações'}</small>` : ''}
                                 </span>
                                 ${fora ? `<span class="diario-galeria-fora">${fora}</span>` : ''}
-                                ${f.link_id ? `<small class="diario-galeria-autor">${escaparAtributo(f.usuario)}</small>` : ''}
+                                ${f.link_id ? `<small class="diario-galeria-autor">${escaparAtributo(f.link_nome || f.usuario)} (link)</small>` : ''}
                                 ${comentario ? `<span class="diario-galeria-comentario">${escaparAtributo(comentario)}</span>` : ''}
                             </button>
                             ${f.layout ? `<button type="button" class="diario-galeria-desenho" onclick="abrirLayoutDiario('${escaparAtributo(f.id)}')">Editar desenho</button>` : ''}

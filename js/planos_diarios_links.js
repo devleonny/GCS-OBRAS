@@ -3,6 +3,13 @@
 
 const dataHoraLinkDiario = v => v ? new Date(v).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''
 
+// Só quem tem usuário no GCS (técnicos primeiro); a autoria do que chegar é o login da pessoa.
+const PERFIS_LINK_DIARIO = { novo: 'cadastro novo, ainda sem acesso ao GCS', user: 'sem acesso ao GCS', visitante: 'sem acesso ao GCS' }
+fontesEscolha.pessoasLinkDiario = {
+    valor: 'id', rotulo: p => p.nome, limite: 40, detalhe: p => [p.usuario, PERFIS_LINK_DIARIO[p.permissao] || p.permissao, p.cidade].filter(Boolean).join(' · '),
+    buscar: async (palavras, campo, termo) => (await apiPlanoDiario('linkPessoas', { termo })).pessoas
+}
+
 async function compartilharPlanoDiario() {
     const e = estadoPlanoDiario
     if (!e.plano) return
@@ -13,9 +20,9 @@ async function compartilharPlanoDiario() {
             elemento: `
                 <div class="dp-form dp-links" data-plano="${escaparAtributo(e.plano.id)}" data-titulo="${escaparAtributo(e.plano.titulo)}">
                     <b>${escaparAtributo(e.plano.titulo)}</b>
-                    <small>Quem tiver o link preenche quantidades, fotos e marcações deste checklist, em qualquer dia, sem login, e já vale. Crie um para cada pessoa: assim aparece quem fez e dá para cancelar só o dela.</small>
+                    <small>Quem tiver o link preenche quantidades, fotos e marcações deste checklist, em qualquer dia, sem precisar entrar no GCS, e já vale. O que chegar fica no nome do usuário escolhido. Crie um para cada pessoa: assim aparece quem fez e dá para cancelar só o dela.</small>
                     <div class="dp-barra">
-                        <input type="text" name="nomeLink" maxlength="80" placeholder="Para quem é? Ex.: João – equipe Salvador" onkeydown="if (event.key === 'Enter') acaoLinkDiario(this, 'criar')">
+                        ${campoEscolhaHtml({ fonte: 'pessoasLinkDiario', name: 'pessoaLink', placeholder: 'Quem vai preencher? Pesquise por nome, usuário ou cidade…' })}
                         <button type="button" onclick="acaoLinkDiario(this, 'criar')">Gerar link de 30 dias</button>
                     </div>
                     <div class="dp-links-lista">${linhasLinksDiario(links, e.plano.titulo)}</div>
@@ -24,16 +31,19 @@ async function compartilharPlanoDiario() {
     } catch (err) { popup({ mensagem: err.message }) }
 }
 
+// Celular do cadastro já abre a conversa certa; sem celular válido, o WhatsApp pergunta para quem mandar.
+const foneLinkDiario = c => /^\d{10,11}$/.test(c || '') ? `55${c}` : /^55\d{10,11}$/.test(c || '') ? c : ''
+
 function linhasLinksDiario(links, titulo) {
     if (!links.length) return '<p class="diario-vazio">Nenhum link criado.</p>'
     return links.map(l => `
         <div class="dp-link ${l.url ? '' : 'dp-link-fora'}">
-            <div><b>${escaparAtributo(l.nome)}</b>
-                <small>${l.revogado_em ? `Cancelado em ${dataHoraLinkDiario(l.revogado_em)}` : `${l.vencido ? 'Venceu' : 'Vale até'} ${dataHoraLinkDiario(l.expira_em)}`}
+            <div><b>${escaparAtributo(l.nome)}</b><small>${escaparAtributo(l.usuario || '')}</small>
+                <small>${l.revogado_em ? `Cancelado em ${dataHoraLinkDiario(l.revogado_em)}` : `${l.ativo ? '' : 'Usuário inativo no GCS: o link não abre · '}${l.vencido ? 'Venceu' : 'Vale até'} ${dataHoraLinkDiario(l.expira_em)}`}
                     · ${l.ultimo_acesso ? `último acesso ${dataHoraLinkDiario(l.ultimo_acesso)}` : 'ainda não abriu'} · criado por ${escaparAtributo(l.criado_por)}</small></div>
             <div class="dp-barra">
                 ${l.url ? `<button type="button" onclick="copiarLinkDiario(this, '${escaparAtributo(l.url)}')">Copiar</button>
-                    <a href="https://wa.me/?text=${encodeURIComponent(`Olá! Segue o link para preencher o checklist "${titulo}" (quantidades e fotos):\n${l.url}`)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
+                    <a href="https://wa.me/${foneLinkDiario(l.celular)}?text=${encodeURIComponent(`Olá! Segue o link para preencher o checklist "${titulo}" (quantidades e fotos):\n${l.url}`)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
                 ${l.revogado_em ? '' : `<button type="button" onclick="acaoLinkDiario(this, 'renovar', '${l.id}')">Renovar</button>
                     <button type="button" class="dp-perigo" onclick="acaoLinkDiario(this, 'revogar', '${l.id}')">Cancelar link</button>`}
             </div>
@@ -47,13 +57,13 @@ async function copiarLinkDiario(botao, url) {
 
 async function acaoLinkDiario(alvo, acao, id) {
     const raiz = alvo.closest('.dp-links')
-    const campo = raiz.querySelector('[name="nomeLink"]')
+    const campo = raiz.querySelector('.ce-campo')
     if (raiz.dataset.ocupado) return
     if (acao === 'revogar' && !(await confirmarPopup({ mensagem: 'Cancelar este link? Ele para de abrir na hora e não volta. O que já foi preenchido fica.', textoConfirmar: 'Cancelar link' }))) return
     raiz.dataset.ocupado = '1'
     try {
-        const { links } = await apiPlanoDiario('linkAcao', { plano: raiz.dataset.plano, acao, id, nome: campo.value })
-        if (acao === 'criar') campo.value = ''
+        const { links } = await apiPlanoDiario('linkAcao', { plano: raiz.dataset.plano, acao, id, pessoa: lerEscolha(campo) })
+        if (acao === 'criar') ceLimpar(campo.querySelector('.ce-limpar'))
         raiz.querySelector('.dp-links-lista').innerHTML = linhasLinksDiario(links, raiz.dataset.titulo)
     } catch (err) { popup({ mensagem: err.message }) }
     finally { delete raiz.dataset.ocupado }

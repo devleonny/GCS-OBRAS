@@ -174,3 +174,5 @@
 .dp-barra a { padding: 6px 10px; border: 1px solid #cbd5cf; border-radius: 5px; background: #fff; color: #244a37; font-size: 12.5px; text-decoration: none; }
 .dp-barra .dp-perigo { color: #9c2b28; border-color: #dbb6b4; }
 .diario-dia.diario-a-conferir.selecionado { border-color: #8a5a00; box-shadow: 0 0 0 1px #8a5a00; }
+.dp-links .ce-campo { flex: 1 1 320px; max-width: none; }
+.dp-links { min-height: 380px; }
