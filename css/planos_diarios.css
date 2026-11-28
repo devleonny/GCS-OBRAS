@@ -98,3 +98,58 @@
 .diario-galeria-abrir { min-width: 0; white-space: normal; }
 .diario-galeria-fora, .diario-galeria-comentario, .diario-galeria-dados { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .diario-editor-camada.sem-ferramenta { cursor: default; }
+
+/* Campo pesquisável do checklist e botão de adicionar orçamento. */
+.diario-escolha { display: flex; align-items: center; gap: 12px; flex: 1 1 420px; flex-wrap: wrap; font-size: 14px; }
+.diario-escolha .ce-campo { flex: 1 1 320px; max-width: 560px; }
+.diario-novo, .diario-galeria-layout { margin: 0; padding: 8px 14px; border: 1px solid #269368; border-radius: 6px; background: #fff; color: #1f7a56; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.diario-novo:hover, .diario-galeria-layout:hover { background: #e9f6ef; }
+.diario-galeria-topo > div:first-child { flex: 1 1 300px; }
+#excluirProjetoDiario { color: #9c2b28; border-color: #dbb6b4; }
+.diario-vazio { padding: 40px 24px; text-align: center; color: #66766d; }
+.diario-galeria-dias { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: #66766d; }
+.diario-galeria-dias button, .diario-galeria-desenho { margin: 0; padding: 3px 8px; border: 1px solid #cbd5cf; border-radius: 5px; background: #fff; color: #244a37; font: inherit; font-size: 12px; cursor: pointer; }
+.diario-ferramenta-item { padding: 0 4px 0 0; }
+.diario-ferramenta-item button { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 5px 4px 5px 9px; border: none; background: none; color: inherit; font: inherit; cursor: pointer; }
+.diario-ferramenta-item select { max-width: 240px; padding: 3px; border: 1px solid #cbd5cf; border-radius: 4px; background: #fff; font: inherit; font-size: 12px; }
+
+/* Montagem dos itens do checklist (popup). */
+.dp-form { display: flex; flex-direction: column; gap: 10px; width: min(1080px, 92vw); padding: 14px; box-sizing: border-box; text-align: left; }
+.dp-campos { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.dp-campos label { display: flex; flex-direction: column; gap: 3px; flex: 1 1 200px; font-size: 12px; color: #4f5d55; }
+.dp-campos .ce-campo { flex: 0 0 auto; max-width: none; }
+.diario-cabecalho .diario-acoes { flex: 0 1 auto; }
+.dp-form input[type=text]:not(.ce-input), .dp-form input[type=number], .dp-form input[type=date] { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #cbd5cf; border-radius: 5px; background: #fff; font: inherit; font-size: 13px; }
+.dp-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12.5px; color: #4f5d55; }
+.dp-barra input[type=text] { flex: 1 1 200px; width: auto; }
+.dp-barra button { margin: 0; padding: 6px 10px; border: 1px solid #cbd5cf; border-radius: 5px; background: #fff; color: #244a37; font: inherit; font-size: 12.5px; cursor: pointer; }
+.dp-itens { max-height: 52vh; overflow: auto; border: 1px solid #dbe3de; border-radius: 8px; background: #fff; }
+.dp-itens table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 13px; }
+.dp-itens th { position: sticky; top: 0; z-index: 1; padding: 7px 8px; background: #eef4f0; color: #244a37; text-align: left; font-weight: 600; }
+.dp-itens td { padding: 5px 8px; border-top: 1px solid #eef2ef; vertical-align: middle; }
+.dp-itens tr.dp-fora { opacity: .5; }
+.dp-itens td small { display: block; color: #66766d; font-size: 11px; white-space: normal; }
+.dp-itens .dp-num { width: 100px; } .dp-itens .dp-un { width: 90px; } .dp-itens .dp-marca { width: 34px; text-align: center; } .dp-itens .dp-ordem { width: 64px; white-space: nowrap; }
+.dp-ordem button { margin: 0; padding: 2px 6px; border: 1px solid #dbe3de; border-radius: 4px; background: #fff; color: #244a37; cursor: pointer; }
+.dp-aviso { padding: 8px 10px; border-radius: 6px; background: #fff4e0; color: #7a4b00; font-size: 12.5px; white-space: normal; }
+
+/* Editor de layout (tela cheia). */
+.dl-tela { position: fixed; inset: 0; z-index: 10050; display: flex; flex-direction: column; background: #eef2ef; color: #202925; font-size: 13px; }
+.dl-topo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 12px; background: #fff; border-bottom: 1px solid #dbe3de; }
+.dl-topo b { margin-right: 8px; }
+.dl-topo button, .dl-props button { margin: 0; padding: 6px 10px; border: 1px solid #cbd5cf; border-radius: 6px; background: #fff; color: #244a37; font: inherit; font-size: 12.5px; cursor: pointer; }
+.dl-topo button.ativa { border-color: #269368; background: #e3f2e8; box-shadow: 0 0 0 1px #269368; font-weight: 600; }
+.dl-topo button:disabled, .dl-props button:disabled { opacity: .4; cursor: default; }
+.dl-topo .dl-salvar { background: #269368; border-color: #269368; color: #fff; font-weight: 600; }
+.dl-espaco { flex: 1; }
+.dl-corpo { display: flex; flex: 1; min-height: 0; }
+.dl-area { flex: 1; min-width: 0; overflow: auto; padding: 16px; box-sizing: border-box; }
+.dl-area svg { display: block; background: #fff; box-shadow: 0 1px 6px #10201922; touch-action: none; user-select: none; }
+.dl-area svg[data-ferramenta]:not([data-ferramenta="mover"]) { cursor: crosshair; }
+.dl-area [data-el] { cursor: move; }
+.dl-props { display: flex; flex-direction: column; gap: 9px; width: 220px; padding: 12px; box-sizing: border-box; overflow: auto; background: #fff; border-left: 1px solid #dbe3de; }
+.dl-props h4 { margin: 0; color: #244a37; }
+.dl-props label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #4f5d55; }
+.dl-props input { width: 100%; box-sizing: border-box; padding: 5px 7px; border: 1px solid #cbd5cf; border-radius: 5px; font: inherit; }
+.dl-props small { color: #66766d; white-space: normal; }
+@media(max-width:700px) { .dl-corpo { flex-direction: column; } .dl-props { width: 100%; max-height: 34vh; border-left: none; border-top: 1px solid #dbe3de; } .dl-topo { max-height: 30vh; overflow: auto; } }

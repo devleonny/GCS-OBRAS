@@ -11,7 +11,8 @@
 //   { base, filtros, campos: [colunas pesquisadas], valor: 'id', rotulo: d => '', detalhe: d => '',
 //     local: true (carrega a lista uma vez e filtra aqui) | false (pesquisa no servidor a cada digitação),
 //     limite, ordenar, filtrosDoCampo: campo => ({}), excluir: campo => [valores já usados em outro lugar],
-//     dica: 'texto no topo da lista' }
+//     dica: 'texto no topo da lista',
+//     buscar: async (palavras, campo) => itens (fonte própria, no lugar de base/filtros) }
 // No servidor, cada palavra digitada vira um grupo OR por coluna ({ campo } nas regras, gcs SCRIPTS/pesquisa-db.js):
 // "atacadao salvador" acha quem tem as duas palavras, em qualquer uma das colunas.
 //
@@ -119,6 +120,11 @@ async function pesquisarEscolha(campo, termo) {
     const campos = fonte.campos || ['nome']
     const palavras = palavrasEscolha(termo)
     const limite = fonte.limite || 40
+
+    if (fonte.buscar) {
+        const itens = await fonte.buscar(palavras, campo, termo)
+        return { itens: itens.slice(0, limite), mais: itens.length > limite }
+    }
 
     if (fonte.local) {
         const itens = await itensLocaisEscolha(campo, fonte)

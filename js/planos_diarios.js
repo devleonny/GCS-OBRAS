@@ -35,46 +35,81 @@ async function telaPlanosDiarios() {
     try {
         if (estadoPlanoDiario.alterado && !(await confirmarPopup({ mensagem: 'Há alterações sem salvar. Deseja descartá-las?', textoConfirmar: 'Descartar alterações' }))) return
         estadoPlanoDiario.alterado = false
-        const { planos } = await apiPlanoDiario('lista')
+        await carregarListaPlanosDiarios()
+        const planos = estadoPlanoDiario.lista
         tela.innerHTML = `<div class="planos-diarios">
-            <header class="diario-cabecalho"><label>Escolha o plano:
-                <select id="planoDiarioEscolha" onchange="abrirPlanoDiario(this.value)"><option value="">Selecione</option>
-                ${planos.map(p => `<option value="${escaparAtributo(p.id)}">${escaparAtributo(p.titulo)}</option>`).join('')}</select></label>
+            <header class="diario-cabecalho"><div class="diario-escolha"><span>Checklist</span>
+                ${campoEscolhaHtml({ fonte: 'planosDiarios', name: 'planoDiarioEscolha', placeholder: 'Pesquise por orçamento, cliente ou obra…', aoMudar: 'escolherPlanoDiario' })}
+                ${pode('checklist.projetos') ? '<button type="button" class="diario-novo" onclick="adicionarOrcamentoDiario()">+ Adicionar orçamento</button>' : ''}</div>
                 <div class="diario-acoes"><button id="botaoSalvarPlanoDiario" onclick="salvarPlanoDiario()" disabled>Salvar</button>
+                <button id="itensPlanoDiario" onclick="editarItensDiario()" hidden>Itens</button>
                 <button id="baixarPlanoDiario" onclick="baixarWordPlanoDiario()" disabled>Baixar Word</button>
                 <button id="baixarPdfPlanoDiario" onclick="baixarWordPlanoDiario('pdf')" disabled>Baixar PDF</button>
-                <button id="excluirPlanoDiario" onclick="excluirDiaPlanoDiario()" hidden>Excluir dia</button></div>
+                <button id="excluirPlanoDiario" onclick="excluirDiaPlanoDiario()" hidden>Excluir dia</button>
+                <button id="excluirProjetoDiario" onclick="excluirProjetoDiario()" hidden>Excluir checklist</button></div>
             </header><div id="diasPlanoDiario" class="diario-dias"></div>
             <div id="statusPlanoDiario" class="diario-status" role="status" aria-live="polite"></div>
             <div id="planoDiarioConteudo"></div>
             <section id="galeriaPlanoDiario" class="diario-galeria" aria-label="Fotos das seções" hidden></section></div>`
         if (planos.length === 1) {
-            document.getElementById('planoDiarioEscolha').value = planos[0].id
             await abrirPlanoDiario(planos[0].id)
-        }
+        } else if (!planos.length) document.getElementById('planoDiarioConteudo').innerHTML = '<p class="diario-vazio">Nenhum checklist. Adicione um orçamento para começar.</p>'
     } catch (e) { popup({ mensagem: e.message }) }
+}
+
+async function carregarListaPlanosDiarios() {
+    estadoPlanoDiario.lista = (await apiPlanoDiario('lista')).planos
+}
+
+// Campo pesquisável do checklist: a lista já veio inteira, com o andamento de cada um.
+fontesEscolha.planosDiarios = {
+    valor: 'id', rotulo: p => p.titulo, limite: 60,
+    detalhe: p => [p.titulo.includes(p.obra) ? '' : p.obra, `${numeroPlanoDiario(p.andamento)}% concluído`,
+        p.ultimo ? `último dia ${dataPlanoDiario(p.ultimo)}` : 'sem dias preenchidos'].filter(Boolean).join(' · '),
+    buscar: async palavras => (estadoPlanoDiario.lista || []).filter(p => {
+        const texto = normEscolha(`${p.titulo} ${p.orcamento} ${p.obra}`)
+        return palavras.every(x => texto.includes(x))
+    })
+}
+
+// Deixa o campo mostrando o checklist aberto, sem disparar a abertura de novo.
+function mostrarEscolhaPlanoDiario() {
+    const campo = document.querySelector('.ce-campo[name="planoDiarioEscolha"]')
+    if (!campo) return
+    const { plano } = estadoPlanoDiario
+    campo.dataset.valor = plano?.id || ''
+    campo.dataset.rotulo = plano?.titulo || ''
+    campo.querySelector('.ce-input').value = plano?.titulo || ''
+    campo.classList.toggle('ce-preenchido', !!plano)
+}
+
+async function escolherPlanoDiario(campo) {
+    if (estadoPlanoDiario.carregando || estadoPlanoDiario.renderizando) return mostrarEscolhaPlanoDiario()
+    await abrirPlanoDiario(lerEscolha(campo) || '')
 }
 
 async function abrirPlanoDiario(id) {
     if (estadoPlanoDiario.carregando || estadoPlanoDiario.renderizando) return
     if (estadoPlanoDiario.alterado && !(await confirmarPopup({ mensagem: 'Há alterações sem salvar. Deseja descartá-las?', textoConfirmar: 'Descartar alterações' }))) {
-        document.getElementById('planoDiarioEscolha').value = estadoPlanoDiario.plano?.id || ''
-        return
+        return mostrarEscolhaPlanoDiario()
     }
     if (!id) {
         estadoPlanoDiario.plano = null; estadoPlanoDiario.alterado = false
         document.getElementById('planoDiarioConteudo').replaceChildren()
         document.getElementById('diasPlanoDiario').replaceChildren()
         desenharGaleriaPlanoDiario()
+        mostrarEscolhaPlanoDiario()
         controlesDocumentoDiario(); return
     }
     try {
         const dados = await apiPlanoDiario('detalhe', { plano: id })
         Object.assign(estadoPlanoDiario, dados, { alterado: false })
-        estadoPlanoDiario.origem = true
-        estadoPlanoDiario.data = dados.plano.inicio
+        // Checklist de orçamento não tem Origem (Word de referência): abre no dia de hoje.
+        estadoPlanoDiario.origem = !dados.modelo.dinamico
+        estadoPlanoDiario.data = dados.modelo.dinamico ? dataServidor().toLocaleDateString('en-CA') : dados.plano.inicio
+        mostrarEscolhaPlanoDiario()
         await renderizarPlanoDiario()
-    } catch (e) { popup({ mensagem: e.message }) }
+    } catch (e) { mostrarEscolhaPlanoDiario(); popup({ mensagem: e.message }) }
 }
 
 async function selecionarDataPlanoDiario(data, origem = false) {
@@ -104,8 +139,12 @@ function controlesDocumentoDiario() {
     }
     const pdf = document.getElementById('baixarPdfPlanoDiario')
     if (pdf) pdf.disabled = baixar?.disabled ?? true
-    const seletor = document.getElementById('planoDiarioEscolha')
-    if (seletor) seletor.disabled = ocupado
+    document.querySelectorAll('.diario-escolha input, .diario-escolha button').forEach(el => { el.disabled = ocupado })
+    const gerivel = !!e.modelo?.dinamico && !!e.plano && pode('checklist.projetos')
+    for (const id of ['itensPlanoDiario', 'excluirProjetoDiario']) {
+        const botao = document.getElementById(id)
+        if (botao) { botao.hidden = !gerivel; botao.disabled = ocupado }
+    }
     e.documento?.querySelectorAll('input').forEach(el => { el.disabled = ocupado; el.readOnly = e.origem && el.type !== 'date' })
     document.querySelectorAll('#diasPlanoDiario button').forEach(el => { el.disabled = ocupado })
 }
@@ -119,7 +158,7 @@ async function renderizarPlanoDiario() {
     controlesDocumentoDiario()
     const local = document.getElementById('planoDiarioConteudo')
     local.innerHTML = '<div class="diario-carregando"><img src="gifs/loading-gcs.png" alt="Carregando"></div>'
-    document.getElementById('diasPlanoDiario').innerHTML = `<button type="button" class="diario-dia diario-origem ${e.origem ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${e.plano.inicio}', true)">Origem</button>`
+    document.getElementById('diasPlanoDiario').innerHTML = (e.modelo?.dinamico ? '' : `<button type="button" class="diario-dia diario-origem ${e.origem ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${e.plano.inicio}', true)">Origem</button>`)
         + e.dias.slice().sort((a, b) => a.data_ref.localeCompare(b.data_ref)).map(d =>
         `<button type="button" class="diario-dia ${!e.origem && d.data_ref === e.data ? 'selecionado' : ''}" onclick="selecionarDataPlanoDiario('${d.data_ref}')"><span aria-label="Preenchido">✓</span> ${dataPlanoDiario(d.data_ref)}</button>`).join('')
     try {
@@ -186,7 +225,7 @@ function prepararCamposDocumentoDiario(doc) {
         const input = doc.createElement('input')
         input.id = id; input.type = tipo; input.value = valor
         input.style.font = formato.font; input.style.color = formato.color
-        input.required = true
+        input.required = !(e.modelo?.dinamico && tipo === 'text')
         for (const [nome, valor] of Object.entries(atributos)) input.setAttribute(nome, valor)
         const p = celula.querySelector('p') || celula
         p.replaceChildren(input)
@@ -215,6 +254,15 @@ function prepararCamposDocumentoDiario(doc) {
     e.graficoResumo = grafico(90.2)
     e.grafico = grafico(257.95)
     e.graficoGeral = grafico(132)
+    e.graficos = null
+    // Checklist de orçamento: todos os gráficos têm 468pt; o último é o geral, os outros são os grupos de itens.
+    if (e.modelo?.dinamico) {
+        const todos = [...doc.images].filter(img => img.style.width === '468pt')
+        e.graficoGeral = todos.at(-1) || null
+        e.graficos = todos.slice(0, -1)
+        e.grafico = e.graficos[0] || null
+        e.graficoResumo = null
+    }
     atualizarNumerosPlanoDiario()
 }
 
@@ -232,8 +280,17 @@ function lerPlanoDiario() {
 
 // GALERIA DAS SEÇÕES 03 E 04 (abaixo da prévia): fotos com data, comentário e marcações, incluídas,
 // alteradas e removidas a qualquer momento e gravadas na hora (/planos-diarios/fotos), sem o Salvar
-// do dia. A prévia e o Word/PDF de um dia levam as fotos até aquela data (acumulado), no fim de cada
-// seção, com as marcações de data até o dia. Data, comentário e marcações mudam só pelo editor da foto.
+// do dia. "Fotos da execução" (seção diaria) entram só no relatório do dia delas. Planta/layout entra da
+// data em diante: trocar, comentar, apagar marcação ou retirar num dia vale daquele dia em diante, e os
+// relatórios anteriores ficam como estavam (links, comentarios, ate; as mesmas regras no servidor). Data, comentário e marcações mudam só pelo editor da foto.
+
+const versaoEmDiario = (lista, data) => (lista || []).filter(v => v.data <= data).sort((a, b) => a.data.localeCompare(b.data)).at(-1)
+const linkEmDiario = (foto, data) => versaoEmDiario(foto.links, data)?.link ?? foto.link
+const comentarioEmDiario = (foto, data) => versaoEmDiario(foto.comentarios, data)?.texto ?? foto.comentario ?? ''
+const diaAbertoDiario = () => estadoPlanoDiario.origem ? estadoPlanoDiario.plano.inicio : estadoPlanoDiario.data
+const secaoDiariaDiario = secao => !!estadoPlanoDiario.modelo?.secoes?.find(s => s.secao === secao)?.diaria
+const marcacoesEmDiario = (foto, data) => (foto.marcacoes || []).filter(m => m.data <= data && !(m.ate && m.ate <= data))
+const CORES_ITENS_DIARIO = ['#1d63ed', '#e11d2e', '#16a34a', '#c99a06', '#7c3aed', '#0e9aa7', '#ea580c', '#be185d', '#4d7c0f', '#475569']
 
 // Tipos de marcação: os da legenda das plantas e a linha livre. Mesma tabela no servidor
 // (gcs/SCRIPTS/planos_diarios.js, TIPOS_MARCACAO). Coordenadas de 0 a 1, proporcionais à imagem.
@@ -246,7 +303,8 @@ const TIPOS_MARCACAO_DIARIO = {
     eletroduto_eletrico: { rotulo: 'Eletroduto elétrico', cor: '#16a34a', tracejado: false, forma: 'linha' },
     circuito: { rotulo: 'Circuito elétrico', cor: '#1d63ed', tracejado: true, forma: 'linha' },
     camera: { rotulo: 'Câmera', cor: '#35d000', tracejado: false, forma: 'ponto' },
-    livre: { rotulo: 'Linha livre', cor: null, tracejado: false, forma: 'linha' }
+    livre: { rotulo: 'Linha livre', cor: null, tracejado: false, forma: 'linha' },
+    item: { rotulo: 'Item do checklist', cor: null, tracejado: false, forma: 'ponto' }
 }
 
 // SVG das marcações sobre uma imagem largura x altura (px naturais), igual ao do Word (svgMarcacoes).
@@ -261,7 +319,13 @@ function svgMarcacoesDiario(marcacoes, largura, altura, { interativo = false } =
         const cor = m.tipo === 'livre' ? m.cor : tipo.cor
         const tracejado = tipo.tracejado ? ` stroke-dasharray="${n(traco * 4)} ${n(traco * 3)}"` : ''
         let forma, toque
-        if (tipo.forma === 'ponto') {
+        if (m.tipo === 'item') {
+            const i = (estadoPlanoDiario.plano?.atividades || []).findIndex(a => a.id === m.atividade)
+            const rItem = Math.max(6, largura * 0.011)
+            forma = `<circle cx="${n(m.x * largura)}" cy="${n(m.y * altura)}" r="${n(rItem)}" fill="${i < 0 ? '#8a968f' : CORES_ITENS_DIARIO[i % CORES_ITENS_DIARIO.length]}" stroke="#fff" stroke-width="${n(traco * 0.5)}"/>`
+                + `<text x="${n(m.x * largura)}" y="${n(m.y * altura + rItem * 0.38)}" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="${n(rItem * 1.1)}" fill="#fff">${i < 0 ? '?' : i + 1}</text>`
+            toque = ''
+        } else if (tipo.forma === 'ponto') {
             forma = `<circle cx="${n(m.x * largura)}" cy="${n(m.y * altura)}" r="${n(raio)}" fill="${cor}" stroke="#168b00" stroke-width="${n(traco * 0.4)}"/>`
             toque = `<circle cx="${n(m.x * largura)}" cy="${n(m.y * altura)}" r="${n(raio * 2)}" fill="transparent"/>`
         } else if (tipo.forma === 'retangulo') {
@@ -292,8 +356,9 @@ function miniaturaFotoDiario(img) {
     const foto = (estadoPlanoDiario.plano?.galeria || []).find(f => f.id === img.dataset.foto)
     const local = img.parentElement
     local.querySelector('svg')?.remove()
-    if (!foto?.marcacoes?.length || !img.naturalWidth) return
-    local.insertAdjacentHTML('beforeend', svgMarcacoesDiario(foto.marcacoes, img.naturalWidth, img.naturalHeight))
+    const marcacoes = foto ? marcacoesEmDiario(foto, diaAbertoDiario()) : []
+    if (!marcacoes.length || !img.naturalWidth) return
+    local.insertAdjacentHTML('beforeend', svgMarcacoesDiario(marcacoes, img.naturalWidth, img.naturalHeight))
 }
 
 function desenharGaleriaPlanoDiario() {
@@ -305,36 +370,46 @@ function desenharGaleriaPlanoDiario() {
     if (area.hidden) return area.replaceChildren()
 
     const galeria = e.plano.galeria || []
-    const dia = e.origem ? null : e.data
-    area.innerHTML = secoes.map(({ secao, titulo }) => {
-        const fotos = galeria.filter(f => f.secao === secao)
+    const dia = diaAbertoDiario()
+    area.innerHTML = secoes.map(({ secao, titulo, diaria }) => {
+        const todas = galeria.filter(f => f.secao === secao)
+        // Fotos da execução: só as do dia aberto. Na Origem, todas (é a visão geral da obra).
+        const fotos = todas.filter(f => diaria ? e.origem || f.data === dia : !(f.ate && f.ate <= dia))
             .sort((a, b) => b.data.localeCompare(a.data) || String(b.criado_em).localeCompare(String(a.criado_em)))
-        const doDia = dia ? fotos.filter(f => f.data <= dia).length : 0
-        const resumo = `${fotos.length} ${fotos.length === 1 ? 'foto' : 'fotos'}`
-            + (dia ? ` · ${doDia} no relatório de ${dataPlanoDiario(dia)}` : '')
+        const plural = n => `${n} ${n === 1 ? 'foto' : 'fotos'}`
+        const outras = todas.filter(f => f.data !== dia)
+        const diasOutras = [...new Set(outras.map(f => f.data))].sort()
+        const resumo = diaria && !e.origem
+            ? `${plural(fotos.length)} em ${dataPlanoDiario(dia)} · as fotos dos outros dias continuam nos relatórios deles, não precisa apagar`
+            : diaria ? `${plural(fotos.length)} de todos os dias`
+            : `${plural(fotos.length)} · mudanças aqui valem de ${dataPlanoDiario(dia)} em diante`
+        const layout = !diaria && secao === '03'
         return `
             <div class="diario-galeria-secao" ondragenter="arrastarFotosDiario(event, this)" ondragover="arrastarFotosDiario(event, this)"
                 ondragleave="sairArrastarFotosDiario(event, this)" ondrop="soltarFotosDiario(event, '${secao}', this)">
                 <div class="diario-galeria-topo">
                     <div><h3>${secao} · ${escaparAtributo(titulo)}</h3><small>${resumo} · clique numa foto para marcar e comentar · arraste fotos para cá</small></div>
+                    ${layout ? '<button type="button" class="diario-galeria-layout" onclick="abrirLayoutDiario()">Desenhar layout</button>' : ''}
                     <label class="diario-galeria-adicionar">Adicionar fotos
                         <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
                             onchange="enviarFotosGaleriaDiario(this, '${secao}')">
                     </label>
                 </div>
+                ${diaria && !e.origem && diasOutras.length ? `<div class="diario-galeria-dias"><small>Fotos de outros dias:</small>${diasOutras.map(d =>
+                    `<button type="button" onclick="selecionarDataPlanoDiario('${d}')">${dataPlanoDiario(d).slice(0, 5)} (${outras.filter(f => f.data === d).length})</button>`).join('')}</div>` : ''}
                 <div class="diario-galeria-grade">
                     ${fotos.length ? fotos.map(f => {
-                        const qtde = (f.marcacoes || []).length
+                        const qtde = marcacoesEmDiario(f, dia).length
+                        const comentario = comentarioEmDiario(f, dia)
                         // Foto com data depois do documento aberto (a Origem é o dia de início) não entra
                         // nele: avisa no cartão, para não parecer que sumiu.
-                        const referencia = e.origem ? e.plano.inicio : e.data
-                        const fora = f.data > referencia ? `Entra no relatório a partir de ${dataPlanoDiario(f.data)}` : ''
+                        const fora = !diaria && f.data > dia ? `Entra no relatório a partir de ${dataPlanoDiario(f.data)}` : ''
                         return `
-                        <figure class="diario-galeria-foto${dia && f.data <= dia ? ' no-dia' : ''}">
+                        <figure class="diario-galeria-foto${(diaria ? f.data === dia : f.data <= dia) ? ' no-dia' : ''}">
                             <button type="button" class="diario-galeria-abrir" onclick="abrirEditorFotoDiario('${escaparAtributo(f.id)}')"
                                 title="Abrir para marcar e comentar">
                                 <span class="diario-galeria-imagem">
-                                    <img src="${escaparAtributo(`${api}/uploads/${f.link}`)}" alt="${escaparAtributo(f.comentario || f.nome || 'Foto')}"
+                                    <img src="${escaparAtributo(`${api}/uploads/${linkEmDiario(f, dia)}`)}" alt="${escaparAtributo(comentario || f.nome || 'Foto')}"
                                         loading="lazy" data-foto="${escaparAtributo(f.id)}" onload="miniaturaFotoDiario(this)">
                                 </span>
                                 <span class="diario-galeria-dados">
@@ -342,8 +417,9 @@ function desenharGaleriaPlanoDiario() {
                                     ${qtde ? `<small>${qtde} ${qtde === 1 ? 'marcação' : 'marcações'}</small>` : ''}
                                 </span>
                                 ${fora ? `<span class="diario-galeria-fora">${fora}</span>` : ''}
-                                ${f.comentario ? `<span class="diario-galeria-comentario">${escaparAtributo(f.comentario)}</span>` : ''}
+                                ${comentario ? `<span class="diario-galeria-comentario">${escaparAtributo(comentario)}</span>` : ''}
                             </button>
+                            ${f.layout ? `<button type="button" class="diario-galeria-desenho" onclick="abrirLayoutDiario('${escaparAtributo(f.id)}')">Editar desenho</button>` : ''}
                             <button type="button" class="diario-galeria-remover" aria-label="Remover foto" title="Remover foto"
                                 onclick="removerFotoGaleriaDiario('${escaparAtributo(f.id)}')">×</button>
                         </figure>`
@@ -360,13 +436,16 @@ function abrirEditorFotoDiario(id) {
     const e = estadoPlanoDiario
     const foto = (e.plano?.galeria || []).find(f => f.id === id)
     if (!foto) return
-    const diaAberto = e.origem ? e.plano.inicio : e.data
+    const dia = diaAbertoDiario()
+    const diaria = secaoDiariaDiario(foto.secao)
+    // Novas marcações: na foto da execução valem no dia dela; na planta, do dia aberto em diante.
+    const diaAberto = diaria || dia < foto.data ? foto.data : dia
     e.editor = {
         id, ferramenta: null, cor: '#7c3aed', zoom: 100, largura: 0, altura: 0,
         marcacoes: (foto.marcacoes || []).map(m => ({ ...m, pontos: m.pontos?.map(p => [...p]) })),
-        desfazer: [], linha: null, retangulo: null, cursor: null
+        desfazer: [], linha: null, retangulo: null, cursor: null, dia: diaAberto, diaria, atividade: e.plano.atividades[0]?.id
     }
-    const ferramentas = Object.keys(TIPOS_MARCACAO_DIARIO).filter(t => t !== 'livre').map(t => `
+    const ferramentas = Object.keys(TIPOS_MARCACAO_DIARIO).filter(t => !['livre', 'item'].includes(t)).map(t => `
         <button type="button" class="diario-ferramenta" data-ferramenta="${t}" onclick="ferramentaEditorDiario('${t}')">
             ${amostraMarcacaoDiario(t)}<span>${TIPOS_MARCACAO_DIARIO[t].rotulo}</span></button>`).join('')
     e.editor.popup = popup({
@@ -381,6 +460,10 @@ function abrirEditorFotoDiario(id) {
                         <input type="color" value="${e.editor.cor}" aria-label="Cor da linha livre"
                             oninput="corLivreEditorDiario(this.value)">
                     </span>
+                    <span class="diario-ferramenta diario-ferramenta-item" data-ferramenta="item">
+                        <button type="button" onclick="ferramentaEditorDiario('item')"><span aria-hidden="true">①</span><span>Item</span></button>
+                        <select aria-label="Item do checklist a marcar" onchange="itemEditorDiario(this.value)"></select>
+                    </span>
                     <span class="diario-editor-separador"></span>
                     <button type="button" class="diario-ferramenta" data-ferramenta="apagar" onclick="ferramentaEditorDiario('apagar')">
                         <span aria-hidden="true">⌫</span><span>Apagar</span></button>
@@ -394,20 +477,39 @@ function abrirEditorFotoDiario(id) {
                 <small id="dicaEditorDiario" class="diario-editor-dica"></small>
                 <div class="diario-editor-area">
                     <div class="diario-editor-quadro" id="quadroEditorDiario">
-                        <img src="${escaparAtributo(`${api}/uploads/${foto.link}`)}" alt="" draggable="false" onload="iniciarEditorDiario(this)">
+                        <img src="${escaparAtributo(`${api}/uploads/${linkEmDiario(foto, diaAberto)}`)}" alt="" draggable="false" onload="iniciarEditorDiario(this)">
                     </div>
                 </div>
                 <div class="diario-editor-campos">
                     <label>Data da foto <input type="date" id="dataFotoEditorDiario" value="${escaparAtributo(foto.data)}" required></label>
                     <label>Novas marcações valem a partir de <input type="date" id="dataMarcacoesEditorDiario" value="${escaparAtributo(diaAberto)}" required></label>
                     <label class="diario-editor-comentario">Comentário
-                        <textarea id="comentarioEditorDiario" rows="2" maxlength="1000" placeholder="Ex.: em azul o perfilado">${escaparAtributo(foto.comentario || '')}</textarea></label>
+                        <textarea id="comentarioEditorDiario" rows="2" maxlength="1000" placeholder="Ex.: em azul o perfilado">${escaparAtributo(comentarioEmDiario(foto, diaAberto))}</textarea></label>
                 </div>
-                <small class="diario-editor-dica">O relatório de cada dia mostra as marcações com data até ele.</small>
+                <small class="diario-editor-dica">${diaria ? 'A foto aparece só no relatório do dia dela.'
+                    : `Comentário e marcações apagadas mudam de ${dataPlanoDiario(diaAberto)} em diante; os relatórios anteriores ficam como estavam.`}</small>
             </div>`,
         botoes: [{ texto: 'Salvar', img: 'concluido', funcao: 'salvarEditorFotoDiario()' }]
     })
+    opcoesItensEditorDiario()
     ferramentaEditorDiario(null)
+}
+
+// Marcador de item do checklist: cada opção mostra quantos pontos já há na imagem.
+function opcoesItensEditorDiario() {
+    const ed = estadoPlanoDiario.editor
+    const select = document.querySelector('.diario-ferramenta-item select')
+    if (!ed || !select) return
+    const visiveis = ed.marcacoes.filter(m => m.tipo === 'item' && !m.ate)
+    select.innerHTML = estadoPlanoDiario.plano.atividades.map((a, i) =>
+        `<option value="${escaparAtributo(a.id)}" ${a.id === ed.atividade ? 'selected' : ''}>${i + 1}. ${escaparAtributo(a.descricao)} (${visiveis.filter(m => m.atividade === a.id).length}/${numeroPlanoDiario(a.previsto)})</option>`).join('')
+}
+
+function itemEditorDiario(id) {
+    const ed = estadoPlanoDiario.editor
+    if (!ed) return
+    ed.atividade = id
+    if (ed.ferramenta !== 'item') ferramentaEditorDiario('item')
 }
 
 function iniciarEditorDiario(img) {
@@ -427,9 +529,11 @@ function iniciarEditorDiario(img) {
         const forma = TIPOS_MARCACAO_DIARIO[ed.ferramenta]?.forma
         if (ed.ferramenta === 'apagar') {
             const alvo = ev.target.closest?.('[data-marcacao]')?.dataset.marcacao
-            if (alvo) return mudarMarcacoesEditorDiario(ed.marcacoes.filter(m => m.id !== alvo))
+            // Na planta, marcação de um dia anterior fica nos relatórios dele: só sai do dia aberto em diante.
+            if (alvo) return mudarMarcacoesEditorDiario(ed.marcacoes.flatMap(m => m.id !== alvo ? [m]
+                : !ed.diaria && m.data < ed.dia ? [{ ...m, ate: ed.dia }] : []))
         } else if (forma === 'ponto') {
-            return adicionarMarcacaoEditorDiario({ tipo: 'camera', x, y })
+            return adicionarMarcacaoEditorDiario(ed.ferramenta === 'item' ? { tipo: 'item', atividade: ed.atividade, x, y } : { tipo: 'camera', x, y })
         } else if (forma === 'retangulo') {
             ed.retangulo = { x1: x, y1: y, x2: x, y2: y }
             camada.setPointerCapture(ev.pointerId)
@@ -476,7 +580,7 @@ function desenharEditorDiario() {
         rascunho.push({ id: 'rascunho', tipo: ed.ferramenta, cor: ed.cor, pontos: pontos.length > 1 ? pontos : [pontos[0], pontos[0]] })
     }
     if (ed.retangulo) rascunho.push({ id: 'rascunho', tipo: 'rack', ...ed.retangulo })
-    camada.innerHTML = svgMarcacoesDiario([...ed.marcacoes, ...rascunho], ed.largura, ed.altura, { interativo: true })
+    camada.innerHTML = svgMarcacoesDiario([...ed.marcacoes.filter(m => !m.ate || m.ate > ed.dia), ...rascunho], ed.largura, ed.altura, { interativo: true })
     camada.classList.toggle('apagando', ed.ferramenta === 'apagar')
     camada.classList.toggle('sem-ferramenta', !ed.ferramenta)
     const dica = document.getElementById('dicaEditorDiario')
@@ -541,6 +645,7 @@ function mudarMarcacoesEditorDiario(marcacoes) {
     const ed = estadoPlanoDiario.editor
     ed.desfazer.push(ed.marcacoes)
     ed.marcacoes = marcacoes
+    opcoesItensEditorDiario()
     desenharEditorDiario()
 }
 
@@ -550,6 +655,7 @@ function desfazerEditorDiario() {
     if (ed.linha) { ed.linha = ed.linha.length > 1 ? ed.linha.slice(0, -1) : null; return desenharEditorDiario() }
     if (!ed.desfazer.length) return
     ed.marcacoes = ed.desfazer.pop()
+    opcoesItensEditorDiario()
     desenharEditorDiario()
 }
 
@@ -569,9 +675,9 @@ async function salvarEditorFotoDiario() {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return popup({ mensagem: 'Informe uma data válida para a foto.' })
     const comentario = document.getElementById('comentarioEditorDiario').value
     // Só os campos de cada forma (o servidor confere tudo de novo).
-    const marcacoes = ed.marcacoes.map(({ id, tipo, data, x, y, x1, y1, x2, y2, pontos, cor }) =>
-        ({ id, tipo, data, x, y, x1, y1, x2, y2, pontos, cor }))
-    await gravarGaleriaDiario({ acao: 'alterar', id: ed.id, data, comentario, marcacoes }, 'Foto atualizada.',
+    const marcacoes = ed.marcacoes.map(({ id, tipo, data, x, y, x1, y1, x2, y2, pontos, cor, ate, atividade }) =>
+        ({ id, tipo, data, x, y, x1, y1, x2, y2, pontos, cor, ate, atividade }))
+    await gravarGaleriaDiario({ acao: 'alterar', id: ed.id, data, comentario, marcacoes, desde: ed.dia }, 'Foto atualizada.',
         () => { removerPopup(ed.popup); estadoPlanoDiario.editor = null })
 }
 
@@ -647,7 +753,7 @@ async function enviarArquivosGaleriaDiario(arquivos, secao, rotulo) {
             if (!Array.isArray(enviadas) || !enviadas.length) { status.textContent = ''; return }
             await gravarGaleriaDiario({ acao: 'incluir', secao, data,
                 fotos: enviadas.filter(a => a?.link).map(a => ({ link: a.link, nome: a.nome || '' })) },
-                `Fotos gravadas com data de ${dataPlanoDiario(data)}. Elas aparecem na prévia e no Word/PDF desse dia em diante.`)
+                `Fotos gravadas com data de ${dataPlanoDiario(data)}. ${secaoDiariaDiario(secao) ? 'Elas aparecem na prévia e no Word/PDF desse dia.' : 'Elas aparecem na prévia e no Word/PDF desse dia em diante.'}`)
         }
     } catch (err) {
         status.textContent = ''
@@ -658,9 +764,15 @@ async function enviarArquivosGaleriaDiario(arquivos, secao, rotulo) {
 }
 
 async function removerFotoGaleriaDiario(id) {
-    if (!(await confirmarPopup({ mensagem: 'Remover esta foto da galeria? Ela sai de todos os relatórios.', textoConfirmar: 'Remover foto' })))
-        return
-    await gravarGaleriaDiario({ acao: 'remover', id }, 'Foto removida.')
+    const foto = (estadoPlanoDiario.plano?.galeria || []).find(f => f.id === id)
+    if (!foto) return
+    const dia = diaAbertoDiario()
+    const daquiEmDiante = !secaoDiariaDiario(foto.secao) && foto.data < dia
+    const mensagem = daquiEmDiante
+        ? `Retirar esta imagem de ${dataPlanoDiario(dia)} em diante? Ela continua nos relatórios de ${dataPlanoDiario(foto.data)} até a véspera.`
+        : `Apagar esta foto? Ela sai do relatório de ${dataPlanoDiario(foto.data)} e não volta. Para montar outro dia não é preciso apagar: basta abrir a data dele.`
+    if (!(await confirmarPopup({ mensagem, textoConfirmar: daquiEmDiante ? 'Retirar' : 'Apagar foto' }))) return
+    await gravarGaleriaDiario({ acao: 'remover', id, desde: dia }, daquiEmDiante ? 'Imagem retirada.' : 'Foto removida.')
 }
 
 function atualizarNumerosPlanoDiario() {
@@ -681,7 +793,15 @@ function atualizarNumerosPlanoDiario() {
             return `<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="${altura}" viewBox="0 0 1100 ${altura}"><rect width="1100" height="${altura}" fill="white"/>
             ${itens.map((a, i) => `<text x="20" y="${67 + i * 49}" font-family="Arial" font-size="15">${escaparAtributo(a.descricao)}</text><rect x="510" y="${49 + i * 49}" width="480" height="24" rx="4" fill="#e6eee9"/><rect x="510" y="${49 + i * 49}" width="${Math.max(0, Math.min(100, a.percentual)) * 4.8}" height="24" rx="4" fill="#269368"/><text x="1000" y="${67 + i * 49}" font-family="Arial" font-size="16">${numeroPlanoDiario(a.percentual)}%</text>`).join('')}</svg>`
         }
-        e.grafico.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgAtividades(itens))}`
+        const grupos = e.graficos || [e.grafico]
+        const tamanho = e.graficos ? e.modelo.itensPorGrafico : itens.length
+        const curtos = !e.graficos ? itens : itens.map((a, i) => {
+            const t = `${i + 1}. ${a.descricao}`
+            return { ...a, descricao: t.length > 46 ? `${t.slice(0, 45)}…` : t }
+        })
+        grupos.forEach((img, i) => {
+            img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgAtividades(curtos.slice(i * tamanho, (i + 1) * tamanho)))}`
+        })
         if (e.graficoResumo) {
             // Itens do resumo vêm do modelo da obra (ex.: Picus usa outros ids que o iMile).
             const resumo = (e.modelo?.destaques || []).filter(d => itens.some(a => a.id === d.id))
