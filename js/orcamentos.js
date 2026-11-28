@@ -166,8 +166,9 @@ async function telaOrcamentos() {
             'Tags': { chave: 'tags.*.nome' },
             'LPU': { chave: 'lpu_ativa' },
             // timestamp em milissegundos: o filtro de data do pesquisa-db converte número → data.
-            // dados_orcam.data = "DD/MM/AAAA, HH:MM:SS" (criação); o filtro de data do pesquisa-db lê DD/MM/AAAA.
-            'Criação': { chave: 'dados_orcam.data', tipoPesquisa: 'data', tipoOrdenacao: 'datahora_br' },
+            // Criação = dados_orcam.data_registro ("DD/MM/AAAA, HH:MM"), fixa e garantida por gatilho no banco
+            // (gcs migrations/orcamentos-data-registro.sql). dados_orcam.data NÃO é criação: muda a cada salvamento.
+            'Criação': { chave: 'dados_orcam.data_registro', tipoPesquisa: 'data', tipoOrdenacao: 'datahora_br_com_virgula' },
             'Alteração': { chave: 'timestamp', tipoPesquisa: 'data', tipoOrdenacao: 'epoch' },
             'Usuário': { chave: 'usuario' },
             'Responsáveis': { chave: 'responsaveis' },
@@ -463,7 +464,7 @@ async function criarLinhaOrcamento(orcamento) {
             <div class="fin-tags-celula" name="tags" data-chips-orc data-orcamento="${esc(id)}">${tagsOrdenadas.map(chipTagOrcamento).join('') || '<span class="orc-tag-incluir">+ Tag</span>'}</div>
         </td>
         ${texto(lpu_ativa)}
-        <td class="orc-col-data">${esc(String(dados_orcam?.data || '').slice(0, 17))}</td>
+        <td class="orc-col-data">${esc(String(dados_orcam?.data_registro || '').slice(0, 17))}</td>
         <td class="orc-col-data">${esc(data)}</td>
         ${texto(usuario)}
         ${texto(responsaveis)}
@@ -838,7 +839,7 @@ async function baixarExcelOrcamentos() {
                 { titulo: 'LPU', largura: 16, valor: o => o.lpu_ativa || '' },
                 { titulo: 'Status', largura: 26, valor: o => lista(o.nomes_status) || 'SEM STATUS' },
                 { titulo: 'Tags', largura: 26, valor: o => (o.tags || []).map(t => t?.nome).filter(Boolean).join(', ') },
-                { titulo: 'Criação', largura: 13, tipo: 'data', valor: o => { const [d, m, a, h = 0, mi = 0] = String(o.dados_orcam?.data || '').match(/\d+/g) || []; return a ? new Date(a, m - 1, d, h, mi) : '' } },
+                { titulo: 'Criação', largura: 13, tipo: 'data', valor: o => { const [d, m, a, h = 0, mi = 0] = String(o.dados_orcam?.data_registro || '').match(/\d+/g) || []; return a ? new Date(a, m - 1, d, h, mi) : '' } },
                 { titulo: 'Última alteração', largura: 13, tipo: 'data', valor: o => o.timestamp ? new Date(Number(o.timestamp)) : '' },
                 { titulo: 'Usuário', largura: 16, valor: o => o.usuario || '' },
                 { titulo: 'Responsáveis', largura: 26, valor: o => lista(o.dados_orcam?.executor) },
