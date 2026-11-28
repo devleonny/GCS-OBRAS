@@ -120,7 +120,7 @@ async function telaOrcamentos() {
                     <div class="fin-barra">
                         ${podeCriar ? `<button type="button" onclick="painelEdicao()" title="Orçamentos em edição neste aparelho">${iconeFin('editar')} Em edição</button>` : ''}
                         ${podeExcel ? `<button type="button" onclick="baixarExcelOrcamentos()" title="Com orçamentos marcados, baixa só os marcados; sem marcação, todos os resultados dos filtros aplicados">${iconeFin('excel')} Baixar Excel</button>` : ''}
-                        <button type="button" data-tour-orc onclick="iniciarTour('orcamentos', TOUR_ORCAMENTOS)" title="Passo a passo das principais ferramentas desta tela">${iconeFin('ajuda')} Tour</button>
+                        <button type="button" class="tour-destaque" data-tour-orc onclick="iniciarTour('orcamentos', TOUR_ORCAMENTOS)" title="Passo a passo das principais ferramentas desta tela">${iconeFin('ajuda')} Tour</button>
                     </div>
                 </header>
                 <div class="fin-corpo${aberto ? '' : ' recolhido'}" data-corpo-orc>

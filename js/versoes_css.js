@@ -53,7 +53,7 @@ const VERSOES_CSS = {
     "tabelas-parceiro": "22c15cc9",
     "tabelas": "c7f23522",
     "tags_pagamentos": "3dd031a5",
-    "tour": "5b5fda40",
+    "tour": "e903a373",
     "veiculos": "501f0f13",
     "velocimetro": "2cfa4cff"
 }

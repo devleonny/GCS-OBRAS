@@ -84,3 +84,54 @@
 /* Alvo grande: retângulo arredondado no lugar da elipse. */
 .tour-foco.retangulo,
 .tour-foco.retangulo::after { border-radius: 14px; }
+
+/* Botão "Tour" das telas (28/11/2026): pílula clara com um brilho que percorre a borda de tempos em tempos,
+   como a etiqueta "especial" do menu (css/planos_diarios.css). .tour-destaque serve para qualquer botão. */
+.tour-botao {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    margin: 0 0 0 8px;
+    padding: 0 12px;
+    border: 1px solid #f0b57a;
+    border-radius: 999px;
+    background: #fff7ee;
+    color: #b45f06;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.tour-botao:hover { background: #ffedd9; border-color: #e47c0c; color: #8f4a03; }
+.tour-botao svg { width: 16px; height: 16px; flex: 0 0 auto; }
+
+.tour-botao,
+.tour-destaque { position: relative; }
+
+@property --angulo-tour-destaque { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+.tour-botao::after,
+.tour-destaque::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    padding: 2px;
+    pointer-events: none;
+    background: conic-gradient(from var(--angulo-tour-destaque), transparent 0deg 290deg, #ffb35c66 320deg, #e47c0c 343deg, #fff3e0 352deg, transparent 360deg);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    animation: tour-destaque-giro 6s linear infinite;
+}
+@keyframes tour-destaque-giro {
+    0%, 60% { --angulo-tour-destaque: 0deg; opacity: 0; }
+    63% { --angulo-tour-destaque: 0deg; opacity: 1; }
+    92% { --angulo-tour-destaque: 360deg; opacity: 1; }
+    96%, 100% { --angulo-tour-destaque: 360deg; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .tour-botao::after, .tour-destaque::after { animation: none; }
+}

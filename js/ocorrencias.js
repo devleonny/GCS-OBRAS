@@ -1063,9 +1063,14 @@ async function telaOcorrencias() {
     criarPesquisas()
     atualizarListasFiltrosOcorrencias().catch(erro => console.error(erro))
 
+    // Tour (js/tour_telas.js): botão no topo e primeira vez de cada usuário.
+    if (typeof botaoTourOcorrencias === 'function') botaoTourOcorrencias()
+
     await paginacao('ocorrencias')
 
     removerOverlay()
+
+    if (typeof tourPrimeiraVez === 'function') tourPrimeiraVez('ocorrencias', TOUR_OCORRENCIAS, { atraso: 900 })
 
 }
 

@@ -1080,6 +1080,8 @@ async function abrirEsquema(id) {
                             <img src="imagens/historico.png" alt="">
                             Histórico de status
                         </button>
+                        <button type="button" class="tour-botao" data-tour-historico onclick="iniciarTour('historico', TOUR_HISTORICO)"
+                            title="Passo a passo do histórico do orçamento">${typeof iconeTour === 'function' ? iconeTour() : ''} Tour</button>
                     </div>
                 </div>
 
@@ -1126,6 +1128,9 @@ async function abrirEsquema(id) {
         carregarLoteHistorico(painel, id)
         carregarLiberacaoHistorico(painel, id)
         await carregarVisaoHistorico(painel, visao)
+
+        // Tour do histórico (js/tour_telas.js): primeira vez de cada usuário.
+        if (typeof tourPrimeiraVez === 'function') tourPrimeiraVez('historico', TOUR_HISTORICO, { atraso: 700 })
 
     } catch (err) {
         console.error(err)
