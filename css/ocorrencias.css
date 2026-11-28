@@ -888,10 +888,19 @@
 
 .aba-novo-fluxo {
     align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     margin-left: 4px;
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 0.8rem;
+}
+
+.aba-novo-fluxo svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
 }
 
 /* Número do orçamento na aba (chamado com orçamentos vinculados: cada um com a sua aba). */

@@ -562,7 +562,7 @@ function carregarCorrecoes(ocorrencia) {
             <div class="toolbar-janela" id="janela_${idOcorrencia}">
                 <div class="toolbar-trilho" id="toolbarAbas">
                     ${abasHTML.join('')}
-                    ${correcoes ? `<button class="aba-novo-fluxo" onclick="formularioCorrecao('${idOcorrencia}', null, 'S')">+ Novo fluxo</button>` : ''}
+                    ${correcoes ? `<button class="aba-novo-fluxo" onclick="formularioCorrecao('${idOcorrencia}', null, 'S')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Novo fluxo</span></button>` : ''}
                 </div>
             </div>
 
