@@ -1354,6 +1354,8 @@ function criarLinhaOcorrencia(ocorrencia) {
         <div class="linha-orcamentos">
 
             ${botoes.join('')}
+            ${criarOrcamento}
+            ${vincularChamado}
 
         </div>
         <br>
@@ -1396,12 +1398,6 @@ function criarLinhaOcorrencia(ocorrencia) {
         <div id="${id}" class="div-linha ocorrencia-blocos-triangulo">
 
             <div class="bloco-linha">
-
-                ${(criarOrcamento || vincularChamado) ? `
-                <div class="linha-orcamentos">
-                    ${criarOrcamento}
-                    ${vincularChamado}
-                </div>` : ''}
 
                 ${spanNumOrcs}
 
