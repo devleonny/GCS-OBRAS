@@ -179,6 +179,65 @@ async function excluirOcorrenciaCorrecao(idOcorrencia, idCorrecao) {
 
 }
 
+function textoClienteDiferente({ nome, cidade, estado } = {}) {
+    // A cidade costuma vir como "OSASCO (SP)".
+    const local = [String(cidade || '').replace(/s*([A-Z]{2})s*$/, ''), estado].filter(Boolean).join('/')
+    return escaparAtributo(nome + (local ? ` (${local})` : ''))
+}
+
+// Cliente trocado no chamado/orçamento principal: os vinculados têm cliente próprio e só mudam se a pessoa
+// marcar (gcs /vinculados/trocar-cliente). troca = vinculadosCliente da resposta do /salvar.
+function perguntarVinculadosCliente(troca) {
+    if (!troca?.lista?.length) return
+    const { master, de, para, nomeDe, nomePara, lista } = troca
+    const chave = crypto.randomUUID()
+    const n = lista.length
+    const idPopup = popup({
+        titulo: 'Cliente dos vinculados',
+        modal: true,
+        elemento: `
+            <div class="troca-vinculados">
+                <p>O cliente do <b>${escaparAtributo(master)}</b> mudou de <b>${escaparAtributo(nomeDe)}</b> para <b>${escaparAtributo(nomePara)}</b>.</p>
+                <p>${n === 1 ? 'Há um orçamento vinculado' : `Há ${n} orçamentos vinculados`} com o cliente antigo. Trocar ${n === 1 ? 'nele' : 'neles'} também?</p>
+                ${lista.map(v => `
+                    <label>
+                        <input type="checkbox" value="${escaparAtributo(v.contrato)}" ${v.temNota ? '' : 'checked'}>
+                        <b>${escaparAtributo(v.contrato)}</b>
+                        ${v.temNota ? '<small>já tem nota emitida para o cliente antigo</small>' : ''}
+                    </label>`).join('')}
+            </div>`,
+        botoes: [
+            { id: `nao-${chave}`, texto: 'Não trocar', img: 'cancel', fechar: true },
+            { id: `sim-${chave}`, texto: 'Trocar nos marcados' }
+        ]
+    })
+    const botao = document.getElementById(`sim-${chave}`)
+    botao?.addEventListener('click', async () => {
+        const contratos = [...document.querySelectorAll(`[id="${idPopup}"] .troca-vinculados input:checked`)].map(i => i.value)
+        if (!contratos.length) return popup({ mensagem: 'Marque ao menos um orçamento ou escolha <b>Não trocar</b>.' })
+        if (botao.dataset.enviando) return
+        botao.dataset.enviando = 'S'
+        overlayAguarde()
+        try {
+            const { token } = JSON.parse(localStorage.getItem('acesso')) || {}
+            const resposta = await fetch(`${api}/vinculados/trocar-cliente`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ master, de, para, contratos })
+            })
+            const r = await resposta.json().catch(() => ({}))
+            if (!resposta.ok) throw new Error(r.mensagem || 'Não foi possível trocar o cliente dos vinculados.')
+            removerPopup(idPopup)
+            popup({ mensagem: `Cliente trocado em ${escaparAtributo((r.trocados || []).join(', ') || 'nenhum orçamento')}.`, imagem: 'imagens/concluido.png' })
+        } catch (erro) {
+            popup({ mensagem: escaparAtributo(erro.message) })
+        } finally {
+            delete botao.dataset.enviando
+            removerOverlay()
+        }
+    })
+}
+
 function carregarCorrecoes(ocorrencia) {
 
     const modelo = (valor1, valor2) => {
@@ -198,6 +257,9 @@ function carregarCorrecoes(ocorrencia) {
     const { abas } = snapshots || {}
     // Chamado com vinculados: a pílula do orçamento principal fica laranja na aba.
     const contratoPrincipal = (snapshots?.orcamentos || []).find(o => o.master)?.contrato || null
+    // Vinculado com cliente diferente do principal: avisado na aba (vw_dados_ocorrencias).
+    const clientesDiferentes = acesso?.permissao === 'cliente' ? {} : Object.fromEntries((ocorrencia?.contratos_vinculados || [])
+        .filter(v => v?.cliente_diferente?.nome).map(v => [v.contrato, textoClienteDiferente(v.cliente_diferente)]))
     const divsCorrecoesPorAba = {}
 
     // Organizado com a última correção primeiro;
@@ -444,9 +506,14 @@ function carregarCorrecoes(ocorrencia) {
                 id="aba_${idOcorrencia}_${aba}" 
                 onclick="exibirAba('${idOcorrencia}', '${aba}')"
                 data-orcamento="${abas?.[aba]?.orcamento || ''}"
-                class="aba-correcao${aba == abaInicial ? ' ativa' : ''}">${abas?.[aba]?.orcamento ? rotuloOrcamentoAba(abas[aba].orcamento, abas[aba].orcamento === contratoPrincipal) : ''}${formatacaoTipoCorrecao(st)}</div>`
+                class="aba-correcao${aba == abaInicial ? ' ativa' : ''}">${abas?.[aba]?.orcamento ? rotuloOrcamentoAba(abas[aba].orcamento, abas[aba].orcamento === contratoPrincipal) : ''}${clientesDiferentes[abas?.[aba]?.orcamento] ? `<span class="aba-cliente-diferente" title="Cliente diferente do principal: ${clientesDiferentes[abas[aba].orcamento]}">${clientesDiferentes[abas[aba].orcamento]}</span>` : ''}${formatacaoTipoCorrecao(st)}</div>`
         })
     )]
+
+    for (const [aba, lista] of Object.entries(divsCorrecoesPorAba)) {
+        const cliente = clientesDiferentes[abas?.[aba]?.orcamento]
+        if (cliente) lista.unshift(`<div class="aviso-cliente-diferente">Atenção: o ${escaparAtributo(abas[aba].orcamento)} é de outro cliente: <b>${cliente}</b></div>`)
+    }
 
     const detalhamentos = Object.entries(divsCorrecoesPorAba)
         .map(([aba, corrHTML]) => abaCorrecao({ idOcorrencia, aba, corrHTML, abaInicial }))
@@ -1196,7 +1263,7 @@ function criarLinhaOcorrencia(ocorrencia) {
         .sort((a, b) => (b.contrato === id) - (a.contrato === id) || String(a.contrato).localeCompare(String(b.contrato)))
     const variosOrcs = listaOrcs.length > 1
     const abasSnap = ocorrencia?.snapshots?.abas || {}
-    const noOrcamento = ({ contrato, id_orcamento }, principal) => {
+    const noOrcamento = ({ contrato, id_orcamento, cliente_diferente }, principal) => {
         const btns = apenasAutorizados && id_orcamento
             ? `
                 <span class="arvore-icone" title="Atalhos do orçamento" onclick="event.stopPropagation(); abrirAtalhos('${id_orcamento}')">
@@ -1218,6 +1285,7 @@ function criarLinhaOcorrencia(ocorrencia) {
                 ${variosOrcs ? `onclick="filtrarAbasOrcamento('${id}', '${contrato}', this)" title="Mostrar só as abas de ${contrato}"` : ''}>
                 ${rotuloOrcamentoAba(contrato, principal && variosOrcs)}
                 ${principal && variosOrcs ? '<span class="arvore-tag">principal</span>' : ''}
+                ${cliente_diferente?.nome && acesso?.permissao !== 'cliente' ? `<span class="aba-cliente-diferente" title="Cliente diferente do principal">${textoClienteDiferente(cliente_diferente)}</span>` : ''}
                 ${statusHTML}
                 ${btns}
             </div>`
@@ -3693,6 +3761,7 @@ async function salvarOcorrencia(idOcorrencia) {
         removerPopup(modal?.id)
         if (document.querySelector('.painel-historico'))
             await checklistChamado()
+        perguntarVinculadosCliente(resposta.vinculadosCliente)
         return
     }
 

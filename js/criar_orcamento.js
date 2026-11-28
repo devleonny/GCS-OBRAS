@@ -1152,7 +1152,7 @@ async function enviarDadosOrcamento() {
         if (origem?.idOcorrencia)
             orcamentoFinal.origem_chamado = { id: origem.idOcorrencia }
 
-        const { success, chamado: chamadoLigado, mensagem: mensagemFalha } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoFinal) || {}
+        const { success, chamado: chamadoLigado, mensagem: mensagemFalha, vinculadosCliente } = await enviar(`dados_orcamentos/${orcamentoBase.id}`, orcamentoFinal) || {}
 
         if (success) {
 
@@ -1193,6 +1193,7 @@ async function enviarDadosOrcamento() {
             }
 
             criarMenus('inicial')
+            perguntarVinculadosCliente(vinculadosCliente)
 
         } else {
 

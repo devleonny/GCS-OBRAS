@@ -2158,3 +2158,42 @@
     border-color: #f0b57a;
     background: #fff7ee;
 }
+
+/* Vinculado com cliente diferente do principal. */
+.aba-cliente-diferente {
+    display: block;
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #8a4b00;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: left;
+}
+
+.aviso-cliente-diferente {
+    box-sizing: border-box;
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    border-left: 4px solid #e08a00;
+    border-radius: 6px;
+    background: #fff4e0;
+    color: #6b3b00;
+    font-size: 0.85rem;
+    text-align: left;
+}
+
+.troca-vinculados {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: min(520px, 84vw);
+    padding: 12px;
+    text-align: left;
+}
+
+.troca-vinculados p { margin: 0; }
+.troca-vinculados label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.troca-vinculados small { color: #b00020; }

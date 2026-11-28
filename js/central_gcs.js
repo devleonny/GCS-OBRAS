@@ -1861,6 +1861,7 @@ async function salvarDadosCliente(idOrcamento) {
             if (!salvo || salvo.mensagem)
                 return popup({ mensagem: salvo?.mensagem || 'Falha ao salvar os dados' })
             await abrirAtalhos(idOrcamento)
+            perguntarVinculadosCliente(salvo.vinculadosCliente)
 
         } else {
 
